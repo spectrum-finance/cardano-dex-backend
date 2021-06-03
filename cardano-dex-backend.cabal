@@ -44,6 +44,7 @@ library
     
     exposed-modules: Dex.Models.Rosetta.Request.BlockRequest
                      Dex.Models.Rosetta.Response.BlockResponse
+                     Dex.Contract.Integration
                      Dex.GetBlock
 
     build-depends: bytestring ^>=0.10.12.0,
