@@ -1,0 +1,67 @@
+cabal-version:      2.4
+name:               cardano-dex-backend
+version:            0.1.0.0
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             ErgoLabs
+maintainer:         
+
+-- A copyright notice.
+-- copyright:
+-- category:
+extra-source-files: CHANGELOG.md
+
+common base
+  build-depends: base >= 4.9 && < 5
+
+common project-config
+  default-language:     Haskell2010
+
+  default-extensions:   OverloadedStrings
+
+  ghc-options:          -Wall
+                        -Wcompat
+                        -Wincomplete-record-updates
+                        -Wincomplete-uni-patterns
+                        -Wpartial-fields
+                        -Wredundant-constraints
+                        -Wunused-packages
+
+library
+    import:               base, project-config
+
+    hs-source-dirs:       src
+    
+    exposed-modules: Dex.Models.Rosetta.Request.BlockRequest
+                     Dex.Models.Rosetta.Response.BlockResponse
+                     Dex.GetBlock
+
+    build-depends: bytestring ^>=0.10.12.0,
+        http-conduit,
+        aeson,
+        containers,
+        req,
+        text
+
+executable cardano-dex-backend
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends: base >= 4.9 && < 5,
+        cardano-dex-backend
+    hs-source-dirs:   app
+    default-language: Haskell2010
