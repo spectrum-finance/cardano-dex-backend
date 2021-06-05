@@ -7,31 +7,22 @@ module Dex.Models.Rosetta.Request.BlockRequest
     ) where
 
 import GHC.Generics
-import qualified Data.Text as T
-import           Data.Aeson            (FromJSON, ToJSON)
+import Data.Aeson 
+import RIO
+import Data.Aeson.Casing  
 
-data NetworkIdentifier = NetworkIdentifier { 
-    blockchain :: T.Text,
-    network :: T.Text
-} deriving (Generic, Show)
+data NetworkIdentifier = NetworkIdentifier 
+    { blockchain :: Text
+    , network :: Text
+    } deriving (Generic, Show, ToJSON)
 
-instance ToJSON NetworkIdentifier where
+newtype BlockIdentifier = BlockIdentifier 
+    { index :: Int } deriving (Show, Generic, ToJSON)
 
-instance FromJSON NetworkIdentifier where
-
-newtype BlockIdentifier = BlockIdentifier {
-    index :: Int
-} deriving (Show, Generic)
-
-instance ToJSON BlockIdentifier where
-
-instance FromJSON BlockIdentifier where
-
-data BlockRequest = BlockRequest {
-    networkIdentifier :: NetworkIdentifier,
-    blockIdentifier :: BlockIdentifier
-} deriving (Show, Generic)
+data BlockRequest = BlockRequest 
+    { networkIdentifier :: NetworkIdentifier
+    , blockIdentifier :: BlockIdentifier 
+    } deriving (Show, Generic)
 
 instance ToJSON BlockRequest where
-
-instance FromJSON BlockRequest where
+    toJSON = genericToJSON $ aesonDrop 0 snakeCase

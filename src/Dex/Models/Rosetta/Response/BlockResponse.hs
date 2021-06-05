@@ -4,38 +4,36 @@ module Dex.Models.Rosetta.Response.BlockResponse
     (BlockResponse(..)) where
 
 import GHC.Generics
-import qualified Data.Text as T
-import           Data.Aeson            (FromJSON, ToJSON)
+import Data.Aeson  
+import Data.Aeson.Types     
+import Data.Aeson.Casing       
+import RIO
 
-data BlockIdentifier = BlockIdentifier {
-    hash :: T.Text,
-    index :: Int
-} deriving (Show, Generic)
 
-instance ToJSON BlockIdentifier where
+data BlockIdentifier = BlockIdentifier 
+    { hash :: Text
+    , index :: Int
+    } deriving (Show, Generic, FromJSON)
 
-instance FromJSON BlockIdentifier where
+data Metadata = Metadata 
+    { createdBy :: Text
+    , epochNo :: Int
+    , size :: Int
+    , slotNo :: Int
+    , transactionsCount :: Int
+    } deriving (Show, Generic, FromJSON)
 
-data Metadata = Metadata {
-    createdBy :: T.Text,
-    epochNo :: Int,
-    size :: Int,
-    slotNo :: Int,
-    transactionsCount :: Int
-}  deriving (Show, Generic)
+data Block = Block
+    { blockIdentifier :: BlockIdentifier
+    , parentBlockIdentifier :: BlockIdentifier
+    , timestamp :: Int
+    , transactions :: [Text]
+    , metadata :: Metadata
+    } deriving (Show, Generic)
 
-instance ToJSON Metadata where
+instance FromJSON Block where        
+    parseJSON = genericParseJSON $ aesonDrop 0 snakeCase
 
-instance FromJSON Metadata where
-
-data BlockResponse = BlockResponse {
-    blockIdentifier :: BlockIdentifier,
-    metadata :: Metadata,
-    parantBlockIdentifier :: BlockIdentifier,
-    timestamp :: Int,
-    transactions :: [T.Text]
-} deriving (Show, Generic)
-
-instance ToJSON BlockResponse where
-
-instance FromJSON BlockResponse where
+-- todo: add failed response model
+data BlockResponse = BlockResponse
+    { block :: Block } deriving (Show, Generic, FromJSON)
