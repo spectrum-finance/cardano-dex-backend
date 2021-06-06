@@ -76,6 +76,7 @@ common project-config
                         -Wredundant-constraints
                         -Wunused-packages
                         -Widentities
+                        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
 
 library
     import:               base, project-config
@@ -92,7 +93,11 @@ library
         http-conduit,
         aeson,
         rio,
-        aeson-casing
+        aeson-casing,
+        plutus-contract,
+        plutus-tx-plugin,
+        plutus-tx,
+        plutus-ledger
 
 executable cardano-dex-backend
     main-is:          Main.hs
