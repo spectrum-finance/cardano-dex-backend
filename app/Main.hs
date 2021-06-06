@@ -1,11 +1,13 @@
 module Main where
 
-import Dex.GetBlock
-import Dex.Models.Rosetta.Response.BlockResponse
+import Dex.BlocksProcessor
+import Dex.Models.Rosetta.Response.BlockResponse (BlockResponse)
 import RIO
 import RIO.Text as T
+import RIO.Map as Map
+import RIO.Map (Map)
 
 main :: IO ()
 main = do
-    res <- getBlock  2646191
-    print res
+    ref <- newIORef $ (Map.fromList [] :: Map Text BlockResponse)
+    run 0 ref
