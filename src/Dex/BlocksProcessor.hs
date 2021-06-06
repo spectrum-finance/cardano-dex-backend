@@ -4,7 +4,7 @@ module Dex.BlocksProcessor
 import Prelude (print)
 import Dex.GetBlock
 import Dex.Models.Rosetta.Response.BlockResponse (BlockResponse)
-import Dex.Models.AppSettings
+import Dex.Models.AppSettings (AppSettings)
 import RIO
 import RIO.Map as Map
 import RIO.Map (Map)
@@ -14,7 +14,7 @@ import Plutus.Contract.Schema ()
 -- add cache (redis) in case to store last max height and current unused outputs
 -- check if txn's outputs contain datum hash with proxy contract
 -- check if sent txn is in chain and remove used output
-run :: Int -> IORef (Map Text BlockResponse) -> RIO HttpSettings ()
+run :: Int -> IORef (Map Text BlockResponse) -> RIO AppSettings ()
 run height ref = do
     r <- getBlock height
     _ <- liftIO $ print r

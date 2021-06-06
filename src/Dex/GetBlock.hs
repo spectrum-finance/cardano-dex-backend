@@ -2,7 +2,7 @@ module Dex.GetBlock
     (getBlock) where
 
 import Dex.Models.Rosetta.Response.BlockResponse (BlockResponse)
-import Dex.Models.AppSettings (HttpSettings(..))
+import Dex.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
 import Dex.Models.Rosetta.Request.BlockRequest  
     ( BlockRequest(..)
     , NetworkIdentifier(..)
@@ -13,9 +13,9 @@ import RIO
 import RIO.Text as T
 import Prelude (print)
 
-getBlock :: Int -> RIO HttpSettings BlockResponse 
+getBlock :: HasHttpSettings env => Int -> RIO env BlockResponse 
 getBlock height = do
-    settings <- ask
+    settings <- view httpSettingsL
     let body = BlockRequest 
             (NetworkIdentifier (blockchainIdentifierS settings) 
             (networkIdentifierS settings)) $ BlockIdentifier height
@@ -25,6 +25,6 @@ getBlock height = do
             & HTTP.setRequestPath "/block"
             & HTTP.setRequestMethod "POST"
             & HTTP.setRequestBodyJSON body
-    r <- HTTP.httpJSON req :: RIO HttpSettings (HTTP.Response BlockResponse)
+    r <- HTTP.httpJSON req :: RIO env (HTTP.Response BlockResponse)
     let response = HTTP.getResponseBody r
     liftIO $ pure response
