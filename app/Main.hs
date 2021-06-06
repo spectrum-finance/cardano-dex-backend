@@ -7,5 +7,5 @@ import RIO.Text as T
 
 main :: IO ()
 main = do
-    res <- getBlock 1 -- 2646191
+    res <- getBlock  2646191
     print res
