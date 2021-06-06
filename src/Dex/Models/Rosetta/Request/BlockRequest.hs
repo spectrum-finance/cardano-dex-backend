@@ -26,3 +26,4 @@ data BlockRequest = BlockRequest
 
 instance ToJSON BlockRequest where
     toJSON = genericToJSON $ aesonDrop 0 snakeCase
+    
