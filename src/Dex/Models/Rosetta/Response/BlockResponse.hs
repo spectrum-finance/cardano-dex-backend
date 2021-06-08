@@ -4,38 +4,123 @@ module Dex.Models.Rosetta.Response.BlockResponse
     (BlockResponse(..)) where
 
 import GHC.Generics
-import qualified Data.Text as T
-import           Data.Aeson            (FromJSON, ToJSON)
+import Data.Aeson  
+import Data.Aeson.Types     
+import Data.Aeson.Casing       
+import RIO
+import RIO.Text
+import RIO.Char as C
 
-data BlockIdentifier = BlockIdentifier {
-    hash :: T.Text,
-    index :: Int
-} deriving (Show, Generic)
 
-instance ToJSON BlockIdentifier where
+data BlockIdentifier = BlockIdentifier 
+    { hash :: Text
+    , index :: Int
+    } deriving (Show, Generic, FromJSON)
 
-instance FromJSON BlockIdentifier where
+data Metadata = Metadata 
+    { createdBy :: Text
+    , epochNo :: Int
+    , size :: Int
+    , slotNo :: Int
+    , transactionsCount :: Int
+    } deriving (Show, Generic, FromJSON)
 
-data Metadata = Metadata {
-    createdBy :: T.Text,
-    epochNo :: Int,
-    size :: Int,
-    slotNo :: Int,
-    transactionsCount :: Int
-}  deriving (Show, Generic)
+data Block = Block
+    { blockIdentifier :: BlockIdentifier
+    , parentBlockIdentifier :: BlockIdentifier
+    , timestamp :: Int
+    , transactions :: [Transaction]
+    , metadata :: Metadata
+    } deriving (Show, Generic)
 
-instance ToJSON Metadata where
+instance FromJSON Block where        
+    parseJSON = genericParseJSON $ aesonDrop 0 snakeCase
 
-instance FromJSON Metadata where
+-- todo: add failed response model
+data BlockResponse = BlockResponse
+    { block :: Block } deriving (Show, Generic, FromJSON)
 
-data BlockResponse = BlockResponse {
-    blockIdentifier :: BlockIdentifier,
-    metadata :: Metadata,
-    parantBlockIdentifier :: BlockIdentifier,
-    timestamp :: Int,
-    transactions :: [T.Text]
-} deriving (Show, Generic)
+data Transaction = Transaction
+    { transactionIdentifier :: TransactionIdentifier
+    , operations :: [TransactionOperation]
+    } deriving (Show, Generic)
 
-instance ToJSON BlockResponse where
+instance FromJSON Transaction where        
+    parseJSON = genericParseJSON $ aesonDrop 0 snakeCase
 
-instance FromJSON BlockResponse where
+data TransactionIdentifier = TransactionIdentifier
+    { txnHash :: Text } deriving (Show, Generic)
+
+instance FromJSON TransactionIdentifier where        
+    parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+data IntputOperationIdentifier = IntputOperationIdentifier
+    { inputIndex :: Int } deriving (Show, Generic)
+
+instance FromJSON IntputOperationIdentifier where        
+    parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+data Account = Account
+    { address :: Text } deriving (Show, Generic, FromJSON)
+
+data Currency = Currency
+    { symbol :: Text
+    , decimals :: Int 
+    } deriving (Show, Generic, FromJSON)
+
+data Amount = Amount
+    { value :: Text
+    , currency :: Currency 
+    } deriving (Show, Generic, FromJSON)
+
+data CoinIdentifier = CoinIdentifier
+    { identifier :: Text }  deriving (Show, Generic)
+
+instance FromJSON CoinIdentifier where        
+    parseJSON = genericParseJSON $ aesonDrop 0 snakeCase
+
+data CoinChange = CoinChange
+    { coinIdentifier :: CoinIdentifier
+    , coinAction :: Text
+    } deriving (Show, Generic)
+
+instance FromJSON CoinChange where        
+    parseJSON = genericParseJSON $ aesonDrop 0 snakeCase
+
+data OutputOperationIdentifier = OutputOperationIdentifier
+    { outputIndex :: Int
+    , outputNetworkIndex :: Int
+    } deriving (Show, Generic)
+
+instance FromJSON OutputOperationIdentifier where        
+    parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+data OutputRelatedOperations = OutputRelatedOperations
+    { opIndex :: Int } deriving (Show, Generic)
+
+instance FromJSON OutputRelatedOperations where        
+    parseJSON = genericParseJSON $ aesonPrefix snakeCase
+
+data TransactionOperation = 
+    Input
+        { intputOperationIdentifier :: IntputOperationIdentifier
+        , inputStatus :: Text
+        , inputAccount :: Account
+        , inputAmount :: Amount
+        , inputCoinChange :: CoinChange
+        } | 
+    Output
+        { outputCoinChange :: CoinChange
+        , outputAmount :: Amount
+        , outputAccount :: Account
+        , outputStatus :: Text
+        , outputOperationIdentifier :: OutputOperationIdentifier
+        , outputRelatedOperations :: [OutputRelatedOperations]
+        } deriving (Show, Generic)
+
+instance FromJSON TransactionOperation where        
+    parseJSON = genericParseJSON $ 
+        (aesonPrefix snakeCase) 
+            { sumEncoding = TaggedObject { tagFieldName = "type" } 
+            , constructorTagModifier = fmap C.toLower
+            }
