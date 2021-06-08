@@ -83,11 +83,9 @@ library
 
     hs-source-dirs:       src
     
-    exposed-modules: Dex.Models.Rosetta.Request.BlockRequest
-                     Dex.Models.Rosetta.Response.BlockResponse
-                     Dex.Contract.Integration
-                     Dex.GetBlock
-                     Dex.BlocksProcessor
+    exposed-modules: Dex.Contract.Integration
+                     Dex.HttpClient
+                     Dex.TxOutsProcessor
                      Dex.Models.AppSettings
 
     build-depends: bytestring ^>=0.10.12.0,
@@ -95,10 +93,7 @@ library
         aeson,
         rio,
         aeson-casing,
-        plutus-contract,
-        plutus-tx-plugin,
-        plutus-tx,
-        plutus-ledger
+        plutus-ledger-api
 
 executable cardano-dex-backend
     main-is:          Main.hs
