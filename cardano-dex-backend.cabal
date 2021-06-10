@@ -89,10 +89,6 @@ library
         text,
         containers,
         bytestring,
-        plutus-contract,
-        plutus-tx-plugin,
-        plutus-tx,
-        plutus-ledger,
         plutus-ledger-api
 
 executable cardano-dex-backend
