@@ -35,13 +35,20 @@ import Data.Conduit.Binary as B
 --             & HTTP.setRequestMethod "GET"
 --     r <- HTTP.httpJSON req :: RIO env (HTTP.Response ApiTxOut)
 --     liftIO $ pure $ HTTP.getResponseBody r
+--  sinkFile :: MonadResource m => FilePath -> ConduitT ByteString o m ()
+
+--  mapM_ :: Monad m => (Word8 -> m ()) -> ConduitT ByteString o m ()
+
+-- test :: ConduitT ByteString o IO ()
+-- test = B.mapM_ liftprint
+
 
 getUnspendOutsStream :: IO ()
 getUnspendOutsStream = runReq defaultHttpConfig $ do
     -- settings <- view httpSettingsL
     -- let path = "api" /: "v0" /: "tx" /: "outs" /: "unspent"
     -- (hostS settings ++ ":" ++ hostS settings) /: path
-    let url = http "0.0.0.0:8081/api/v0/tx/outs/unspent"
+    let url = http "0.0.0.0:8081" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
     reqBr GET url NoReqBody mempty $ \r ->
-        runConduitRes $
-            (responseBodySource r) .| sinkFile "test.txt"
+        runConduit $
+            (responseBodySource r .| B.mapM_ print)
