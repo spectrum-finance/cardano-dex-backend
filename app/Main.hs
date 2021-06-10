@@ -20,6 +20,6 @@ main = do
 
 readSettings :: IO AppSettings
 readSettings = do
-    let httpSs = HttpSettings (T.pack "0.0.0.0") 8081 (T.pack "testnet") (T.pack "cardano")
+    let httpSs = HttpSettings "0.0.0.0" "8081" 
         blockRequestS = BlockRequestSettings 10
     pure $ AppSettings httpSs blockRequestS

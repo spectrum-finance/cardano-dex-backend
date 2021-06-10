@@ -11,10 +11,8 @@ import RIO.Text
 import RIO
 
 data HttpSettings = HttpSettings
-    { hostS :: Text
-    , portS :: Int
-    , networkIdentifierS :: Text
-    , blockchainIdentifierS :: Text
+    { hostS :: String
+    , portS :: String
     } deriving (Show)
 
 data BlockRequestSettings = BlockRequestSettings

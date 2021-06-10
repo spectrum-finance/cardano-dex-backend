@@ -89,6 +89,12 @@ library
         text,
         containers,
         bytestring,
+        streamly,
+        req,
+        conduit,
+        data-default-class,
+        req-conduit,
+        conduit-extra,
         plutus-ledger-api
 
 executable cardano-dex-backend

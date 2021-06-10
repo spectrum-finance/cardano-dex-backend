@@ -32,6 +32,7 @@ extra-deps:
   - lazysmallcheck-0.6
   - row-types-0.4.0.0
   - time-interval-0.1.1
+  - streamly-0.7.3@sha256:5c528f670e7313a71971bae465fa04db5f7016471a3edb88eb53c272539970b9,28284
   - git: https://github.com/input-output-hk/plutus.git
     commit: 03a95411238225db1d10288fbd3b405f5f53c78b
     subdirs:
