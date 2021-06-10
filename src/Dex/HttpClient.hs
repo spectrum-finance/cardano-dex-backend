@@ -5,17 +5,28 @@ module Dex.HttpClient
     ) where
 
 import Dex.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
-import qualified Network.HTTP.Simple as HTTP
-import RIO
-import RIO.Text as T
-import Dex.Models.ApiTxOut
-import Conduit
+import RIO ( ($), Either, view, String, RIO )
+import Dex.Models.ApiTxOut ( ApiTxOut )
+import Conduit ( (.|), runConduit )
 import Network.HTTP.Req
-import Network.HTTP.Req.Conduit
-import Network.HTTP.Req ( reqBr, GET(GET), NoReqBody(NoReqBody) )
-import Prelude(print)
-import Data.Default.Class
-import Data.Conduit.Binary as B
+    ( (/:),
+      defaultHttpConfig,
+      http,
+      port,
+      reqBr,
+      runReq,
+      GET(GET),
+      NoReqBody(NoReqBody) )
+import Network.HTTP.Req.Conduit ( responseBodySource )
+import Prelude as P (print)
+import Data.Default.Class ()
+import Data.Conduit.Binary as B ()
+import Text.URI ()
+import Data.Aeson ( eitherDecode )
+import Data.Conduit.Combinators as C ( map, mapM_ )
+import RIO.ByteString.Lazy ( fromStrict )
+import qualified RIO.ByteString.Lazy as BL
+import RIO.Text as T ( pack )
 
 -- ---------- Types declaration ----------
 
@@ -23,32 +34,14 @@ import Data.Conduit.Binary as B
 
 -- ---------- Module api -----------------
 
--- Use stream api in the future
-
--- getUnspendOuts :: HasHttpSettings env => RIO env ApiTxOut
--- getUnspendOuts = do
---     settings <- view httpSettingsL
---     let req = HTTP.defaultRequest
---             & HTTP.setRequestHost (T.encodeUtf8 $ hostS settings)
---             & HTTP.setRequestPort (portS settings)
---             & HTTP.setRequestPath "/api/v0/tx/outs/unspent"
---             & HTTP.setRequestMethod "GET"
---     r <- HTTP.httpJSON req :: RIO env (HTTP.Response ApiTxOut)
---     liftIO $ pure $ HTTP.getResponseBody r
---  sinkFile :: MonadResource m => FilePath -> ConduitT ByteString o m ()
-
---  mapM_ :: Monad m => (Word8 -> m ()) -> ConduitT ByteString o m ()
-
--- test :: ConduitT ByteString o IO ()
--- test = B.mapM_ liftprint
-
-
-getUnspendOutsStream :: IO ()
-getUnspendOutsStream = runReq defaultHttpConfig $ do
-    -- settings <- view httpSettingsL
-    -- let path = "api" /: "v0" /: "tx" /: "outs" /: "unspent"
-    -- (hostS settings ++ ":" ++ hostS settings) /: path
-    let url = http "0.0.0.0:8081" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
-    reqBr GET url NoReqBody mempty $ \r ->
-        runConduit $
-            (responseBodySource r .| B.mapM_ print)
+getUnspendOutsStream :: HasHttpSettings env => RIO env ()
+getUnspendOutsStream = do
+    settings <- view httpSettingsL
+    runReq defaultHttpConfig $ do
+        let url = http (T.pack $ hostS settings) /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
+        reqBr GET url NoReqBody (port $ portS settings) $ \r ->
+            runConduit $ 
+                responseBodySource r
+                    .| C.map fromStrict
+                    .| C.map (eitherDecode :: BL.ByteString -> Either String ApiTxOut)
+                    .| C.mapM_ P.print

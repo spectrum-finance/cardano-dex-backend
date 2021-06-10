@@ -7,10 +7,10 @@ module Dex.Models.ApiTxOut
     , ApiTokenName(..)
     ) where
 
-import RIO.Text
-import RIO
-import Data.Aeson
-import GHC.Generics
+import RIO.Text ( Text )
+import RIO ( Show, Generic, Int, Maybe )
+import Data.Aeson ( FromJSON )
+import GHC.Generics ()
 
 data ApiTxOut = ApiTxOut
     { txOutAddress :: ApiAddr

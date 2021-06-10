@@ -20,6 +20,6 @@ main = do
 
 readSettings :: IO AppSettings
 readSettings = do
-    let httpSs = HttpSettings "0.0.0.0" "8081" 
+    let httpSs = HttpSettings "0.0.0.0" 8081 
         blockRequestS = BlockRequestSettings 10
     pure $ AppSettings httpSs blockRequestS

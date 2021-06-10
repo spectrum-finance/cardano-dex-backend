@@ -8,7 +8,7 @@ import RIO
 
 run :: Int -> IORef (Map Text ()) -> RIO AppSettings ()
 run height ref = do
-    r <- liftIO getUnspendOutsStream
+    r <- getUnspendOutsStream
     liftIO $ print r
     
     

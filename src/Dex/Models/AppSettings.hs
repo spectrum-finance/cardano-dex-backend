@@ -7,12 +7,11 @@ module Dex.Models.AppSettings
     , HasAppSettings(..)
     ) where
 
-import RIO.Text
-import RIO
+import RIO ( Show, Int, id, lens, String, Lens' )
 
 data HttpSettings = HttpSettings
     { hostS :: String
-    , portS :: String
+    , portS :: Int
     } deriving (Show)
 
 data BlockRequestSettings = BlockRequestSettings

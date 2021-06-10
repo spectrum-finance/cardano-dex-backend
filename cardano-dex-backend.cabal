@@ -95,6 +95,7 @@ library
         data-default-class,
         req-conduit,
         conduit-extra,
+        modern-uri,
         plutus-ledger-api
 
 executable cardano-dex-backend
