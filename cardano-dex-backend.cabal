@@ -2,24 +2,14 @@ cabal-version:      2.4
 name:               cardano-dex-backend
 version:            0.1.0.0
 
--- A short (one-line) description of the package.
--- synopsis:
-
--- A longer description of the package.
--- description:
-
--- A URL where users can report bugs.
--- bug-reports:
-
--- The license under which the package is released.
--- license:
 author:             ErgoLabs
 maintainer:         
 
--- A copyright notice.
--- copyright:
--- category:
 extra-source-files: CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/hello
 
 common base
   build-depends: base >= 4.9 && < 5
@@ -79,30 +69,34 @@ common project-config
                         -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
 
 library
-    import:               base, project-config
+    import: base, project-config
 
-    hs-source-dirs:       src
+    hs-source-dirs: src
     
     exposed-modules: Dex.Contract.Integration
                      Dex.HttpClient
                      Dex.TxOutsProcessor
                      Dex.Models.AppSettings
+                     Dex.Models.ApiTxOut
+                    --  Dex.ModelsConverter
 
-    build-depends: bytestring ^>=0.10.12.0,
+    build-depends: 
+        bytestring ^>=0.10.12.0,
         http-conduit,
         aeson,
         rio,
         aeson-casing,
+        text,
+        containers,
+        bytestring,
+        plutus-contract,
+        plutus-tx-plugin,
+        plutus-tx,
+        plutus-ledger,
         plutus-ledger-api
 
 executable cardano-dex-backend
-    main-is:          Main.hs
-
-    -- Modules included in this executable, other than Main.
-    -- other-modules:
-
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
+    main-is: Main.hs
     build-depends: base >= 4.9 && < 5,
         cardano-dex-backend,
         rio

@@ -1,0 +1,40 @@
+module Dex.Models.ApiTxOut
+    ( ApiTxOut(..)
+    , ApiAddr(..)
+    , ApiContents(..)
+    , ApiValue(..)
+    , ApiCurrencySymbol(..)
+    , ApiTokenName(..)
+    ) where
+
+import RIO.Text
+import RIO
+import Data.Aeson
+import GHC.Generics
+
+data ApiTxOut = ApiTxOut
+    { txOutAddress :: ApiAddr
+    , txOutValue :: ApiValue
+    , txOutDatumHash :: Maybe Text
+    } deriving (Generic, FromJSON, Show)
+
+data ApiAddr = ApiAddr
+    { addressStakingCredential :: Maybe Text
+    , contents :: ApiContents
+    } deriving (Generic, FromJSON, Show)
+
+data ApiContents = ApiContents
+    { getPubKeyHash :: Text 
+    } deriving (Generic, FromJSON, Show)
+
+data ApiValue = ApiValue
+    { getValue :: [(ApiCurrencySymbol, [(ApiTokenName, Int)])] 
+    } deriving (Generic, FromJSON, Show)
+
+newtype ApiCurrencySymbol = ApiCurrencySymbol 
+    { unCurrencySymbol :: Text 
+    } deriving (Generic, FromJSON, Show)
+
+newtype ApiTokenName = ApiTokenName
+    { unTokenName :: Text 
+    } deriving (Generic, FromJSON, Show)
