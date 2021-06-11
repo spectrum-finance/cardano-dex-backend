@@ -1,22 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Dex.HttpClient 
-    ( getUnspendOutsStream 
-    ) where
+    ( getUnspentOuts ) where
 
 import Dex.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
-import RIO ( ($), Either, view, String, RIO )
+import RIO
 import Dex.Models.ApiTxOut ( ApiTxOut )
 import Conduit ( (.|), runConduit )
 import Network.HTTP.Req
-    ( (/:),
-      defaultHttpConfig,
-      http,
-      port,
-      reqBr,
-      runReq,
-      GET(GET),
-      NoReqBody(NoReqBody) )
 import Network.HTTP.Req.Conduit ( responseBodySource )
 import Prelude as P (print)
 import Data.Default.Class ()
@@ -34,11 +23,24 @@ import RIO.Text as T ( pack )
 
 -- ---------- Module api -----------------
 
-getUnspendOutsStream :: HasHttpSettings env => RIO env ()
-getUnspendOutsStream = do
+-- Get current unspent boxes from the chain --
+getUnspentOuts :: HasHttpSettings env => RIO env [ApiTxOut]
+getUnspentOuts = do
     settings <- view httpSettingsL
     runReq defaultHttpConfig $ do
         let url = http (T.pack $ hostS settings) /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
+        r <- req GET url NoReqBody jsonResponse (port $ portS settings)
+        let body = responseBody r :: [ApiTxOut]
+        pure body
+
+-- ---------- Experimental feature -------
+
+-- Stream current unspent boxes from the chain --
+getUnspentOutsStream :: HasHttpSettings env => RIO env ()
+getUnspentOutsStream = do
+    settings <- view httpSettingsL
+    runReq defaultHttpConfig $ do
+        let url = http (T.pack $ hostS settings) /: "experimental" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
         reqBr GET url NoReqBody (port $ portS settings) $ \r ->
             runConduit $ 
                 responseBodySource r
