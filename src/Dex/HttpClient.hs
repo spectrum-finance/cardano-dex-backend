@@ -4,7 +4,7 @@ module Dex.HttpClient
     ) where
 
 import Dex.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
-import RIO
+import RIO as R
 import Dex.Models.ApiTxOut ( ApiTxOut )
 import Conduit ( (.|), runConduit )
 import Network.HTTP.Req
@@ -12,38 +12,37 @@ import Network.HTTP.Req.Conduit ( responseBodySource )
 import Prelude as P (print)
 import Data.Default.Class ()
 import Data.Conduit.Binary as B ()
+import Data.Aeson
 import Text.URI ()
 import Data.Aeson ( eitherDecode )
 import Data.Conduit.Combinators as C ( map, mapM_ )
 import RIO.ByteString.Lazy ( fromStrict )
 import qualified RIO.ByteString.Lazy as BL
 import RIO.Text as T ( pack )
+import Data.List as L
 
 -- ---------- Types declaration ----------
 
 -- ---------- Utils functions ------------
 
+baseGetReq :: forall a env . (FromJSON a, HasHttpSettings env) => [Text] -> RIO env a
+baseGetReq reqPaths = do
+    settings <- view httpSettingsL
+    runReq defaultHttpConfig $ do
+        let uri = L.foldl (/:) (http (T.pack $ hostS settings)) reqPaths
+        r <- req GET uri NoReqBody jsonResponse (port $ portS settings)
+        let result = responseBody r :: a
+        pure result
+
 -- ---------- Module api -----------------
 
 -- Get current unspent boxes from the chain --
 getUnspentOuts :: HasHttpSettings env => RIO env [ApiTxOut]
-getUnspentOuts = do
-    settings <- view httpSettingsL
-    runReq defaultHttpConfig $ do
-        let url = http (T.pack $ hostS settings) /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
-        r <- req GET url NoReqBody jsonResponse (port $ portS settings)
-        let body = responseBody r :: [ApiTxOut]
-        pure body
+getUnspentOuts = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
 
 -- Get current chain height
 getCurrentHeight :: HasHttpSettings env => RIO env Int
-getCurrentHeight = do
-    settings <- view httpSettingsL
-    runReq defaultHttpConfig $ do
-        let url = http (T.pack $ hostS settings) /: "api" /: "v0" /: "block" /: "height"
-        r <- req GET url NoReqBody jsonResponse (port $ portS settings)
-        let body = responseBody r :: Int
-        pure body
+getCurrentHeight = baseGetReq ["api", "v0", "block", "height"]
 
 -- ---------- Experimental feature -------
 
