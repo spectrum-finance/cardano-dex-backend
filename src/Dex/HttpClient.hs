@@ -1,5 +1,7 @@
 module Dex.HttpClient 
-    ( getUnspentOuts ) where
+    ( getUnspentOuts
+    , getCurrentHeight
+    ) where
 
 import Dex.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
 import RIO
@@ -31,6 +33,16 @@ getUnspentOuts = do
         let url = http (T.pack $ hostS settings) /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
         r <- req GET url NoReqBody jsonResponse (port $ portS settings)
         let body = responseBody r :: [ApiTxOut]
+        pure body
+
+-- Get current chain height
+getCurrentHeight :: HasHttpSettings env => RIO env Int
+getCurrentHeight = do
+    settings <- view httpSettingsL
+    runReq defaultHttpConfig $ do
+        let url = http (T.pack $ hostS settings) /: "api" /: "v0" /: "block" /: "height"
+        r <- req GET url NoReqBody jsonResponse (port $ portS settings)
+        let body = responseBody r :: Int
         pure body
 
 -- ---------- Experimental feature -------
