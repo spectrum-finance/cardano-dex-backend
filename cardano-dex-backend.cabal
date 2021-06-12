@@ -96,6 +96,7 @@ library
         req-conduit,
         conduit-extra,
         modern-uri,
+        monad-control,
         plutus-ledger-api
 
 executable cardano-dex-backend
