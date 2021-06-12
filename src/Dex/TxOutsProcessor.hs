@@ -18,8 +18,7 @@ run = do
     heightTvar <- newTVarIO 0
     settings <- view appSettingsL
     liftIO $ 
-        S.repeatM (runRIO settings $ process heightTvar)
-            & constRate 1
+        S.repeatM (threadDelay 1000000) >> (runRIO settings $ process heightTvar)
             & S.drain
 
 process :: TVar Int -> RIO AppSettings ()
