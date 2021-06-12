@@ -12,17 +12,15 @@ import RIO.List as List
 import Dex.Models.ApiTxOut ( ApiTxOut )
 import Control.Monad.Trans.Control
 
--- use more convenient way to run stream 
-
+-- use more convenient way to unlift RIO to IO
 run :: RIO AppSettings ()
 run = do
     heightTvar <- newTVarIO 0
     settings <- view appSettingsL
-    liftIO 
-        $ S.drain 
-        $ avgRate 60
-        $ S.repeatM 
-        $ runRIO settings $ process heightTvar
+    liftIO $ 
+        S.repeatM (runRIO settings $ process heightTvar)
+            & constRate 1
+            & S.drain
 
 process :: TVar Int -> RIO AppSettings ()
 process heightTVar = do
@@ -31,6 +29,6 @@ process heightTVar = do
     unspent     <- if chainHeight > appHeight 
                     then (atomically $ writeTVar heightTVar chainHeight) >> getUnspentOuts 
                     else pure []
-    _ <- liftIO $ print unspent
+    _ <- liftIO $ print appHeight
     pure ()
     
