@@ -12,14 +12,13 @@ import Network.HTTP.Req.Conduit ( responseBodySource )
 import Prelude as P (print)
 import Data.Default.Class ()
 import Data.Conduit.Binary as B ()
-import Data.Aeson
+import Data.Aeson ( eitherDecode, FromJSON )
 import Text.URI ()
-import Data.Aeson ( eitherDecode )
 import Data.Conduit.Combinators as C ( map, mapM_ )
 import RIO.ByteString.Lazy ( fromStrict )
 import qualified RIO.ByteString.Lazy as BL
 import RIO.Text as T ( pack )
-import Data.List as L
+import Data.List as L ( foldl )
 
 -- ---------- Types declaration ----------
 

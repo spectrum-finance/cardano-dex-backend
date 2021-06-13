@@ -1,14 +1,12 @@
 module Main where
 
-import Dex.TxOutsProcessor
+import Dex.TxOutsProcessor ( run )
 import Dex.Models.AppSettings 
     ( HttpSettings(..)
     , BlockRequestSettings(..)
     , AppSettings(..)
     )
-import RIO
-import RIO.Map as Map
-import RIO.Map (Map)
+import RIO ( runRIO )
 
 main :: IO ()
 main = do

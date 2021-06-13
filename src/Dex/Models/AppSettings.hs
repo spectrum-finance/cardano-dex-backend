@@ -14,7 +14,7 @@ data HttpSettings = HttpSettings
     , portS :: Int
     } deriving (Show)
 
-data BlockRequestSettings = BlockRequestSettings
+newtype BlockRequestSettings = BlockRequestSettings
     { period :: Int } deriving (Show)
 
 data AppSettings = AppSettings

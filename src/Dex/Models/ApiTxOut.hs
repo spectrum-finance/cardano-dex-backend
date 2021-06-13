@@ -23,11 +23,11 @@ data ApiAddr = ApiAddr
     , contents :: ApiContents
     } deriving (Generic, FromJSON, Show)
 
-data ApiContents = ApiContents
+newtype ApiContents = ApiContents
     { getPubKeyHash :: Text 
     } deriving (Generic, FromJSON, Show)
 
-data ApiValue = ApiValue
+newtype ApiValue = ApiValue
     { getValue :: [(ApiCurrencySymbol, [(ApiTokenName, Int)])] 
     } deriving (Generic, FromJSON, Show)
 
