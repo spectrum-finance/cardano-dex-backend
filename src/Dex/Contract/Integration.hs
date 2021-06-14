@@ -1,9 +1,13 @@
-module Dex.Contract.Integration (proxyDatumBS)
-     where
+module Dex.Contract.Integration 
+     ( checkTxOutForProxyContract
+     , checkTxOutForAmmContract 
+     ) where
 
-import Data.ByteString.Char8
-import qualified Data.ByteString.Char8  as C
 import RIO
+import Plutus.V1.Ledger.Tx ( TxOut(..) )
 
-proxyDatumBS :: ByteString
-proxyDatumBS = C.pack "lazyByteStrin"
+checkTxOutForProxyContract :: TxOut -> Bool
+checkTxOutForProxyContract _ = True
+
+checkTxOutForAmmContract :: TxOut -> Bool
+checkTxOutForAmmContract _ = True
