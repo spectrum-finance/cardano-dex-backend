@@ -13,7 +13,7 @@ run = do
     heightTvar <- newTVarIO 0
     settings <- view appSettingsL
     liftIO $ 
-        S.repeatM (threadDelay 1000000) >> (runRIO settings $ process heightTvar)
+        S.repeatM (threadDelay 1000000) >> runRIO settings (process heightTvar)
             & S.drain
 
 process :: TVar Int -> RIO AppSettings ()
@@ -21,7 +21,7 @@ process heightTVar = do
     chainHeight <- getCurrentHeight
     appHeight   <- readTVarIO heightTVar
     unspent     <- if chainHeight > appHeight 
-                    then (atomically $ writeTVar heightTVar chainHeight) >> getUnspentOuts 
+                    then atomically (writeTVar heightTVar chainHeight) >> getUnspentOuts 
                     else pure []
     _ <- liftIO $ print appHeight
     _ <- liftIO $ print unspent

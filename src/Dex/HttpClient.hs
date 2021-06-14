@@ -5,7 +5,6 @@ module Dex.HttpClient
 
 import Dex.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
 import RIO as R
-import Dex.Models.ApiTxOut ( ApiTxOut )
 import Conduit ( (.|), runConduit )
 import Network.HTTP.Req
 import Network.HTTP.Req.Conduit ( responseBodySource )
@@ -19,6 +18,7 @@ import RIO.ByteString.Lazy ( fromStrict )
 import qualified RIO.ByteString.Lazy as BL
 import RIO.Text as T ( pack )
 import Data.List as L ( foldl )
+import Plutus.V1.Ledger.Tx ( TxOut(..) )
 
 -- ---------- Types declaration ----------
 
@@ -36,7 +36,7 @@ baseGetReq reqPaths = do
 -- ---------- Module api -----------------
 
 -- Get current unspent boxes from the chain --
-getUnspentOuts :: HasHttpSettings env => RIO env [ApiTxOut]
+getUnspentOuts :: HasHttpSettings env => RIO env [TxOut]
 getUnspentOuts = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
 
 -- Get current chain height
@@ -55,5 +55,5 @@ getUnspentOutsStream = do
             runConduit $ 
                 responseBodySource r
                     .| C.map fromStrict
-                    .| C.map (eitherDecode :: BL.ByteString -> Either String ApiTxOut)
+                    .| C.map (eitherDecode :: BL.ByteString -> Either String TxOut)
                     .| C.mapM_ P.print

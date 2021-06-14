@@ -48,35 +48,41 @@ extra-deps:
       - plutus-use-cases
       - prettyprinter-configurable
       - quickcheck-dynamic
+      - word-array
   - git: https://github.com/shmish111/servant-purescript.git
     commit: a76104490499aa72d40c2790d10e9383e0dbde63
   - git: https://github.com/input-output-hk/cardano-crypto.git
-    commit: f73079303f663e028288f9f4a9e08bcca39a923e
+    commit: ce8f1934e4b6252084710975bd9bbc0a4648ece4
   - git: https://github.com/input-output-hk/cardano-prelude
-    commit: ee4e7b547a991876e6b05ba542f4e62909f4a571
+    commit: fd773f7a58412131512b9f694ab95653ac430852
     subdirs:
       - cardano-prelude
       - cardano-prelude-test
   - git: https://github.com/input-output-hk/ouroboros-network
-    commit: 6cb9052bde39472a0555d19ade8a42da63d3e904
+    commit: e50613562d6d4a0f933741fcf590b0f69a1eda67
     subdirs:
       - typed-protocols
       - typed-protocols-examples
       - ouroboros-network
       - ouroboros-network-testing
       - ouroboros-network-framework
+      - ouroboros-consensus
+      - ouroboros-consensus-byron
+      - ouroboros-consensus-cardano
+      - ouroboros-consensus-shelley
       - io-sim
       - io-sim-classes
       - network-mux
-      - Win32-network
   - git: https://github.com/input-output-hk/cardano-base
-    commit: 4251c0bb6e4f443f00231d28f5f70d42876da055
+    commit: a715c7f420770b70bbe95ca51d3dec83866cb1bd
     subdirs:
       - binary
       - binary/test
       - slotting
       - cardano-crypto-class
       - cardano-crypto-praos
+      - cardano-crypto-tests
+      - strict-containers
   - git: https://github.com/input-output-hk/iohk-monitoring-framework
     commit: a89c38ed5825ba17ca79fddb85651007753d699d
     subdirs:
@@ -86,6 +92,35 @@ extra-deps:
       - plugins/backend-ekg
   - git: https://github.com/shmish111/purescript-bridge.git
     commit: 6a92d7853ea514be8b70bab5e72077bf5a510596
+  - git: https://github.com/input-output-hk/Win32-network
+    commit: 94153b676617f8f33abe8d8182c37377d2784bd1
+  - git: https://github.com/input-output-hk/goblins
+    commit: cde90a2b27f79187ca8310b6549331e59595e7ba
+  - git: https://github.com/input-output-hk/hedgehog-extras
+    commit: 8bcd3c9dc22cc44f9fcfe161f4638a384fc7a187
+  - git: https://github.com/input-output-hk/cardano-node.git
+    commit: b3cabae6b3bf30a0b1b4e78bc4b67282dabad0a6
+    subdirs:
+      - cardano-api
+  - git: https://github.com/input-output-hk/cardano-ledger-specs
+    commit: a3ef848542961079b7cd53d599e5385198a3035c
+    subdirs:
+      - byron/chain/executable-spec
+      - byron/crypto
+      - byron/crypto/test
+      - byron/ledger/executable-spec
+      - byron/ledger/impl
+      - byron/ledger/impl/test
+      - semantics/executable-spec
+      - semantics/small-steps-test
+      - shelley/chain-and-ledger/dependencies/non-integer
+      - shelley/chain-and-ledger/executable-spec
+      - shelley/chain-and-ledger/shelley-spec-ledger-test
+      - shelley-ma/impl
+      - cardano-ledger-core
+      - alonzo/impl
+  - git: https://github.com/Quid2/flat.git
+    commit: 95e5d7488451e43062ca84d5376b3adcc465f1cd
 
 allow-newer: true
 
@@ -94,3 +129,4 @@ extra-package-dbs: []
 ghc-options:
   eventful-sql-common: -XDerivingStrategies -XStandaloneDeriving -XUndecidableInstances -XDataKinds -XFlexibleInstances -XMultiParamTypeClasses
 
+-- 5e20b2df3ac55b55b9d70eb7271b295ac797ed5e

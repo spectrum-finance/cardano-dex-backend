@@ -77,11 +77,10 @@ library
                      Dex.HttpClient
                      Dex.TxOutsProcessor
                      Dex.Models.AppSettings
-                     Dex.Models.ApiTxOut
-                    --  Dex.ModelsConverter
+                     Dex.Utils
 
     build-depends: 
-        bytestring ^>=0.10.12.0,
+        bytestring,
         http-conduit,
         aeson,
         rio,
@@ -97,7 +96,8 @@ library
         conduit-extra,
         modern-uri,
         monad-control,
-        plutus-ledger-api
+        plutus-ledger-api -any,
+        plutus-tx -any
 
 executable cardano-dex-backend
     main-is: Main.hs
