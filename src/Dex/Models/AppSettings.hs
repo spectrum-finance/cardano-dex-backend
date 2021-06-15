@@ -33,6 +33,7 @@ data KafkaProducerSettings = KafkaProducerSettings
   , proxyTopic :: TopicName
   , brokersListS :: [BrokerAddress]
   , proxyMsgKey :: BS.ByteString
+  , ammMsgKey :: BS.ByteString
   } deriving (Show)
 
 class HasHttpSettings env where

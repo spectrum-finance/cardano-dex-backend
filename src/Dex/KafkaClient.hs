@@ -1,4 +1,7 @@
-module Dex.KafkaClient (sendProxy) where
+module Dex.KafkaClient 
+    ( sendProxy
+    , sendAmm
+    ) where
 
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import RIO
@@ -44,10 +47,16 @@ formProducerRecord s t txOuts = L.map ((mkMessage t (Just s)) . Just . BS.toStri
 
 -- ---------- Module api -----------------
 
+-- Check if new producer creates on each call
+
 -- Send unspent boxes with proxy contract to kafka
 sendProxy :: HasKafkaProducerSettings env => [TxOut] -> RIO env ()
 sendProxy txOuts = do
     settings <- view kafkaProducerSettingsL
     liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecord (proxyMsgKey settings) (proxyTopic settings) txOuts)
 
--- sendAmm:: [TxOut] -> IO ()
+-- Send unspent boxes with amm contract to kafka
+sendAmm :: HasKafkaProducerSettings env => [TxOut] -> RIO env ()
+sendAmm txOuts = do
+    settings <- view kafkaProducerSettingsL
+    liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecord (ammMsgKey settings) (ammTopic settings) txOuts)

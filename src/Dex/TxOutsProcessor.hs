@@ -32,5 +32,6 @@ process heightTVar = do
     _ <- liftIO $ print ammOuts
     _ <- liftIO $ print proxyOuts
     _ <- sendProxy proxyOuts
+    _ <- sendAmm ammOuts
     pure ()
     
