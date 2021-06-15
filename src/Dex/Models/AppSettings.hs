@@ -1,13 +1,18 @@
 module Dex.Models.AppSettings 
     ( HttpSettings(..)
     , BlockRequestSettings(..)
+    , KafkaProducerSettings(..)
     , AppSettings(..)
     , HasHttpSettings(..)
     , HasBlockRequestSettings(..)
+    , HasKafkaProducerSettings(..)
     , HasAppSettings(..)
     ) where
 
 import RIO ( Show, Int, id, lens, String, Lens' )
+import RIO.Text
+import RIO.ByteString as BS
+import Kafka.Producer
 
 data HttpSettings = HttpSettings
     { hostS :: String
@@ -20,7 +25,15 @@ newtype BlockRequestSettings = BlockRequestSettings
 data AppSettings = AppSettings
     { httpSettings :: HttpSettings
     , blockRequestSettings :: BlockRequestSettings
+    , kafkaProducerSettings :: KafkaProducerSettings
     } deriving (Show)
+
+data KafkaProducerSettings = KafkaProducerSettings 
+  { ammTopic :: TopicName
+  , proxyTopic :: TopicName
+  , brokersListS :: [BrokerAddress]
+  , proxyMsgKey :: BS.ByteString
+  } deriving (Show)
 
 class HasHttpSettings env where
   httpSettingsL :: Lens' env HttpSettings
@@ -40,3 +53,10 @@ class HasAppSettings env where
   appSettingsL :: Lens' env AppSettings
 instance HasAppSettings AppSettings where
   appSettingsL = id
+
+class HasKafkaProducerSettings env where
+  kafkaProducerSettingsL :: Lens' env KafkaProducerSettings
+instance HasKafkaProducerSettings KafkaProducerSettings where
+  kafkaProducerSettingsL = id
+instance HasKafkaProducerSettings AppSettings where
+  kafkaProducerSettingsL = lens kafkaProducerSettings (\x y -> x { kafkaProducerSettings = y })

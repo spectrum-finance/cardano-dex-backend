@@ -78,6 +78,7 @@ library
                      Dex.TxOutsProcessor
                      Dex.Models.AppSettings
                      Dex.Utils
+                     Dex.KafkaClient
 
     build-depends: 
         bytestring,
@@ -97,7 +98,8 @@ library
         modern-uri,
         monad-control,
         plutus-ledger-api -any,
-        plutus-tx -any
+        plutus-tx -any,
+        hw-kafka-client
 
 executable cardano-dex-backend
     main-is: Main.hs

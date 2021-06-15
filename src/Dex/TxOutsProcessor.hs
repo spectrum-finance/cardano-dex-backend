@@ -7,6 +7,7 @@ import Dex.Models.AppSettings (AppSettings, HasAppSettings(..))
 import RIO
 import qualified Streamly.Prelude as S
 import Dex.Contract.Integration (checkTxOutForProxyContract, checkTxOutForAmmContract)
+import Dex.KafkaClient
 
 -- use more convenient way to unlift RIO to IO
 run :: RIO AppSettings ()
@@ -30,5 +31,6 @@ process heightTVar = do
         proxyOuts = filter checkTxOutForProxyContract unspent
     _ <- liftIO $ print ammOuts
     _ <- liftIO $ print proxyOuts
+    _ <- sendProxy proxyOuts
     pure ()
     
