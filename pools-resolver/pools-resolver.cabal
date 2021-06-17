@@ -73,7 +73,7 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: 
+    exposed-modules: Resolver.KafkaClient 
 
     build-depends: 
         bytestring,

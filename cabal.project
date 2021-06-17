@@ -2,14 +2,11 @@ packages:
   tracker
   pools-resolver
 
--- You never, ever, want this.
 write-ghc-environment-files: never
 
--- Always build tests and benchmarks.
 tests: true
 benchmarks: true
  
--- Plutus revision from 2021/06/11
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus.git

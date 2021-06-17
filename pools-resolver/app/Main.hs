@@ -3,7 +3,7 @@
 module Main where
 
 import RIO ( runRIO )
+import Resolver.KafkaClient 
 
 main :: IO ()
-main = do
-    print "42"
+main = runConsumerExample
