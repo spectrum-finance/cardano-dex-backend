@@ -29,8 +29,13 @@ runProducerLocal ips f =
       runHandler (Right prod) = f prod
 
 sendMessages :: [ProducerRecord] -> KafkaProducer -> IO (Either KafkaError ())
-sendMessages msgs prod = do
-    err <- produceMessageBatch prod msgs
+sendMessages (x:xs) prod = do
+    err <- produceMessage prod x
+    forM_ err print
+    return $ Right ()
+
+sendMessages xs prod = do
+    err <- produceMessageBatch prod xs
     forM_ err print
     return $ Right ()
 
