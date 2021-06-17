@@ -1,4 +1,4 @@
-module Dex.KafkaClient 
+module Tracker.KafkaClient 
     ( sendProxy
     , sendAmm
     ) where
@@ -10,7 +10,7 @@ import Data.Aeson
 import Prelude (print)
 import Kafka.Producer
 import RIO.ByteString.Lazy as BS
-import Dex.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
+import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
 
 -- ---------- Utils functions ------------
 

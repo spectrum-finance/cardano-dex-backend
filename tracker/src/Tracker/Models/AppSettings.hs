@@ -1,4 +1,4 @@
-module Dex.Models.AppSettings 
+module Tracker.Models.AppSettings 
     ( HttpSettings(..)
     , BlockRequestSettings(..)
     , KafkaProducerSettings(..)

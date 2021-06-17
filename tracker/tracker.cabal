@@ -73,12 +73,12 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Dex.Contract.Integration
-                     Dex.HttpClient
-                     Dex.TxOutsProcessor
-                     Dex.Models.AppSettings
-                     Dex.Utils
-                     Dex.KafkaClient
+    exposed-modules: Tracker.Contract.Integration
+                     Tracker.HttpClient
+                     Tracker.TxOutsProcessor
+                     Tracker.Models.AppSettings
+                     Tracker.Utils
+                     Tracker.KafkaClient
 
     build-depends: 
         bytestring,

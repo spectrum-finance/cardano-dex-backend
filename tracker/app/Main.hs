@@ -2,8 +2,8 @@
 
 module Main where
 
-import Dex.TxOutsProcessor ( run )
-import Dex.Models.AppSettings 
+import Tracker.TxOutsProcessor ( run )
+import Tracker.Models.AppSettings 
     ( HttpSettings(..)
     , BlockRequestSettings(..)
     , KafkaProducerSettings(..)

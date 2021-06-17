@@ -1,13 +1,13 @@
-module Dex.TxOutsProcessor 
+module Tracker.TxOutsProcessor 
     (run) where
 
 import Prelude (print)
-import Dex.HttpClient (getUnspentOuts, getCurrentHeight)
-import Dex.Models.AppSettings (AppSettings, HasAppSettings(..))
+import Tracker.HttpClient (getUnspentOuts, getCurrentHeight)
+import Tracker.Models.AppSettings (AppSettings, HasAppSettings(..))
 import RIO
 import qualified Streamly.Prelude as S
-import Dex.Contract.Integration (checkTxOutForProxyContract, checkTxOutForAmmContract)
-import Dex.KafkaClient
+import Tracker.Contract.Integration (checkTxOutForProxyContract, checkTxOutForAmmContract)
+import Tracker.KafkaClient
 
 -- use more convenient way to unlift RIO to IO
 run :: RIO AppSettings ()

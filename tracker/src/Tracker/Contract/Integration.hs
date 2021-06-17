@@ -1,4 +1,4 @@
-module Dex.Contract.Integration 
+module Tracker.Contract.Integration 
      ( checkTxOutForProxyContract
      , checkTxOutForAmmContract 
      ) where

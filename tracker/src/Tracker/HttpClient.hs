@@ -1,9 +1,9 @@
-module Dex.HttpClient 
+module Tracker.HttpClient 
     ( getUnspentOuts
     , getCurrentHeight
     ) where
 
-import Dex.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
+import Tracker.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
 import RIO as R
 import Conduit ( (.|), runConduit )
 import Network.HTTP.Req
