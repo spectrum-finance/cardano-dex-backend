@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               cardano-dex-backend
+name:               tracker
 version:            0.1.0.0
 
 author:             ErgoLabs
@@ -101,10 +101,11 @@ library
         plutus-tx -any,
         hw-kafka-client
 
-executable cardano-dex-backend
+executable tracker-app
     main-is: Main.hs
-    build-depends: base >= 4.9 && < 5,
-        cardano-dex-backend,
+    build-depends: 
+        base >= 4.9 && < 5,
+        tracker,
         rio
     hs-source-dirs:   app
     default-language: Haskell2010
