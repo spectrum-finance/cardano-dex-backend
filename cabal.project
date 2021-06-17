@@ -1,5 +1,6 @@
 packages:
   tracker
+  pools-resolver
 
 -- You never, ever, want this.
 write-ghc-environment-files: never

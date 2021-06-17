@@ -1,0 +1,106 @@
+cabal-version:      2.4
+name:               pools-resolver
+version:            0.1.0.0
+
+author:             ErgoLabs
+maintainer:         
+
+extra-source-files: CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/hello
+
+common base
+  build-depends: base >= 4.9 && < 5
+
+common project-config
+  default-language:     Haskell2010
+
+  default-extensions:   OverloadedStrings
+                        DeriveAnyClass
+                        AutoDeriveTypeable
+                        BangPatterns
+                        BinaryLiterals
+                        ConstraintKinds
+                        DataKinds
+                        DefaultSignatures
+                        DeriveDataTypeable
+                        DeriveFoldable
+                        DeriveFunctor
+                        DeriveGeneric
+                        DeriveTraversable
+                        DoAndIfThenElse
+                        EmptyDataDecls
+                        ExistentialQuantification
+                        FlexibleContexts
+                        FlexibleInstances
+                        FunctionalDependencies
+                        GADTs
+                        GeneralizedNewtypeDeriving
+                        InstanceSigs
+                        KindSignatures
+                        LambdaCase
+                        MonadFailDesugaring
+                        MultiParamTypeClasses
+                        MultiWayIf
+                        NamedFieldPuns
+                        NoImplicitPrelude
+                        PartialTypeSignatures
+                        PatternGuards
+                        PolyKinds
+                        RankNTypes
+                        RecordWildCards
+                        ScopedTypeVariables
+                        StandaloneDeriving
+                        TupleSections
+                        TypeFamilies
+                        TypeSynonymInstances
+                        ViewPatterns
+
+  ghc-options:          -Wall
+                        -Wcompat
+                        -Wincomplete-record-updates
+                        -Wincomplete-uni-patterns
+                        -Wpartial-fields
+                        -Wredundant-constraints
+                        -Wunused-packages
+                        -Widentities
+                        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+
+library
+    import: base, project-config
+
+    hs-source-dirs: src
+    
+    exposed-modules: 
+
+    build-depends: 
+        bytestring,
+        http-conduit,
+        aeson,
+        rio,
+        aeson-casing,
+        text,
+        containers,
+        bytestring,
+        streamly,
+        req,
+        conduit,
+        data-default-class,
+        req-conduit,
+        conduit-extra,
+        modern-uri,
+        monad-control,
+        plutus-ledger-api -any,
+        plutus-tx -any,
+        hw-kafka-client
+
+executable pools-resolver-app
+    main-is: Main.hs
+    build-depends: 
+        base >= 4.9 && < 5,
+        pools-resolver,
+        rio
+    hs-source-dirs:   app
+    default-language: Haskell2010
