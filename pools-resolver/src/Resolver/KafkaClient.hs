@@ -8,7 +8,6 @@ import qualified Streamly.Prelude as S
 import RIO.ByteString as BS
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Data.Aeson
-import Resolver.Models.AppSettings
 import RIO.ByteString.Lazy as LBS
 
 -- Global consumer properties
@@ -21,10 +20,10 @@ consumerProps = brokersList ["0.0.0.0:9092"]
 -- Subscription to topics
 consumerSub :: Subscription
 consumerSub = topics ["amm-topic"]
-           <> offsetReset Latest
+           <> offsetReset Earliest
 
 -- Running an example
-run :: HasAppSettings env => RIO env ()
+run :: RIO env ()
 run = liftIO $ do
     res <- C.bracket mkConsumer clConsumer runHandler
     print res
@@ -32,7 +31,7 @@ run = liftIO $ do
       mkConsumer = newConsumer consumerProps consumerSub
       clConsumer (Left err) = return (Left err)
       clConsumer (Right kc) = maybe (Right ()) Left <$> closeConsumer kc
-      runHandler (Left err) = return ()
+      runHandler (Left err) = print err >> pure ()
       runHandler (Right kc) = runF kc
 
 -- -------------------------------------------------------------------
@@ -51,5 +50,5 @@ pollMessageF consumer = do
     pure parsedMsg
 
 parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe TxOut
-parseMessage x = case x of Right x -> (crValue x) >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe TxOut)
+parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe TxOut)
                            _ -> Nothing

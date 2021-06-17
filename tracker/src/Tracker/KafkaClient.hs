@@ -13,30 +13,28 @@ import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
 
 -- ---------- Utils functions ------------
+myLogCallback :: KafkaLogLevel -> String -> String -> IO ()
+myLogCallback level facility message = print $ show level <> "|" <> facility <> "|" <> message
 
 producerProps :: [BrokerAddress] -> ProducerProperties
 producerProps ips = brokersList ips
                         <> logLevel KafkaLogDebug
+                        <> setCallback (logCallback myLogCallback)
 
 runProducerLocal :: [BrokerAddress] -> (KafkaProducer -> IO (Either KafkaError ())) -> IO ()
 runProducerLocal ips f =
     bracket mkProducer clProducer runHandler >>= print
     where
       mkProducer = newProducer $ producerProps ips
-      clProducer (Left _)     = return ()
+      clProducer (Left err)   = print err >> return ()
       clProducer (Right prod) = closeProducer prod
       runHandler (Left err)   = return $ Left err
       runHandler (Right prod) = f prod
 
 sendMessages :: [ProducerRecord] -> KafkaProducer -> IO (Either KafkaError ())
-sendMessages (x:xs) prod = do
-    err <- produceMessage prod x
-    forM_ err print
-    return $ Right ()
-
-sendMessages xs prod = do
-    err <- produceMessageBatch prod xs
-    forM_ err print
+sendMessages msg prod = do
+    err <- produceMessageBatch prod msg
+    _   <- print err
     return $ Right ()
 
 mkMessage :: TopicName -> Maybe RIO.ByteString -> Maybe RIO.ByteString -> ProducerRecord
@@ -48,7 +46,7 @@ mkMessage t k v = ProducerRecord
                   }
 
 formProducerRecord :: RIO.ByteString -> TopicName -> [TxOut] -> [ProducerRecord]
-formProducerRecord s t txOuts = L.map ((mkMessage t (Just s)) . Just . BS.toStrict . encode) txOuts
+formProducerRecord s t = L.map (mkMessage t (Just s) . Just . BS.toStrict . encode)
 
 -- ---------- Module api -----------------
 

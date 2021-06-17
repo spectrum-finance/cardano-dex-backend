@@ -25,12 +25,12 @@ process heightTVar = do
     unspent     <- if chainHeight > appHeight 
                     then atomically (writeTVar heightTVar chainHeight) >> getUnspentOuts 
                     else pure []
-    _ <- liftIO $ print appHeight
-    _ <- liftIO $ print unspent
+    -- _ <- liftIO $ print appHeight
+    -- _ <- liftIO $ print unspent
     let ammOuts = filter checkTxOutForAmmContract unspent
         proxyOuts = filter checkTxOutForProxyContract unspent
-    _ <- liftIO $ print ammOuts
-    _ <- liftIO $ print proxyOuts
+    -- _ <- liftIO $ print ammOuts
+    -- _ <- liftIO $ print proxyOuts
     _ <- sendProxy proxyOuts
     _ <- sendAmm ammOuts
     pure ()
