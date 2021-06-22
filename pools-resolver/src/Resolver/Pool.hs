@@ -24,10 +24,10 @@ putPredicted _ = undefined
 putConfirmed :: CfmmPool -> IO ()
 putConfirmed _ = undefined
 
-getLastPredicted :: PoolId -> IO Maybe CfmmPool
+getLastPredicted :: PoolId -> IO (Maybe CfmmPool)
 getLastPredicted _ = undefined 
 
-getLastConfirmed :: PoolId -> IO Maybe CfmmPool
+getLastConfirmed :: PoolId -> IO (Maybe CfmmPool)
 getLastConfirmed _ = undefined 
 
 existsPredicted :: PoolId -> TxOutId -> IO Bool

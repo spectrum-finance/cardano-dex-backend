@@ -75,6 +75,9 @@ library
     
     exposed-modules: Resolver.KafkaClient
                      Resolver.Models.AppSettings
+                     Resolver.Models.CfmmPool
+                     Resolver.Pool
+                     Resolver.PoolsResolver
 
     build-depends: 
         bytestring,
