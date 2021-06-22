@@ -1,18 +1,20 @@
 module Resolver.Models.CfmmPool where
 
 import RIO
-newtype PoolId = PoolId { poolIdValue :: Int } deriving (Show)
+import Data.Aeson
 
-newtype AssetAmount = AssetAmount { assetValue :: Int } deriving (Show)
+newtype PoolId = PoolId { poolIdValue :: Int } deriving (Show, Generic, FromJSON)
 
-newtype FeeAmount = FeeAmount { feeValue :: Int } deriving (Show)
+newtype AssetAmount = AssetAmount { assetValue :: Int } deriving (Show, Generic, FromJSON)
 
-newtype TxOutId = TxOutId { txOutId :: String } deriving (Show)
+newtype FeeAmount = FeeAmount { feeValue :: Int } deriving (Show, Generic, FromJSON)
+
+newtype TxOutId = TxOutId { txOutId :: String } deriving (Show, Generic, FromJSON)
 
 data TxOutRef = TxOutRef 
     { lastTxOutId :: TxOutId
     , lastConfirmedBoxGix :: Int
-    } deriving (Show)
+    } deriving (Show, Generic, FromJSON)
 
 data CfmmPool = CfmmPool 
     { poolId :: PoolId
@@ -21,5 +23,5 @@ data CfmmPool = CfmmPool
     , y :: AssetAmount
     , fee :: FeeAmount
     , txOutRef :: TxOutRef
-    } deriving (Show)
+    } deriving (Show, Generic, FromJSON)
 

@@ -1,4 +1,6 @@
-module Resolver.PoolsResolver (resolve) where
+module Resolver.PoolsResolver 
+    ( resolve
+    ) where
 
 import RIO
 import Resolver.Models.CfmmPool

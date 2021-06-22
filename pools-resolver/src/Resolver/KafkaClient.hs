@@ -6,9 +6,9 @@ import RIO
 import Prelude (print)
 import qualified Streamly.Prelude as S
 import RIO.ByteString as BS
-import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Data.Aeson
 import RIO.ByteString.Lazy as LBS
+import Resolver.Models.CfmmPool
 
 -- Global consumer properties
 consumerProps :: ConsumerProperties
@@ -39,7 +39,7 @@ run = liftIO $ do
 runF :: KafkaConsumer -> IO ()
 runF consumer = S.drain $ S.repeatM $ pollMessageF consumer
 
-pollMessageF :: KafkaConsumer -> IO (Maybe TxOut)
+pollMessageF :: KafkaConsumer -> IO (Maybe CfmmPool)
 pollMessageF consumer = do
     msg <- pollMessage consumer (Timeout 1000)
     _   <- print msg
@@ -49,6 +49,6 @@ pollMessageF consumer = do
     _   <- print $ "Offsets: " <> maybe "Committed." show err
     pure parsedMsg
 
-parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe TxOut
-parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe TxOut)
+parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe CfmmPool
+parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe CfmmPool)
                            _ -> Nothing
