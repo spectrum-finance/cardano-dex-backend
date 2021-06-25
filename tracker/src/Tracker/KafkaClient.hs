@@ -9,6 +9,7 @@ import qualified RIO.List as L
 import Data.Aeson
 import Prelude (print)
 import Kafka.Producer
+import Dex.Models (PoolId)
 import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
 

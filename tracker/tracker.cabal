@@ -99,7 +99,8 @@ library
         monad-control,
         plutus-ledger-api -any,
         plutus-tx -any,
-        hw-kafka-client
+        hw-kafka-client,
+        sdk
 
 executable tracker-app
     main-is: Main.hs

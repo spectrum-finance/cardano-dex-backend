@@ -1,0 +1,2 @@
+module Resolver.PoolsResolverProcessor where
+
