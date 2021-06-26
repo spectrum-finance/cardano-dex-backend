@@ -98,7 +98,9 @@ library
         monad-control,
         plutus-ledger-api -any,
         plutus-tx -any,
-        hw-kafka-client
+        hw-kafka-client,
+        sdk,
+        servant
 
 executable pools-resolver-app
     main-is: Main.hs

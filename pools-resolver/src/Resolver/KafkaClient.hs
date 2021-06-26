@@ -9,6 +9,7 @@ import RIO.ByteString as BS
 import Data.Aeson
 import RIO.ByteString.Lazy as LBS
 import Resolver.Models.CfmmPool
+import Dex.Models
 
 -- Global consumer properties
 consumerProps :: ConsumerProperties
@@ -39,7 +40,7 @@ run = liftIO $ do
 runF :: KafkaConsumer -> IO ()
 runF consumer = S.drain $ S.repeatM $ pollMessageF consumer
 
-pollMessageF :: KafkaConsumer -> IO (Maybe CfmmPool)
+pollMessageF :: KafkaConsumer -> IO (Maybe Pool)
 pollMessageF consumer = do
     msg <- pollMessage consumer (Timeout 1000)
     _   <- print msg
@@ -49,6 +50,6 @@ pollMessageF consumer = do
     _   <- print $ "Offsets: " <> maybe "Committed." show err
     pure parsedMsg
 
-parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe CfmmPool
-parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe CfmmPool)
+parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe Pool
+parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe Pool)
                            _ -> Nothing

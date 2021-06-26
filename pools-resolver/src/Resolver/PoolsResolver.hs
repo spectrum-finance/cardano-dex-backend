@@ -3,15 +3,17 @@ module Resolver.PoolsResolver
     ) where
 
 import RIO
-import Resolver.Models.CfmmPool
 import Resolver.Pool
     ( putPredicted,
       getLastPredicted,
       getLastConfirmed,
       existsPredicted )
 import Prelude (print)
+import Dex.Models
+import Dex.Models as P (Pool(..)) 
+import Resolver.Models.CfmmPool
 
-resolve :: PoolId -> IO (Maybe CfmmPool)
+resolve :: PoolId -> IO (Maybe Pool)
 resolve poolId = do
     lastConfirmed <- getLastConfirmed poolId
     _             <- print lastConfirmed
@@ -19,29 +21,27 @@ resolve poolId = do
     _             <- print lastPredicted
     process lastConfirmed lastPredicted
 
-process :: Maybe CfmmPool -> Maybe CfmmPool -> IO (Maybe CfmmPool)
+process :: Maybe (ConfirmedPool Pool) -> Maybe (PredictedPool Pool) -> IO (Maybe Pool)
 process confirmedMaybe predictedMaybe = do
     case (confirmedMaybe, predictedMaybe) of 
-        (Just confirmed, Just predicted) -> do
-            _ <- print "Both have Just type"
-            let boxConfirmed = txOutRef confirmed
-                boxPredicted = txOutRef predicted
-                upToDate = lastConfirmedBoxGix boxConfirmed == lastConfirmedBoxGix boxPredicted
-            consistentChain <- existsPredicted (poolId confirmed) (lastTxOutId boxConfirmed)
-            fmap Just (if upToDate then pure predicted else pessimistic consistentChain predicted boxConfirmed confirmed)
-        (Just confirmed, _) -> do
+        (Just (ConfirmedPool confirmed), Just (PredictedPool predicted)) -> do
+            _ <- print "Got confirmed and predicted pools in process function."
+            let upToDate = gIx (gId (fullTxOut confirmed)) == gIx (gId (fullTxOut predicted))                
+            consistentChain <- existsPredicted (P.poolId confirmed) (txOutRefId $ fullTxOut confirmed) (txOutRefIdx $ fullTxOut confirmed)
+            fmap Just (if upToDate then pure predicted else pessimistic consistentChain (PredictedPool predicted) (ConfirmedPool confirmed))
+        (Just (ConfirmedPool confirmed), _) -> do
             _ <- print "Just only confirmed. Predicted is empty."
             pure $ Just confirmed
         _ -> do
             _ <- print "Both are nothing."
             pure Nothing
     
-needToUpdate :: CfmmPool -> Int -> IO CfmmPool
-needToUpdate (CfmmPool a b c d e (TxOutRef f _)) newGix = do
-    let updatedPool = CfmmPool a b c d e (TxOutRef f newGix)
+needToUpdate :: PredictedPool Pool -> GId -> IO Pool
+needToUpdate (PredictedPool (Pool a b (FullTxOut _ q w e r t))) newGix = do
+    let updatedPool = PredictedPool $ Pool a b (FullTxOut newGix q w e r t)
     _ <- putPredicted updatedPool
-    pure updatedPool
+    pure $ predicted updatedPool
 
-pessimistic :: Bool -> CfmmPool -> TxOutRef -> CfmmPool -> IO CfmmPool 
-pessimistic consistentChain predictedPool confirmedBox confirmedPool = do
-    if consistentChain then needToUpdate predictedPool (lastConfirmedBoxGix confirmedBox) else pure confirmedPool
+pessimistic :: Bool -> PredictedPool Pool -> ConfirmedPool Pool -> IO Pool 
+pessimistic consistentChain predictedPool confirmedPool = do
+    if consistentChain then needToUpdate predictedPool (gId $ fullTxOut $ confirmed confirmedPool) else pure $ confirmed confirmedPool

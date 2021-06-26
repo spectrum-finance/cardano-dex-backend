@@ -7,7 +7,9 @@ module Resolver.Pool
     ) where
 
 import RIO
+import Dex.Models
 import Resolver.Models.CfmmPool
+import Plutus.V1.Ledger.TxId
 
 mkLastPredictedKey :: PoolId -> String
 mkLastPredictedKey _ = undefined
@@ -15,20 +17,20 @@ mkLastPredictedKey _ = undefined
 mkLastConfirmedKey :: PoolId -> String
 mkLastConfirmedKey _ = undefined
 
-mkPredictedNext :: PoolId -> TxOutId -> String
+mkPredictedNext :: PoolId -> TxId -> Integer -> String
 mkPredictedNext _ _ = undefined
 
-putPredicted :: CfmmPool -> IO ()
+putPredicted :: PredictedPool Pool -> IO ()
 putPredicted _ = undefined 
 
-putConfirmed :: CfmmPool -> IO ()
+putConfirmed :: ConfirmedPool Pool -> IO ()
 putConfirmed _ = undefined
 
-getLastPredicted :: PoolId -> IO (Maybe CfmmPool)
+getLastPredicted :: PoolId -> IO (Maybe (PredictedPool Pool))
 getLastPredicted _ = undefined 
 
-getLastConfirmed :: PoolId -> IO (Maybe CfmmPool)
+getLastConfirmed :: PoolId -> IO (Maybe (ConfirmedPool Pool))
 getLastConfirmed _ = undefined 
 
-existsPredicted :: PoolId -> TxOutId -> IO Bool
+existsPredicted :: PoolId -> TxId -> Integer -> IO Bool
 existsPredicted _ _ = undefined
