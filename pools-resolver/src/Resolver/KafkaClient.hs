@@ -1,4 +1,4 @@
-module Resolver.KafkaClient (run) where
+module Resolver.KafkaClient (runKafka) where
 
 import Control.Exception as C (bracket) 
 import Kafka.Consumer
@@ -24,8 +24,9 @@ consumerSub = topics ["amm-topic"]
            <> offsetReset Earliest
 
 -- Running an example
-run :: RIO env ()
-run = liftIO $ do
+runKafka :: RIO env ()
+runKafka = liftIO $ do
+    _   <- print "Running kafka stream..."
     res <- C.bracket mkConsumer clConsumer runHandler
     print res
     where
