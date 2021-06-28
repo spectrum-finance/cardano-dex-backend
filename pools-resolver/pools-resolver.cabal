@@ -57,6 +57,7 @@ common project-config
                         TypeFamilies
                         TypeSynonymInstances
                         ViewPatterns
+                        TypeOperators
 
   ghc-options:          -Wall
                         -Wcompat
@@ -78,6 +79,7 @@ library
                      Resolver.Models.CfmmPool
                      Resolver.Pool
                      Resolver.PoolsResolver
+                     Resolver.HttpServer
 
     build-depends: 
         bytestring,
@@ -100,7 +102,10 @@ library
         plutus-tx -any,
         hw-kafka-client,
         sdk,
-        servant
+        servant,
+        servant-server,
+        warp,
+        wai
 
 executable pools-resolver-app
     main-is: Main.hs
