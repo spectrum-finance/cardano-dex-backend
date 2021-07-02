@@ -105,7 +105,8 @@ library
         servant,
         servant-server,
         warp,
-        wai
+        wai,
+        hedis
 
 executable pools-resolver-app
     main-is: Main.hs

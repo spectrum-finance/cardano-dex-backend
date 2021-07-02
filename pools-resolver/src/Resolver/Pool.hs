@@ -10,15 +10,16 @@ import RIO
 import Dex.Models
 import Resolver.Models.CfmmPool
 import Plutus.V1.Ledger.TxId
+import qualified PlutusTx.Builtins as Builtins
 
 mkLastPredictedKey :: PoolId -> String
-mkLastPredictedKey _ = undefined
+mkLastPredictedKey (PoolId id) = "last_predicted_" ++ "box_id"--Builtins.decodeUtf8 id
 
 mkLastConfirmedKey :: PoolId -> String
-mkLastConfirmedKey _ = undefined
+mkLastConfirmedKey (PoolId id) = "last_confirmed_" ++ "box_id" --Builtins.decodeUtf8 id
 
 mkPredictedNext :: PoolId -> TxId -> Integer -> String
-mkPredictedNext _ _ = undefined
+mkPredictedNext (PoolId id) (TxId txId) gix = "predicted_next_" ++ (show txId) ++ (show gix) ++ "_" ++ "box_id" --Builtins.decodeUtf8 id
 
 putPredicted :: PredictedPool Pool -> IO ()
 putPredicted _ = undefined 
