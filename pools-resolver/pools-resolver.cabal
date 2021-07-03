@@ -80,6 +80,7 @@ library
                      Resolver.Pool
                      Resolver.PoolsResolver
                      Resolver.HttpServer
+                     Resolver.Utils
 
     build-depends: 
         bytestring,
@@ -106,7 +107,8 @@ library
         servant-server,
         warp,
         wai,
-        hedis
+        hedis,
+        utf8-string
 
 executable pools-resolver-app
     main-is: Main.hs
