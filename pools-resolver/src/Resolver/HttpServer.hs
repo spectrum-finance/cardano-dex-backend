@@ -43,4 +43,4 @@ resolvePool pId =
 
 pull :: Pool -> Handler ()
 pull pool =
-    CIO.liftIO $ (print "Going to pull predicted") >> putPredicted $ PredictedPool pool
+    CIO.liftIO $ putPredicted $ PredictedPool pool

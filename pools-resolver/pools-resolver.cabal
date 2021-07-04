@@ -85,21 +85,10 @@ library
 
     build-depends: 
         bytestring,
-        http-conduit,
         aeson,
         rio,
-        aeson-casing,
-        text,
-        containers,
         bytestring,
         streamly == 0.8.0,
-        req,
-        conduit,
-        data-default-class,
-        req-conduit,
-        conduit-extra,
-        modern-uri,
-        monad-control,
         plutus-ledger-api -any,
         plutus-tx -any,
         hw-kafka-client,
@@ -118,7 +107,5 @@ executable pools-resolver-app
         pools-resolver,
         rio,
         streamly == 0.8.0,
-        warp,
-        parallel-io
     hs-source-dirs:   app
     default-language: Haskell2010
