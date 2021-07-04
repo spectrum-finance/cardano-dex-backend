@@ -91,7 +91,7 @@ library
         text,
         containers,
         bytestring,
-        streamly,
+        streamly == 0.8.0,
         req,
         conduit,
         data-default-class,
@@ -116,7 +116,7 @@ executable pools-resolver-app
         base >= 4.9 && < 5,
         pools-resolver,
         rio,
-        streamly,
+        streamly == 0.8.0,
         warp,
         parallel-io
     hs-source-dirs:   app
