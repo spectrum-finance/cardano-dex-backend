@@ -1,4 +1,11 @@
-module Resolver.Models.AppSettings where
+module Resolver.Models.AppSettings
+  ( KafkaConsumerSettings(..)
+  , HasKafkaConsumerSettings(..)
+  , HttpServerSettings(..)
+  , HasHttpServerSettings(..)
+  , AppSettings(..)
+  , HasAppSettings(..)
+  ) where
 
 import RIO
 
