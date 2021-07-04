@@ -81,6 +81,7 @@ library
                      Resolver.PoolsResolver
                      Resolver.HttpServer
                      Resolver.Utils
+                     Resolver.SettingsReader
 
     build-depends: 
         bytestring,

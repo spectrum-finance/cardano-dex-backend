@@ -11,24 +11,20 @@ import RIO.ByteString.Lazy as LBS
 import Resolver.Models.CfmmPool
 import Dex.Models
 
--- Global consumer properties
 consumerProps :: ConsumerProperties
 consumerProps = brokersList ["0.0.0.0:9092"]
              <> groupId "random_id_1"
              <> noAutoCommit
              <> logLevel KafkaLogInfo
 
--- Subscription to topics
 consumerSub :: Subscription
 consumerSub = topics ["amm-topic"]
            <> offsetReset Earliest
 
--- Running an example
 runKafka :: RIO env ()
 runKafka = liftIO $ do
     _   <- print "Running kafka stream..."
-    res <- C.bracket mkConsumer clConsumer runHandler
-    print res
+    C.bracket mkConsumer clConsumer runHandler
     where
       mkConsumer = newConsumer consumerProps consumerSub
       clConsumer (Left err) = return (Left err)
