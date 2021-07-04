@@ -8,12 +8,13 @@ module Resolver.Models.AppSettings
   ) where
 
 import RIO
+import Kafka.Consumer
 
 data KafkaConsumerSettings = KafkaConsumerSettings
-  { brokerList :: [String]
-  , groupId :: String
-  , topicsList :: [String]
-  , poolRate :: Int
+  { brokerListS :: [BrokerAddress]
+  , groupIdS :: ConsumerGroupId
+  , topicsListS :: [TopicName]
+  , pollRateS :: Int
   }
 
 class HasKafkaConsumerSettings env where

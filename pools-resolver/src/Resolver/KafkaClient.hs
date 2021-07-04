@@ -10,36 +10,43 @@ import Data.Aeson
 import RIO.ByteString.Lazy as LBS
 import Resolver.Models.CfmmPool
 import Dex.Models
+import Resolver.Models.AppSettings
 
-consumerProps :: ConsumerProperties
-consumerProps = brokersList ["0.0.0.0:9092"]
-             <> groupId "random_id_1"
+consumerProps :: KafkaConsumerSettings -> ConsumerProperties
+consumerProps settings = brokersList (brokerListS settings)
+             <> groupId (groupIdS settings)
              <> noAutoCommit
              <> logLevel KafkaLogInfo
 
-consumerSub :: Subscription
-consumerSub = topics ["amm-topic"]
+consumerSub :: KafkaConsumerSettings -> Subscription
+consumerSub settings = topics (topicsListS settings)
            <> offsetReset Earliest
 
-runKafka :: RIO env ()
-runKafka = liftIO $ do
+runKafka :: HasKafkaConsumerSettings env => RIO env ()
+runKafka = do
+    settings <- view kafkaSettingsL
+    runKafka' settings
+
+runKafka' :: KafkaConsumerSettings -> RIO env ()
+runKafka' settings = 
+    liftIO $ do
     _   <- print "Running kafka stream..."
     C.bracket mkConsumer clConsumer runHandler
     where
-      mkConsumer = newConsumer consumerProps consumerSub
+      mkConsumer = newConsumer (consumerProps settings) (consumerSub settings)
       clConsumer (Left err) = return (Left err)
       clConsumer (Right kc) = maybe (Right ()) Left <$> closeConsumer kc
       runHandler (Left err) = print err >> pure ()
-      runHandler (Right kc) = runF kc
+      runHandler (Right kc) = runF settings kc
 
 -- -------------------------------------------------------------------
 
-runF :: KafkaConsumer -> IO ()
-runF consumer = S.drain $ S.repeatM $ pollMessageF consumer
+runF :: KafkaConsumerSettings -> KafkaConsumer -> IO ()
+runF settings consumer = S.drain $ S.repeatM $ pollMessageF settings consumer
 
-pollMessageF :: KafkaConsumer -> IO (Maybe Pool)
-pollMessageF consumer = do
-    msg <- pollMessage consumer (Timeout 1000)
+pollMessageF :: KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe Pool)
+pollMessageF settings consumer = do
+    msg <- pollMessage consumer (Timeout $ pollRateS settings)
     _   <- print msg
     let parsedMsg = parseMessage msg
     _   <- print parsedMsg
