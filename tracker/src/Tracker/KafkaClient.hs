@@ -12,6 +12,7 @@ import Kafka.Producer
 import Dex.Models (PoolId)
 import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
+import Dex.Models
 
 -- ---------- Utils functions ------------
 myLogCallback :: KafkaLogLevel -> String -> String -> IO ()
@@ -46,21 +47,32 @@ mkMessage t k v = ProducerRecord
                   , prValue = v
                   }
 
-formProducerRecord :: RIO.ByteString -> TopicName -> [TxOut] -> [ProducerRecord]
+formProducerRecord :: (ToJSON a) => RIO.ByteString -> TopicName -> [a] -> [ProducerRecord]
 formProducerRecord s t = L.map (mkMessage t (Just s) . Just . BS.toStrict . encode)
+
+formProducerRecordOperation :: RIO.ByteString -> TopicName -> [BS.ByteString] -> [ProducerRecord]
+formProducerRecordOperation s t = L.map (mkMessage t (Just s) . Just . BS.toStrict)
+
 
 -- ---------- Module api -----------------
 
 -- Check if new producer creates on each call
 
 -- Send unspent boxes with proxy contract to kafka
-sendProxy :: HasKafkaProducerSettings env => [TxOut] -> RIO env ()
+sendProxy :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
 sendProxy txOuts = do
     settings <- view kafkaProducerSettingsL
     liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecord (proxyMsgKey settings) (proxyTopic settings) txOuts)
 
+encodeOperation ::  ParsedOperation -> BS.ByteString
+encodeOperation (ParsedOperation op) =
+    case op of
+        x@ (SwapOperation swapData) -> encode swapData
+        x@ (DepositOperation depositData) -> encode depositData
+        x@ (RedeemOperation redeemData) -> encode redeemData  
+
 -- Send unspent boxes with amm contract to kafka
-sendAmm :: HasKafkaProducerSettings env => [TxOut] -> RIO env ()
+sendAmm :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
 sendAmm txOuts = do
     settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecord (ammMsgKey settings) (ammTopic settings) txOuts)
+    liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecordOperation (ammMsgKey settings) (ammTopic settings) (RIO.map encodeOperation txOuts)) 

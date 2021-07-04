@@ -6,8 +6,8 @@ import Tracker.HttpClient (getUnspentOuts, getCurrentHeight)
 import Tracker.Models.AppSettings (AppSettings, HasAppSettings(..))
 import RIO
 import qualified Streamly.Prelude as S
-import Tracker.Contract.Integration (checkTxOutForProxyContract, checkTxOutForAmmContract)
 import Tracker.KafkaClient
+import Dex.Processor
 
 -- use more convenient way to unlift RIO to IO
 run :: RIO AppSettings ()
@@ -27,8 +27,8 @@ process heightTVar = do
                     else pure []
     -- _ <- liftIO $ print appHeight
     -- _ <- liftIO $ print unspent
-    let ammOuts = filter checkTxOutForAmmContract unspent
-        proxyOuts = filter checkTxOutForProxyContract unspent
+    let ammOuts = fmap getPoolOperation unspent & catMaybes
+        proxyOuts = fmap getPool unspent & catMaybes
     -- _ <- liftIO $ print ammOuts
     -- _ <- liftIO $ print proxyOuts
     _ <- sendProxy proxyOuts

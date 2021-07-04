@@ -73,8 +73,7 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Tracker.Contract.Integration
-                     Tracker.HttpClient
+    exposed-modules: Tracker.HttpClient
                      Tracker.TxOutsProcessor
                      Tracker.Models.AppSettings
                      Tracker.Utils

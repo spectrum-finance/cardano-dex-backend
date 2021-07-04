@@ -19,6 +19,7 @@ import qualified RIO.ByteString.Lazy as BL
 import RIO.Text as T ( pack )
 import Data.List as L ( foldl )
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
+import Dex.Models
 
 -- ---------- Types declaration ----------
 
@@ -36,7 +37,7 @@ baseGetReq reqPaths = do
 -- ---------- Module api -----------------
 
 -- Get current unspent boxes from the chain --
-getUnspentOuts :: HasHttpSettings env => RIO env [TxOut]
+getUnspentOuts :: HasHttpSettings env => RIO env [FullTxOut]
 getUnspentOuts = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
 
 -- Get current chain height

@@ -179,7 +179,7 @@ source-repository-package
 source-repository-package
   type: git
   location:https://github.com/ergolabs/dex-sdk
-  tag: 060105448acc56e298f2c2fdae9291666502fbf4
+  tag: ed202bc91c87008bb5ebeb6951a74518bc11c4a2
 
 source-repository-package
   type: git
