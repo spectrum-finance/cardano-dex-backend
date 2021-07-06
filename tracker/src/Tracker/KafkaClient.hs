@@ -64,8 +64,8 @@ sendProxy txOuts = do
     settings <- view kafkaProducerSettingsL
     liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecord (proxyMsgKey settings) (proxyTopic settings) txOuts)
 
-encodeOperation ::  ParsedOperation -> BS.ByteString
-encodeOperation (ParsedOperation op) =
+encodeOperation :: ParsedOperation -> BS.ByteString
+encodeOperation (ParsedOperation op) = 
     case op of
         x@ (SwapOperation swapData) -> encode swapData
         x@ (DepositOperation depositData) -> encode depositData

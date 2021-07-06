@@ -1,4 +1,4 @@
-module Resolver.KafkaClient (runKafka) where
+module Executor.KafkaClient (runKafka) where
 
 import Control.Exception as C (bracket) 
 import Kafka.Consumer
@@ -8,10 +8,9 @@ import qualified Streamly.Prelude as S
 import RIO.ByteString as BS
 import Data.Aeson
 import RIO.ByteString.Lazy as LBS
-import Resolver.Models.CfmmPool
 import Dex.Models
-import Resolver.Models.AppSettings
-import Resolver.Pool
+import Executor.Models.Settings
+import Data.Monoid
 
 consumerProps :: KafkaConsumerSettings -> ConsumerProperties
 consumerProps settings = brokersList (brokerListS settings)
@@ -45,18 +44,28 @@ runKafka' settings =
 runF :: KafkaConsumerSettings -> KafkaConsumer -> IO ()
 runF settings consumer = S.drain $ S.repeatM $ pollMessageF settings consumer
 
-pollMessageF :: KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe Pool)
+pollMessageF :: KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe ParsedOperation)
 pollMessageF settings consumer = do
     msg <- pollMessage consumer (Timeout $ pollRateS settings)
     _   <- print msg
     let parsedMsg = parseMessage msg
-        confirmed = ConfirmedPool <$> parsedMsg
-    _   <- print confirmed
-    _ <- traverse putConfirmed confirmed
     err <- commitAllOffsets OffsetCommit consumer
     _   <- print $ "Offsets: " <> maybe "Committed." show err
-    pure parsedMsg
+    pure $ parsedMsg
 
-parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe Pool
-parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe Pool)
+parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe ParsedOperation
+parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> decodeTest msg)
                            _ -> Nothing
+
+decodeTest :: BS.ByteString -> Maybe ParsedOperation
+decodeTest testData =
+    let lazyStr = LBS.fromStrict testData
+        decodedA = decode lazyStr :: Maybe SwapOpData
+        decodeB = decode lazyStr :: Maybe DepositOpData
+        decodeC = decode lazyStr :: Maybe RedeemOpData
+    in 
+        if (isJust decodedA) then ParsedOperation <$> (SwapOperation <$> decodedA)
+        else if (isJust decodeB) then ParsedOperation <$> (DepositOperation <$> decodeB)
+        else if (isJust decodeC) then ParsedOperation <$> (RedeemOperation <$> decodeC)
+        else Nothing
+    -- in ParsedOperation <$> getFirst (First decodedA <> First decodeB <> First decodeC)
