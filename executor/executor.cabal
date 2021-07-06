@@ -74,7 +74,8 @@ library
     hs-source-dirs: src
     
     exposed-modules: Executor.KafkaClient
-                     Executor.Models.Settings 
+                     Executor.Models.Settings
+                     Executor.HttpClient 
                      
     build-depends: 
         bytestring,

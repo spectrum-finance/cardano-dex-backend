@@ -1,6 +1,6 @@
 module Executor.HttpClient 
-    ( getUnspentOuts
-    , getCurrentHeight
+    ( resolvePoolReq
+    , sendPredicted
     ) where
 
 import Executor.Models.Settings
@@ -11,7 +11,7 @@ import Network.HTTP.Req.Conduit ( responseBodySource )
 import Prelude as P (print)
 import Data.Default.Class ()
 import Data.Conduit.Binary as B ()
-import Data.Aeson ( eitherDecode, FromJSON )
+import Data.Aeson ( eitherDecode, FromJSON,  ToJSON)
 import Text.URI ()
 import Data.Conduit.Combinators as C ( map, mapM_ )
 import RIO.ByteString.Lazy ( fromStrict )
@@ -34,12 +34,12 @@ baseGetReq reqPaths = do
         let result = responseBody r :: a
         pure result
 
-basePostReq :: forall a b env . (FromJSON a, HasHttpSettings env, ToJSON b) => [Text] -> b -> RIO env a
+basePostReq :: forall b env . (HasHttpSettings env, ToJSON b) => [Text] -> b -> RIO env ()
 basePostReq reqPaths model = do
     settings <- view httpSettingsL
     runReq defaultHttpConfig $ do
         let uri = L.foldl (/:) (http (T.pack $ hostS settings)) reqPaths
-        _ <- req POST uri (ReqBodyJson model) jsonResponse (port $ portS settings)
+        _ <- req POST uri (ReqBodyJson model) ignoreResponse (port $ portS settings)
         pure ()
 -- ---------- Module api -----------------
 
