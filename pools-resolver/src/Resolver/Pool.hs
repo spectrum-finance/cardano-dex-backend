@@ -1,9 +1,6 @@
 module Resolver.Pool 
-    ( putPredicted
-    , putConfirmed
-    , getLastPredicted
-    , getLastConfirmed
-    , existsPredicted
+    ( PoolApi(..)
+    , mkPoolApi
     ) where
 
 import RIO
@@ -21,6 +18,19 @@ import Data.ByteString.UTF8 as BSU
 import RIO.ByteString.Lazy as LBS
 import Resolver.Utils
 
+data PoolApi = PoolApi
+    { putPredicted :: PredictedPool Pool -> IO ()
+    , putConfirmed :: ConfirmedPool Pool -> IO ()
+    , getLastPredicted :: PoolId -> IO (Maybe (PredictedPool Pool))
+    , getLastConfirmed :: PoolId -> IO (Maybe (ConfirmedPool Pool))
+    , existsPredicted :: PoolId -> TxId -> Integer -> IO Bool
+    }
+
+mkPoolApi :: IO PoolApi
+mkPoolApi = do
+    conn <- checkedConnect defaultConnectInfo
+    pure $ PoolApi (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
+
 mkLastPredictedKey :: PoolId -> BSU.ByteString
 mkLastPredictedKey (PoolId id) = BSU.fromString $ "last_predicted_" ++ (show id)
 
@@ -30,9 +40,8 @@ mkLastConfirmedKey (PoolId id) = BSU.fromString $ "last_confirmed_" ++ (show id)
 mkPredictedNext :: PoolId -> TxId -> Integer -> BSU.ByteString
 mkPredictedNext (PoolId id) (TxId txId) gix = BSU.fromString $ "predicted_next_" ++ (show txId) ++ (show gix) ++ "_" ++ (show id)
 
-putPredicted :: PredictedPool Pool -> IO ()
-putPredicted (PredictedPool pool) = do
-    conn <- checkedConnect defaultConnectInfo
+putPredicted' :: Connection -> PredictedPool Pool -> IO ()
+putPredicted' conn (PredictedPool pool) = do
     res <- runRedis conn $ do
         let pIdLast = poolId $ poolData pool
             predictedNext =  mkPredictedNext pIdLast (txOutRefId $ fullTxOut pool) (gIdx $ gId pool)
@@ -43,9 +52,8 @@ putPredicted (PredictedPool pool) = do
     _ <- print res
     pure ()
 
-putConfirmed :: ConfirmedPool Pool -> IO ()
-putConfirmed (ConfirmedPool pool) = do
-    conn <- checkedConnect defaultConnectInfo
+putConfirmed' :: Connection -> ConfirmedPool Pool -> IO ()
+putConfirmed' conn (ConfirmedPool pool) = do
     res <- runRedis conn $ do
         let pIdConfirmed = poolId $ poolData pool
             confirmed = mkLastConfirmedKey pIdConfirmed
@@ -54,27 +62,24 @@ putConfirmed (ConfirmedPool pool) = do
     _ <- print res
     pure ()
 
-getLastPredicted :: PoolId -> IO (Maybe (PredictedPool Pool))
-getLastPredicted pIdLast = do
-    conn <- checkedConnect defaultConnectInfo
+getLastPredicted' :: Connection -> PoolId -> IO (Maybe (PredictedPool Pool))
+getLastPredicted' conn pIdLast = do
     res <- runRedis conn $ do
         Redis.get $ mkLastPredictedKey pIdLast
     _ <- print res
     let resParsed = (unsafeFromEither res) >>= (\s -> (Json.decode $ LBS.fromStrict s) :: Maybe Pool)
     pure (fmap (\pool -> PredictedPool pool) resParsed)
 
-getLastConfirmed :: PoolId -> IO (Maybe (ConfirmedPool Pool))
-getLastConfirmed pIdConfirmed = do
-    conn <- checkedConnect defaultConnectInfo
+getLastConfirmed' :: Connection -> PoolId -> IO (Maybe (ConfirmedPool Pool))
+getLastConfirmed' conn pIdConfirmed = do
     res <- runRedis conn $ do
         Redis.get $ mkLastConfirmedKey pIdConfirmed
     _ <- print res
     let resParsed = (unsafeFromEither res) >>= (\s -> (Json.decode $ LBS.fromStrict s) :: Maybe Pool)
     pure (fmap (\pool -> ConfirmedPool pool) resParsed) 
 
-existsPredicted :: PoolId -> TxId -> Integer -> IO Bool
-existsPredicted pId txId gix = do
-    conn <- checkedConnect defaultConnectInfo
+existsPredicted' :: Connection -> PoolId -> TxId -> Integer -> IO Bool
+existsPredicted' conn pId txId gix = do
     res <- runRedis conn $ do
         Redis.exists $ mkPredictedNext pId txId gix
     pure (unsafeFromEither res)
