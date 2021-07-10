@@ -2,7 +2,9 @@
 
 module Main where
 
-import Tracker.TxOutsProcessor ( run )
+import Tracker.TxOutsProcessor
+import Tracker.KafkaClient
+import Tracker.HttpClient
 import Tracker.Models.AppSettings 
     ( HttpSettings(..)
     , BlockRequestSettings(..)
@@ -14,7 +16,10 @@ import RIO ( runRIO )
 main :: IO ()
 main = do
     appSettings <- readSettings
-    runRIO appSettings $ do run
+    let httpClient = mkHttpClient
+        kafkaClient = mkKafkaProducerClient
+        txOutsProcessor = mkTxOutsProcessor kafkaClient httpClient
+    runRIO appSettings $ do (run txOutsProcessor)
 
 readSettings :: IO AppSettings
 readSettings = do

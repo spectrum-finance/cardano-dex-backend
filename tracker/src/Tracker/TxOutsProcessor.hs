@@ -1,25 +1,34 @@
 module Tracker.TxOutsProcessor 
-    (run) where
+    ( TxOutsProcessor(..)
+    , mkTxOutsProcessor
+    ) where
 
 import Prelude (print)
-import Tracker.HttpClient (getUnspentOuts, getCurrentHeight)
+import Tracker.HttpClient (HttpClient(..))
 import Tracker.Models.AppSettings (AppSettings, HasAppSettings(..))
 import RIO
 import qualified Streamly.Prelude as S
 import Tracker.KafkaClient
 import Dex.Processor
 
+data TxOutsProcessor = TxOutsProcessor
+    { run :: RIO AppSettings ()
+    }
+
+mkTxOutsProcessor :: KafkaProducerClient AppSettings -> HttpClient AppSettings -> TxOutsProcessor
+mkTxOutsProcessor k c = TxOutsProcessor $ run' k c
+
 -- use more convenient way to unlift RIO to IO
-run :: RIO AppSettings ()
-run = do
+run' :: KafkaProducerClient AppSettings -> HttpClient AppSettings -> RIO AppSettings ()
+run' k c = do
     heightTvar <- newTVarIO 0
     settings <- view appSettingsL
     liftIO $ 
-        S.repeatM (threadDelay 1000000) >> runRIO settings (process heightTvar)
+        S.repeatM (threadDelay 1000000) >> runRIO settings (process k c heightTvar)
             & S.drain
 
-process :: TVar Int -> RIO AppSettings ()
-process heightTVar = do
+process :: KafkaProducerClient AppSettings -> HttpClient AppSettings -> TVar Int -> RIO AppSettings ()
+process KafkaProducerClient{..} HttpClient{..} heightTVar = do
     chainHeight <- getCurrentHeight
     appHeight   <- readTVarIO heightTVar
     unspent     <- if chainHeight > appHeight 

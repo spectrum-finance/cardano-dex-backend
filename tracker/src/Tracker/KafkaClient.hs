@@ -1,6 +1,6 @@
 module Tracker.KafkaClient 
-    ( sendProxy
-    , sendAmm
+    ( KafkaProducerClient(..)
+    , mkKafkaProducerClient
     ) where
 
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
@@ -13,6 +13,14 @@ import Dex.Models (PoolId)
 import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
 import Dex.Models
+
+data KafkaProducerClient env = KafkaProducerClient
+    { sendProxy :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
+    , sendAmm :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
+    }
+
+mkKafkaProducerClient :: KafkaProducerClient env
+mkKafkaProducerClient = KafkaProducerClient sendProxy' sendAmm'
 
 -- ---------- Utils functions ------------
 myLogCallback :: KafkaLogLevel -> String -> String -> IO ()
@@ -59,8 +67,8 @@ formProducerRecordOperation s t = L.map (mkMessage t (Just s) . Just . BS.toStri
 -- Check if new producer creates on each call
 
 -- Send unspent boxes with proxy contract to kafka
-sendProxy :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
-sendProxy txOuts = do
+sendProxy' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
+sendProxy' txOuts = do
     settings <- view kafkaProducerSettingsL
     liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecord (proxyMsgKey settings) (proxyTopic settings) txOuts)
 
@@ -72,7 +80,7 @@ encodeOperation (ParsedOperation op) =
         x@ (RedeemOperation redeemData) -> encode redeemData  
 
 -- Send unspent boxes with amm contract to kafka
-sendAmm :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
-sendAmm txOuts = do
+sendAmm' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
+sendAmm' txOuts = do
     settings <- view kafkaProducerSettingsL
     liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecordOperation (ammMsgKey settings) (ammTopic settings) (RIO.map encodeOperation txOuts)) 

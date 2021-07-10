@@ -1,6 +1,6 @@
 module Tracker.HttpClient 
-    ( getUnspentOuts
-    , getCurrentHeight
+    ( HttpClient(..)
+    , mkHttpClient
     ) where
 
 import Tracker.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
@@ -23,6 +23,14 @@ import Dex.Models
 
 -- ---------- Types declaration ----------
 
+data HttpClient env = HttpClient
+    { getUnspentOuts :: HasHttpSettings env => RIO env [FullTxOut]
+    , getCurrentHeight :: HasHttpSettings env => RIO env Int
+    }
+
+mkHttpClient :: HttpClient env
+mkHttpClient = HttpClient getUnspentOuts' getCurrentHeight'
+
 -- ---------- Utils functions ------------
 
 baseGetReq :: forall a env . (FromJSON a, HasHttpSettings env) => [Text] -> RIO env a
@@ -37,12 +45,12 @@ baseGetReq reqPaths = do
 -- ---------- Module api -----------------
 
 -- Get current unspent boxes from the chain --
-getUnspentOuts :: HasHttpSettings env => RIO env [FullTxOut]
-getUnspentOuts = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
+getUnspentOuts' :: HasHttpSettings env => RIO env [FullTxOut]
+getUnspentOuts' = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
 
 -- Get current chain height
-getCurrentHeight :: HasHttpSettings env => RIO env Int
-getCurrentHeight = baseGetReq ["api", "v0", "block", "height"]
+getCurrentHeight' :: HasHttpSettings env => RIO env Int
+getCurrentHeight' = baseGetReq ["api", "v0", "block", "height"]
 
 -- ---------- Experimental feature -------
 
