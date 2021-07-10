@@ -44,7 +44,7 @@ putPredicted' :: Connection -> PredictedPool Pool -> IO ()
 putPredicted' conn (PredictedPool pool) = do
     res <- runRedis conn $ do
         let pIdLast = poolId $ poolData pool
-            predictedNext =  mkPredictedNext pIdLast (txOutRefId $ fullTxOut pool) (gIdx $ gId pool)
+            predictedNext =  mkPredictedNext pIdLast (refId $ fullTxOut pool) (gIdx $ gId pool)
             predictedLast =  mkLastPredictedKey pIdLast
             encodedPool = (BS.toStrict . encode) pool
         Redis.set predictedNext encodedPool

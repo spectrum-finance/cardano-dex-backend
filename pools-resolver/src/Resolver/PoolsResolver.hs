@@ -30,7 +30,7 @@ process p@PoolApi{..} confirmedMaybe predictedMaybe = do
         (Just (ConfirmedPool confirmed), Just (PredictedPool predicted)) -> do
             _ <- print "Got confirmed and predicted pools in process function."
             let upToDate = gIdx (gId confirmed) == gIdx (gId predicted)              
-            consistentChain <- existsPredicted (poolId $ poolData confirmed) (txOutRefId $ fullTxOut confirmed) (txOutRefIdx $ fullTxOut confirmed)
+            consistentChain <- existsPredicted (poolId $ poolData confirmed) (refId $ fullTxOut confirmed) (refIdx $ fullTxOut confirmed)
             fmap Just (if upToDate then pure predicted else pessimistic p consistentChain (PredictedPool predicted) (ConfirmedPool confirmed))
         (Just (ConfirmedPool confirmed), _) -> do
             _ <- print "Just only confirmed. Predicted is empty."
@@ -44,7 +44,7 @@ pessimistic p consistentChain predictedPool confirmedPool = do
     if consistentChain then needToUpdate p predictedPool (gId $ confirmed confirmedPool) else pure $ confirmed confirmedPool
 
 needToUpdate :: PoolApi -> PredictedPool Pool -> GId -> IO Pool
-needToUpdate PoolApi{..} (PredictedPool (Pool _ b (FullTxOut q w e r t))) newGix = do
-    let updatedPool = PredictedPool $ Pool newGix b (FullTxOut q w e r t)
+needToUpdate PoolApi{..} (PredictedPool (Pool _ b (FullTxOut q w e r t) s)) newGix = do
+    let updatedPool = PredictedPool $ Pool newGix b (FullTxOut q w e r t) s
     _ <- putPredicted updatedPool
     pure $ predicted updatedPool
