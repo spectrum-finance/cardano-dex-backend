@@ -12,13 +12,12 @@ import Tracker.Models.AppSettings
     , AppSettings(..)
     )
 import RIO ( runRIO )
+import Dex.Processor
 
 main :: IO ()
 main = do
     appSettings <- readSettings
-    let httpClient = mkHttpClient
-        kafkaClient = mkKafkaProducerClient
-        txOutsProcessor = mkTxOutsProcessor kafkaClient httpClient
+    let txOutsProcessor = mkTxOutsProcessor mkProcessorService mkKafkaProducerClient mkHttpClient
     runRIO appSettings $ do (run txOutsProcessor)
 
 readSettings :: IO AppSettings

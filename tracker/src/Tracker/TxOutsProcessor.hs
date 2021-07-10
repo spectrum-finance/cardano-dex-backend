@@ -15,20 +15,20 @@ data TxOutsProcessor = TxOutsProcessor
     { run :: RIO AppSettings ()
     }
 
-mkTxOutsProcessor :: KafkaProducerClient AppSettings -> HttpClient AppSettings -> TxOutsProcessor
-mkTxOutsProcessor k c = TxOutsProcessor $ run' k c
+mkTxOutsProcessor :: ProcessorService -> KafkaProducerClient AppSettings -> HttpClient AppSettings -> TxOutsProcessor
+mkTxOutsProcessor p k c = TxOutsProcessor $ run' p k c
 
 -- use more convenient way to unlift RIO to IO
-run' :: KafkaProducerClient AppSettings -> HttpClient AppSettings -> RIO AppSettings ()
-run' k c = do
+run' :: ProcessorService -> KafkaProducerClient AppSettings -> HttpClient AppSettings -> RIO AppSettings ()
+run' p k c = do
     heightTvar <- newTVarIO 0
     settings <- view appSettingsL
     liftIO $ 
-        S.repeatM (threadDelay 1000000) >> runRIO settings (process k c heightTvar)
+        S.repeatM (threadDelay 1000000) >> runRIO settings (process p k c heightTvar)
             & S.drain
 
-process :: KafkaProducerClient AppSettings -> HttpClient AppSettings -> TVar Int -> RIO AppSettings ()
-process KafkaProducerClient{..} HttpClient{..} heightTVar = do
+process :: ProcessorService -> KafkaProducerClient AppSettings -> HttpClient AppSettings -> TVar Int -> RIO AppSettings ()
+process ProcessorService{..} KafkaProducerClient{..} HttpClient{..} heightTVar = do
     chainHeight <- getCurrentHeight
     appHeight   <- readTVarIO heightTVar
     unspent     <- if chainHeight > appHeight 
