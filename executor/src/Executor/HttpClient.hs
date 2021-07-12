@@ -1,6 +1,6 @@
 module Executor.HttpClient 
-    ( resolvePoolReq
-    , sendPredicted
+    ( HttpClient(..)
+    , mkHttpClient
     ) where
 
 import Executor.Models.Settings
@@ -21,6 +21,13 @@ import Data.List as L ( foldl )
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Dex.Models
 
+data HttpClient env = HttpClient
+    { resolvePoolReq :: HasHttpSettings env => RIO env (Maybe Pool)
+    , sendPredicted :: HasHttpSettings env => Pool -> RIO env ()
+    }
+
+mkHttpClient :: HttpClient
+mkHttpClient = HttpClient resolvePoolReq' sendPredicted'
 -- ---------- Types declaration ----------
 
 -- ---------- Utils functions ------------
@@ -43,11 +50,11 @@ basePostReq reqPaths model = do
         pure ()
 -- ---------- Module api -----------------
 
-resolvePoolReq :: HasHttpSettings env => RIO env (Maybe Pool)
-resolvePoolReq = baseGetReq ["resolve"]
+resolvePoolReq' :: HasHttpSettings env => RIO env (Maybe Pool)
+resolvePoolReq' = baseGetReq ["resolve"]
 
 -- Get current chain height
-sendPredicted :: HasHttpSettings env => Pool -> RIO env ()
-sendPredicted pool = basePostReq ["pull"] pool
+sendPredicted' :: HasHttpSettings env => Pool -> RIO env ()
+sendPredicted' pool = basePostReq ["pull"] pool
 
 -- ---------- Experimental feature -------

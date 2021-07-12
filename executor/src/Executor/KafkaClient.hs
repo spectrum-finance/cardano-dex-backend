@@ -1,4 +1,7 @@
-module Executor.KafkaClient (runKafka) where
+module Executor.KafkaClient
+    ( KafkaConsumerS(..)
+    , mkKafkaConsumerS
+    ) where
 
 import Control.Exception as C (bracket) 
 import Kafka.Consumer
@@ -12,6 +15,13 @@ import Dex.Models
 import Executor.Models.Settings
 import Data.Monoid
 
+data KafkaConsumerS env = KafkaConsumerS
+    { runKafka :: HasKafkaConsumerSettings env => RIO env ()
+    }
+
+mkKafkaConsumerS :: Processor -> KafkaConsumerS
+mkKafkaConsumerS p = KafkaConsumerS $ runKafka' p
+
 consumerProps :: KafkaConsumerSettings -> ConsumerProperties
 consumerProps settings = brokersList (brokerListS settings)
              <> groupId (groupIdS settings)
@@ -22,13 +32,13 @@ consumerSub :: KafkaConsumerSettings -> Subscription
 consumerSub settings = topics (topicsListS settings)
            <> offsetReset Earliest
 
-runKafka :: HasKafkaConsumerSettings env => RIO env ()
-runKafka = do
+runKafka' :: HasKafkaConsumerSettings env => Processor -> RIO env ()
+runKafka' p = do
     settings <- view kafkaSettingsL
-    runKafka' settings
+    runKafka'' p settings
 
-runKafka' :: KafkaConsumerSettings -> RIO env ()
-runKafka' settings = 
+runKafka'' :: Processor -> KafkaConsumerSettings -> RIO env ()
+runKafka'' p settings = 
     liftIO $ do
     _   <- print "Running kafka stream..."
     C.bracket mkConsumer clConsumer runHandler
@@ -37,20 +47,21 @@ runKafka' settings =
       clConsumer (Left err) = return (Left err)
       clConsumer (Right kc) = maybe (Right ()) Left <$> closeConsumer kc
       runHandler (Left err) = print err >> pure ()
-      runHandler (Right kc) = runF settings kc
+      runHandler (Right kc) = runF p settings kc
 
 -- -------------------------------------------------------------------
 
-runF :: KafkaConsumerSettings -> KafkaConsumer -> IO ()
-runF settings consumer = S.drain $ S.repeatM $ pollMessageF settings consumer
+runF :: Processor -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
+runF p settings consumer = S.drain $ S.repeatM $ pollMessageF p settings consumer
 
-pollMessageF :: KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe ParsedOperation)
-pollMessageF settings consumer = do
+pollMessageF :: Processor -> KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe ParsedOperation)
+pollMessageF Processor{..} settings consumer = do
     msg <- pollMessage consumer (Timeout $ pollRateS settings)
     _   <- print msg
     let parsedMsg = parseMessage msg
     err <- commitAllOffsets OffsetCommit consumer
     _   <- print $ "Offsets: " <> maybe "Committed." show err
+    _ <- process parsedMsg
     pure $ parsedMsg
 
 parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe ParsedOperation
