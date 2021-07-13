@@ -16,12 +16,13 @@ import Executor.Models.Settings
 import Data.Monoid
 import Executor.Processor
 import Executor.HttpClient
+import Executor.Utils
 
 data KafkaConsumerS env = KafkaConsumerS
     { runKafka :: HasKafkaConsumerSettings env => RIO env ()
     }
 
-mkKafkaConsumerS :: Processor -> KafkaConsumerS
+mkKafkaConsumerS :: Processor -> KafkaConsumerS env
 mkKafkaConsumerS p = KafkaConsumerS $ runKafka' p
 
 consumerProps :: KafkaConsumerSettings -> ConsumerProperties
@@ -63,7 +64,7 @@ pollMessageF Processor{..} settings consumer = do
     let parsedMsg = parseMessage msg
     err <- commitAllOffsets OffsetCommit consumer
     _   <- print $ "Offsets: " <> maybe "Committed." show err
-    _ <- process parsedMsg
+    _ <- process $ unsafeFromMaybe parsedMsg
     pure $ parsedMsg
 
 parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe ParsedOperation

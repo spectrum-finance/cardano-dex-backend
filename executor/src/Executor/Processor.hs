@@ -22,12 +22,11 @@ process' :: SenderService -> HttpClient -> InterpreterService -> ParsedOperation
 process'  SenderService{..} HttpClient{..} i (ParsedOperation op) = do
     currentPoolMaybe <- resolvePoolReq
     let currentPool = unsafeFromMaybe currentPoolMaybe
-        unsafeTx = mkTx'' i op currentPool
+        unsafeTx = unsafeFromEither $ mkTx'' i op currentPool
     send unsafeTx
 
-mkTx'' :: InterpreterService -> Operation a -> Pool -> Tx
+mkTx'' :: InterpreterService -> Operation a -> Pool -> Either MkTxError Tx
 mkTx'' InterpreterService{..} op pool =
-    unsafeFromEither $
         case op of
             x@ (SwapOperation swapData) -> deposit x pool
             x@ (DepositOperation depositData) -> redeem x pool
