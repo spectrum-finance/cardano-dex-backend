@@ -21,40 +21,40 @@ import Data.List as L ( foldl )
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Dex.Models
 
-data HttpClient env = HttpClient
-    { resolvePoolReq :: HasHttpSettings env => RIO env (Maybe Pool)
-    , sendPredicted :: HasHttpSettings env => Pool -> RIO env ()
+data HttpClient = HttpClient
+    { resolvePoolReq :: IO (Maybe Pool)
+    , sendPredicted :: Pool -> IO ()
     }
 
-mkHttpClient :: HttpClient
-mkHttpClient = HttpClient resolvePoolReq' sendPredicted'
+mkHttpClient :: HasHttpSettings env => RIO env HttpClient
+mkHttpClient = do
+    settings <- view httpSettingsL
+    pure $ HttpClient (resolvePoolReq' settings) (sendPredicted' settings)
 -- ---------- Types declaration ----------
 
 -- ---------- Utils functions ------------
 
-baseGetReq :: forall a env . (FromJSON a, HasHttpSettings env) => [Text] -> RIO env a
-baseGetReq reqPaths = do
-    settings <- view httpSettingsL
+baseGetReq :: forall a . FromJSON a => HttpSettings -> [Text] -> IO a
+baseGetReq settings reqPaths = do
     runReq defaultHttpConfig $ do
         let uri = L.foldl (/:) (http (T.pack $ hostS settings)) reqPaths
         r <- req GET uri NoReqBody jsonResponse (port $ portS settings)
         let result = responseBody r :: a
         pure result
 
-basePostReq :: forall b env . (HasHttpSettings env, ToJSON b) => [Text] -> b -> RIO env ()
-basePostReq reqPaths model = do
-    settings <- view httpSettingsL
+basePostReq :: forall b . ToJSON b => HttpSettings -> [Text] -> b -> IO ()
+basePostReq settings reqPaths model = do
     runReq defaultHttpConfig $ do
         let uri = L.foldl (/:) (http (T.pack $ hostS settings)) reqPaths
         _ <- req POST uri (ReqBodyJson model) ignoreResponse (port $ portS settings)
         pure ()
 -- ---------- Module api -----------------
 
-resolvePoolReq' :: HasHttpSettings env => RIO env (Maybe Pool)
-resolvePoolReq' = baseGetReq ["resolve"]
+resolvePoolReq' :: HttpSettings -> IO (Maybe Pool)
+resolvePoolReq' settings = baseGetReq settings ["resolve"]
 
 -- Get current chain height
-sendPredicted' :: HasHttpSettings env => Pool -> RIO env ()
-sendPredicted' pool = basePostReq ["pull"] pool
+sendPredicted' :: HttpSettings -> Pool -> IO ()
+sendPredicted' settings pool = basePostReq settings ["pull"] pool
 
 -- ---------- Experimental feature -------

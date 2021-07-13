@@ -14,6 +14,8 @@ import RIO.ByteString.Lazy as LBS
 import Dex.Models
 import Executor.Models.Settings
 import Data.Monoid
+import Executor.Processor
+import Executor.HttpClient
 
 data KafkaConsumerS env = KafkaConsumerS
     { runKafka :: HasKafkaConsumerSettings env => RIO env ()

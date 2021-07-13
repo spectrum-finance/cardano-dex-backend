@@ -3,7 +3,10 @@ module Executor.Sender
     , mkSenderService
     ) where
 
-data SenderService env = SenderService
+import RIO
+import Plutus.V1.Ledger.Tx
+
+data SenderService = SenderService
     { send :: Tx -> IO () }
 
 mkSenderService :: SenderService

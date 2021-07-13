@@ -76,6 +76,9 @@ library
     exposed-modules: Executor.KafkaClient
                      Executor.Models.Settings
                      Executor.HttpClient 
+                     Executor.Processor
+                     Executor.Utils
+                     Executor.Sender
                      
     build-depends: 
         bytestring,
@@ -96,6 +99,7 @@ library
         monad-control,
         plutus-ledger-api -any,
         plutus-tx -any,
+        plutus-ledger,
         hw-kafka-client,
         sdk
 
