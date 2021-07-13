@@ -15,18 +15,18 @@ import Ledger.Constraints.OffChain
 data Processor = Processor
     { process :: ParsedOperation -> IO () }
 
-mkProcessor :: SenderService -> HttpClient -> (InterpreterService a b) -> Processor
+mkProcessor :: SenderService -> HttpClient -> InterpreterService -> Processor
 mkProcessor s h i = Processor $ process' s h i
 
-process' :: SenderService -> HttpClient -> (InterpreterService a b) -> ParsedOperation -> IO ()
-process'  SenderService{..} HttpClient{..} InterpreterService{..} (ParsedOperation op) = do
+process' :: SenderService -> HttpClient -> InterpreterService -> ParsedOperation -> IO ()
+process'  SenderService{..} HttpClient{..} i (ParsedOperation op) = do
     currentPoolMaybe <- resolvePoolReq
     let currentPool = unsafeFromMaybe currentPoolMaybe
-        unsafeTx = mkTx'' op currentPool
+        unsafeTx = mkTx'' i op currentPool
     send unsafeTx
 
-mkTx'' :: Operation a -> Pool -> Tx
-mkTx'' op pool =
+mkTx'' :: InterpreterService -> Operation a -> Pool -> Tx
+mkTx'' InterpreterService{..} op pool =
     unsafeFromEither $
         case op of
             x@ (SwapOperation swapData) -> deposit x pool
