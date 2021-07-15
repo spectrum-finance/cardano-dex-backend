@@ -1,10 +1,10 @@
-module Resolver.PoolsResolver 
+module Resolver.Services.PoolsResolver 
     ( PoolResolver(..)
     , mkPoolResolver
     ) where
 
 import RIO
-import Resolver.Pool (PoolApi(..))
+import Resolver.Services.PoolApi
 import Prelude (print)
 import Dex.Models
 import Resolver.Models.CfmmPool

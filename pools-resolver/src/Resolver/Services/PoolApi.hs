@@ -1,4 +1,4 @@
-module Resolver.Pool 
+module Resolver.Services.PoolApi
     ( PoolApi(..)
     , mkPoolApi
     ) where
@@ -7,10 +7,7 @@ import RIO
 import Dex.Models
 import Resolver.Models.CfmmPool
 import Plutus.V1.Ledger.TxId
-import qualified PlutusTx.Builtins as Builtins
 import RIO.ByteString.Lazy as BS
-import RIO.ByteString as S
-import Dex.Models (Pool)
 import Data.Aeson as Json
 import Database.Redis as Redis
 import Prelude (print)
@@ -33,13 +30,13 @@ mkPoolApi = do
     pure $ PoolApi (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 
 mkLastPredictedKey :: PoolId -> BSU.ByteString
-mkLastPredictedKey (PoolId id) = BSU.fromString $ "last_predicted_" ++ (show id)
+mkLastPredictedKey (PoolId pid) = BSU.fromString $ "last_predicted_" ++ (show pid)
 
 mkLastConfirmedKey :: PoolId -> BSU.ByteString
-mkLastConfirmedKey (PoolId id) = BSU.fromString $ "last_confirmed_" ++ (show id)
+mkLastConfirmedKey (PoolId pid) = BSU.fromString $ "last_confirmed_" ++ (show pid)
 
 mkPredictedNext :: PoolId -> TxId -> Integer -> BSU.ByteString
-mkPredictedNext (PoolId id) (TxId txId) gix = BSU.fromString $ "predicted_next_" ++ (show txId) ++ (show gix) ++ "_" ++ (show id)
+mkPredictedNext (PoolId pid) (TxId txId) gix = BSU.fromString $ "predicted_next_" ++ (show txId) ++ (show gix) ++ "_" ++ (show pid)
 
 putPredicted' :: Connection -> PredictedPool Pool -> IO ()
 putPredicted' conn (PredictedPool pool) = do
@@ -48,7 +45,7 @@ putPredicted' conn (PredictedPool pool) = do
             predictedNext =  mkPredictedNext pIdLast (refId $ fullTxOut pool) (gIdx $ gId pool)
             predictedLast =  mkLastPredictedKey pIdLast
             encodedPool = (BS.toStrict . encode) pool
-        Redis.set predictedNext encodedPool
+        _ <- Redis.set predictedNext encodedPool
         Redis.set predictedLast encodedPool
     _ <- print res
     pure ()

@@ -10,11 +10,21 @@ module Resolver.Models.AppSettings
 import RIO
 import Kafka.Consumer
 
+data AppSettings = AppSettings
+    { getKafkaSettings :: KafkaConsumerSettings
+    , getHttpSettings :: HttpServerSettings
+    }
+
 data KafkaConsumerSettings = KafkaConsumerSettings
-  { brokerListS :: [BrokerAddress]
-  , groupIdS :: ConsumerGroupId
-  , topicsListS :: [TopicName]
-  , pollRateS :: Int
+  { getBrokerList :: [BrokerAddress]
+  , getGroupId :: ConsumerGroupId
+  , getTopicsList :: [TopicName]
+  , getPollRate :: Int
+  }
+
+data HttpServerSettings = HttpServerSettings
+  { getPort :: Int
+  , getHost :: String
   }
 
 class HasKafkaConsumerSettings env where
@@ -22,24 +32,14 @@ class HasKafkaConsumerSettings env where
 instance HasKafkaConsumerSettings KafkaConsumerSettings where
   kafkaSettingsL = id
 instance HasKafkaConsumerSettings AppSettings where
-  kafkaSettingsL = lens kafkaSettings (\x y -> x { kafkaSettings = y })
-
-data HttpServerSettings = HttpServerSettings
-  { port :: Int
-  , host :: String
-  }
+  kafkaSettingsL = lens getKafkaSettings (\x y -> x { getKafkaSettings = y })
 
 class HasHttpServerSettings env where
   httpSettingsL :: Lens' env HttpServerSettings
 instance HasHttpServerSettings HttpServerSettings where
   httpSettingsL = id
 instance HasHttpServerSettings AppSettings where
-  httpSettingsL = lens httpSettings (\x y -> x { httpSettings = y })
-
-data AppSettings = AppSettings
-    { kafkaSettings :: KafkaConsumerSettings
-    , httpSettings :: HttpServerSettings
-    }
+  httpSettingsL = lens getHttpSettings (\x y -> x { getHttpSettings = y })
 
 class HasAppSettings env where
   appSettingsL :: Lens' env AppSettings

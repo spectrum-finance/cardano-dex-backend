@@ -1,6 +1,6 @@
-module Resolver.KafkaClient
-    ( KafkaClientService(..)
-    , mkKafkaClientService
+module Resolver.Services.KafkaService
+    ( KafkaService(..)
+    , mkKafkaService
     ) where
 
 import Control.Exception as C (bracket) 
@@ -14,32 +14,34 @@ import RIO.ByteString.Lazy as LBS
 import Resolver.Models.CfmmPool
 import Dex.Models
 import Resolver.Models.AppSettings
-import Resolver.Pool (PoolApi(..))
+import Resolver.Services.PoolApi
 
-data KafkaClientService env = KafkaClientService
+data KafkaService env = KafkaService
     { runKafka :: HasKafkaConsumerSettings env => RIO env () 
     }
 
-mkKafkaClientService :: PoolApi -> KafkaClientService env
-mkKafkaClientService p = KafkaClientService $ runKafka'' p
+mkKafkaService :: PoolApi -> KafkaService env
+mkKafkaService p = KafkaService $ runKafka' p
+
+runKafka' :: HasKafkaConsumerSettings env => PoolApi -> RIO env ()
+runKafka' p = do
+    settings <- view kafkaSettingsL
+    mkKafka p settings
+
+----------------------------------------------------------------------
 
 consumerProps :: KafkaConsumerSettings -> ConsumerProperties
-consumerProps settings = brokersList (brokerListS settings)
-             <> groupId (groupIdS settings)
+consumerProps settings = brokersList (getBrokerList settings)
+             <> groupId (getGroupId settings)
              <> noAutoCommit
              <> logLevel KafkaLogInfo
 
 consumerSub :: KafkaConsumerSettings -> Subscription
-consumerSub settings = topics (topicsListS settings)
+consumerSub settings = topics (getTopicsList settings)
            <> offsetReset Earliest
 
-runKafka'' :: HasKafkaConsumerSettings env => PoolApi -> RIO env ()
-runKafka'' p = do
-    settings <- view kafkaSettingsL
-    runKafka' p settings
-
-runKafka' :: PoolApi -> KafkaConsumerSettings -> RIO env ()
-runKafka' p settings = 
+mkKafka :: PoolApi -> KafkaConsumerSettings -> RIO env ()
+mkKafka p settings = 
     liftIO $ do
     _   <- print "Running kafka stream..."
     C.bracket mkConsumer clConsumer runHandler
@@ -50,14 +52,12 @@ runKafka' p settings =
       runHandler (Left err) = print err >> pure ()
       runHandler (Right kc) = runF p settings kc
 
--- -------------------------------------------------------------------
-
 runF :: PoolApi -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
 runF p settings consumer = S.drain $ S.repeatM $ pollMessageF p settings consumer
 
 pollMessageF :: PoolApi -> KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe Pool)
 pollMessageF PoolApi{..} settings consumer = do
-    msg <- pollMessage consumer (Timeout $ pollRateS settings)
+    msg <- pollMessage consumer (Timeout $ getPollRate settings)
     _   <- print msg
     let parsedMsg = parseMessage msg
         confirmed = ConfirmedPool <$> parsedMsg
