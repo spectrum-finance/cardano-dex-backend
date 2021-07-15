@@ -1,4 +1,4 @@
-module Executor.Sender 
+module Executor.Services.Sender 
     ( SenderService(..)
     , mkSenderService
     ) where

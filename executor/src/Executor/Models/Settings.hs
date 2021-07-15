@@ -10,15 +10,15 @@ import RIO
 import Kafka.Consumer
 
 data AppSettings = AppSettings
-  { kafkaConsumerS :: KafkaConsumerSettings
-  , httpClientS :: HttpSettings
+  { getKafkaSettings :: KafkaConsumerSettings
+  , getHttpSettings :: HttpSettings
   }
 
 data KafkaConsumerSettings = KafkaConsumerSettings
-  { brokerListS :: [BrokerAddress]
-  , groupIdS :: ConsumerGroupId
-  , topicsListS :: [TopicName]
-  , pollRateS :: Int
+  { getBrokerList :: [BrokerAddress]
+  , getGroupId :: ConsumerGroupId
+  , getTopicsList :: [TopicName]
+  , getPollRate :: Int
   }
 
 data HttpSettings = HttpSettings
@@ -31,11 +31,11 @@ class HasKafkaConsumerSettings env where
 instance HasKafkaConsumerSettings KafkaConsumerSettings where
   kafkaSettingsL = id
 instance HasKafkaConsumerSettings AppSettings where
-  kafkaSettingsL = lens kafkaConsumerS (\x y -> x { kafkaConsumerS = y })
+  kafkaSettingsL = lens getKafkaSettings (\x y -> x { getKafkaSettings = y })
 
 class HasHttpSettings env where
   httpSettingsL :: Lens' env HttpSettings
 instance HasHttpSettings HttpSettings where
   httpSettingsL = id
 instance HasHttpSettings AppSettings where
-  httpSettingsL = lens httpClientS (\x y -> x { httpClientS = y })
+  httpSettingsL = lens getHttpSettings (\x y -> x { getHttpSettings = y })

@@ -6,7 +6,7 @@ module Executor.Utils
 import RIO
 
 unsafeFromEither :: Either b a -> a
-unsafeFromEither (Left err)    = undefined
+unsafeFromEither (Left _)    = undefined
 unsafeFromEither (Right value) = value
 
 unsafeFromMaybe :: Maybe a -> a

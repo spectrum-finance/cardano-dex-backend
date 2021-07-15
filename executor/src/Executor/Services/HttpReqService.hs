@@ -1,6 +1,6 @@
-module Executor.HttpClient 
-    ( HttpClient(..)
-    , mkHttpClient
+module Executor.Services.HttpReqService 
+    ( HttpReqService(..)
+    , mkHttpReqService
     ) where
 
 import Executor.Models.Settings
@@ -21,15 +21,15 @@ import Data.List as L ( foldl )
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Dex.Models
 
-data HttpClient = HttpClient
+data HttpReqService = HttpReqService
     { resolvePoolReq :: IO (Maybe Pool)
     , sendPredicted :: Pool -> IO ()
     }
 
-mkHttpClient :: HasHttpSettings env => RIO env HttpClient
-mkHttpClient = do
+mkHttpReqService :: HasHttpSettings env => RIO env HttpReqService
+mkHttpReqService = do
     settings <- view httpSettingsL
-    pure $ HttpClient (resolvePoolReq' settings) (sendPredicted' settings)
+    pure $ HttpReqService (resolvePoolReq' settings) (sendPredicted' settings)
 -- ---------- Types declaration ----------
 
 -- ---------- Utils functions ------------
