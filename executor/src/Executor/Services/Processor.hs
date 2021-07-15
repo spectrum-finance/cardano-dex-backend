@@ -23,7 +23,8 @@ process'  SenderService{..} HttpReqService{..} i (ParsedOperation op) = do
     currentPoolMaybe <- resolvePoolReq
     let currentPool = unsafeFromMaybe currentPoolMaybe
         unsafeTx = unsafeFromEither $ mkTxF i op currentPool
-    send unsafeTx
+    _ <- send unsafeTx
+    sendPredicted currentPool
 
 mkTxF :: InterpreterService -> Operation a -> Pool -> Either MkTxError Tx
 mkTxF InterpreterService{..} op pool =

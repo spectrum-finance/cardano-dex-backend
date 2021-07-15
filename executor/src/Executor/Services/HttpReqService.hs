@@ -5,21 +5,11 @@ module Executor.Services.HttpReqService
 
 import Executor.Models.Settings
 import RIO as R
-import Conduit ( (.|), runConduit )
 import Network.HTTP.Req
-import Network.HTTP.Req.Conduit ( responseBodySource )
-import Prelude as P (print)
-import Data.Default.Class ()
-import Data.Conduit.Binary as B ()
-import Data.Aeson ( eitherDecode, FromJSON,  ToJSON)
-import Text.URI ()
-import Data.Conduit.Combinators as C ( map, mapM_ )
-import RIO.ByteString.Lazy ( fromStrict )
-import qualified RIO.ByteString.Lazy as BL
 import RIO.Text as T ( pack )
 import Data.List as L ( foldl )
-import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Dex.Models
+import Data.Aeson
 
 data HttpReqService = HttpReqService
     { resolvePoolReq :: IO (Maybe Pool)
@@ -55,6 +45,6 @@ resolvePoolReq' settings = baseGetReq settings ["resolve"]
 
 -- Get current chain height
 sendPredicted' :: HttpSettings -> Pool -> IO ()
-sendPredicted' settings pool = basePostReq settings ["pull"] pool
+sendPredicted' settings pool = basePostReq settings ["update"] pool
 
 -- ---------- Experimental feature -------

@@ -88,13 +88,7 @@ library
         bytestring,
         streamly,
         req,
-        conduit,
-        data-default-class,
-        req-conduit,
-        conduit-extra,
-        modern-uri,
         plutus-ledger-api -any,
-        plutus-tx -any,
         plutus-ledger,
         hw-kafka-client,
         sdk
