@@ -12,16 +12,16 @@ import Servant
 import Network.Wai.Handler.Warp as Warp
 import Prelude (print)
 import Resolver.Models.CfmmPool
-import Resolver.Services.PoolApi
+import Resolver.Repositories.PoolRepository
 
 data HttpServer env = HttpServer
     { runHttpServer :: HasHttpServerSettings env => RIO env () 
     }
 
-mkHttpServer :: PoolResolver -> PoolApi -> HttpServer env
+mkHttpServer :: PoolResolver -> PoolRepository -> HttpServer env
 mkHttpServer r p = HttpServer $ runHttpServer' r p
 
-runHttpServer' :: HasHttpServerSettings env => PoolResolver -> PoolApi -> RIO env ()
+runHttpServer' :: HasHttpServerSettings env => PoolResolver -> PoolRepository -> RIO env ()
 runHttpServer' r p = do
     settings <- view httpSettingsL
     RIO.liftIO $ print "Running http server" >> (Warp.run (AppSettings.getPort settings) (app r p))
@@ -35,10 +35,10 @@ type Api =
 apiProxy :: Proxy Api
 apiProxy = Proxy
 
-app :: PoolResolver -> PoolApi -> Application
+app :: PoolResolver -> PoolRepository -> Application
 app r p = serve apiProxy (server r p)
 
-server :: PoolResolver -> PoolApi -> Server Api
+server :: PoolResolver -> PoolRepository -> Server Api
 server r p =
     resolvePool r :<|>
     update p
@@ -47,6 +47,6 @@ resolvePool :: PoolResolver -> PoolId -> Handler (Maybe Pool)
 resolvePool PoolResolver{..} pId = 
     CIO.liftIO $ (print "Going to resolve pool") >> resolve pId
 
-update :: PoolApi -> Pool -> Handler ()
-update PoolApi{..} pool =
+update :: PoolRepository -> Pool -> Handler ()
+update PoolRepository{..} pool =
     CIO.liftIO $ putPredicted $ PredictedPool pool

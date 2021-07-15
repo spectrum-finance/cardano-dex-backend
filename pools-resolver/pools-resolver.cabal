@@ -75,7 +75,7 @@ library
     exposed-modules: Resolver.Services.KafkaService
                      Resolver.Models.AppSettings
                      Resolver.Models.CfmmPool
-                     Resolver.Services.PoolApi 
+                     Resolver.Repositories.PoolRepository
                      Resolver.Services.PoolsResolver
                      Resolver.Endpoints.HttpServer
                      Resolver.Utils
@@ -94,8 +94,8 @@ library
         sdk,
         servant,
         servant-server,
-        warp,
         wai,
+        warp,
         hedis,
         utf8-string
 
@@ -104,6 +104,6 @@ executable pools-resolver-app
     build-depends: 
         base >= 4.9 && < 5,
         pools-resolver,
-        rio,
+        rio
     hs-source-dirs:   app
     default-language: Haskell2010

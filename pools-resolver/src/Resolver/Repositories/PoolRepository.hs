@@ -1,6 +1,6 @@
-module Resolver.Services.PoolApi
-    ( PoolApi(..)
-    , mkPoolApi
+module Resolver.Repositories.PoolRepository
+    ( PoolRepository(..)
+    , mkPoolRepository
     ) where
 
 import RIO
@@ -15,7 +15,7 @@ import Data.ByteString.UTF8 as BSU
 import RIO.ByteString.Lazy as LBS
 import Resolver.Utils
 
-data PoolApi = PoolApi
+data PoolRepository = PoolRepository
     { putPredicted :: PredictedPool Pool -> IO ()
     , putConfirmed :: ConfirmedPool Pool -> IO ()
     , getLastPredicted :: PoolId -> IO (Maybe (PredictedPool Pool))
@@ -23,42 +23,29 @@ data PoolApi = PoolApi
     , existsPredicted :: PoolId -> TxId -> Integer -> IO Bool
     }
 
-mkPoolApi :: IO PoolApi
-mkPoolApi = do
+mkPoolRepository :: IO PoolRepository
+mkPoolRepository = do
     conn <- checkedConnect defaultConnectInfo
     _ <- print "Redis connection established..."
-    pure $ PoolApi (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
-
-mkLastPredictedKey :: PoolId -> BSU.ByteString
-mkLastPredictedKey (PoolId pid) = BSU.fromString $ "last_predicted_" ++ (show pid)
-
-mkLastConfirmedKey :: PoolId -> BSU.ByteString
-mkLastConfirmedKey (PoolId pid) = BSU.fromString $ "last_confirmed_" ++ (show pid)
-
-mkPredictedNext :: PoolId -> TxId -> Integer -> BSU.ByteString
-mkPredictedNext (PoolId pid) (TxId txId) gix = BSU.fromString $ "predicted_next_" ++ (show txId) ++ (show gix) ++ "_" ++ (show pid)
+    pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 
 putPredicted' :: Connection -> PredictedPool Pool -> IO ()
-putPredicted' conn (PredictedPool pool) = do
+putPredicted' conn (PredictedPool pool@Pool{..}) = do 
     res <- runRedis conn $ do
-        let pIdLast = poolId $ poolData pool
-            predictedNext =  mkPredictedNext pIdLast (refId $ fullTxOut pool) (gIdx $ gId pool)
-            predictedLast =  mkLastPredictedKey pIdLast
+        let predictedNext = mkPredicted (poolId poolData) (refId fullTxOut) (gIdx gId)
+            predictedLast = mkLastPredictedKey (poolId poolData)
             encodedPool = (BS.toStrict . encode) pool
-        _ <- Redis.set predictedNext encodedPool
+        Redis.set predictedNext encodedPool
         Redis.set predictedLast encodedPool
-    _ <- print res
-    pure ()
+    print res
 
 putConfirmed' :: Connection -> ConfirmedPool Pool -> IO ()
-putConfirmed' conn (ConfirmedPool pool) = do
+putConfirmed' conn (ConfirmedPool pool@Pool{..}) = do
     res <- runRedis conn $ do
-        let pIdConfirmed = poolId $ poolData pool
-            confirmed = mkLastConfirmedKey pIdConfirmed
+        let confirmed = mkLastConfirmedKey $ poolId poolData
             encodedPool = (BS.toStrict . encode) pool
         Redis.set confirmed encodedPool
-    _ <- print res
-    pure ()
+    print res
 
 getLastPredicted' :: Connection -> PoolId -> IO (Maybe (PredictedPool Pool))
 getLastPredicted' conn pIdLast = do
@@ -79,5 +66,16 @@ getLastConfirmed' conn pIdConfirmed = do
 existsPredicted' :: Connection -> PoolId -> TxId -> Integer -> IO Bool
 existsPredicted' conn pId txId gix = do
     res <- runRedis conn $ do
-        Redis.exists $ mkPredictedNext pId txId gix
-    pure (unsafeFromEither res)
+        Redis.exists $ mkPredicted pId txId gix
+    pure $ unsafeFromEither res
+
+-------------------------------------------------------------------------------------
+
+mkLastPredictedKey :: PoolId -> BSU.ByteString
+mkLastPredictedKey (PoolId poolId) = BSU.fromString $ "predicted:last:" ++ (show poolId)
+
+mkLastConfirmedKey :: PoolId -> BSU.ByteString
+mkLastConfirmedKey (PoolId poolId) = BSU.fromString $ "confirmed:last:" ++ (show poolId)
+
+mkPredicted :: PoolId -> TxId -> Integer -> BSU.ByteString
+mkPredicted (PoolId pid) (TxId txId) gix = BSU.fromString $ "predicted:" ++ (show txId) ++ ":" ++ (show gix) ++ ":" ++ (show pid)

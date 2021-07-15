@@ -4,7 +4,7 @@ module Resolver.Services.PoolsResolver
     ) where
 
 import RIO
-import Resolver.Services.PoolApi
+import Resolver.Repositories.PoolRepository
 import Prelude (print)
 import Dex.Models
 import Resolver.Models.CfmmPool
@@ -13,19 +13,19 @@ data PoolResolver = PoolResolver
     { resolve :: PoolId -> IO (Maybe Pool) 
     }
 
-mkPoolResolver :: PoolApi -> PoolResolver
+mkPoolResolver :: PoolRepository -> PoolResolver
 mkPoolResolver p = PoolResolver $ resolve' p
 
-resolve' :: PoolApi -> PoolId -> IO (Maybe Pool)
-resolve' p@PoolApi{..} poolId = do
+resolve' :: PoolRepository -> PoolId -> IO (Maybe Pool)
+resolve' p@PoolRepository{..} poolId = do
     lastConfirmed <- getLastConfirmed poolId
     _             <- print lastConfirmed
     lastPredicted <- getLastPredicted poolId
     _             <- print lastPredicted
     process p lastConfirmed lastPredicted
 
-process :: PoolApi -> Maybe (ConfirmedPool Pool) -> Maybe (PredictedPool Pool) -> IO (Maybe Pool)
-process p@PoolApi{..} confirmedMaybe predictedMaybe = do
+process :: PoolRepository -> Maybe (ConfirmedPool Pool) -> Maybe (PredictedPool Pool) -> IO (Maybe Pool)
+process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
     case (confirmedMaybe, predictedMaybe) of 
         (Just (ConfirmedPool confirmed), Just (PredictedPool predicted)) -> do
             _ <- print "Got confirmed and predicted pools in process function."
@@ -39,12 +39,12 @@ process p@PoolApi{..} confirmedMaybe predictedMaybe = do
             _ <- print "Both are nothing."
             pure Nothing
 
-pessimistic :: PoolApi -> Bool -> PredictedPool Pool -> ConfirmedPool Pool -> IO Pool 
+pessimistic :: PoolRepository -> Bool -> PredictedPool Pool -> ConfirmedPool Pool -> IO Pool 
 pessimistic p consistentChain predictedPool confirmedPool = do
     if consistentChain then needToUpdate p predictedPool (gId $ confirmed confirmedPool) else pure $ confirmed confirmedPool
 
-needToUpdate :: PoolApi -> PredictedPool Pool -> GId -> IO Pool
-needToUpdate PoolApi{..} (PredictedPool (Pool _ b (FullTxOut q w e r t) s)) newGix = do
+needToUpdate :: PoolRepository -> PredictedPool Pool -> GId -> IO Pool
+needToUpdate PoolRepository{..} (PredictedPool (Pool _ b (FullTxOut q w e r t) s)) newGix = do
     let updatedPool = PredictedPool $ Pool newGix b (FullTxOut q w e r t) s
     _ <- putPredicted updatedPool
     pure $ predicted updatedPool
