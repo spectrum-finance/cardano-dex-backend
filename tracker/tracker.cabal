@@ -107,6 +107,10 @@ executable tracker-app
         base >= 4.9 && < 5,
         tracker,
         rio,
-        sdk
+        sdk,
+        plutus-tx,
+        cardano-dex,
+        aeson,
+        plutus-ledger
     hs-source-dirs:   app
     default-language: Haskell2010

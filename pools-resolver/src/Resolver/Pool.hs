@@ -29,6 +29,7 @@ data PoolApi = PoolApi
 mkPoolApi :: IO PoolApi
 mkPoolApi = do
     conn <- checkedConnect defaultConnectInfo
+    _ <- print "Redis connection established..."
     pure $ PoolApi (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 
 mkLastPredictedKey :: PoolId -> BSU.ByteString

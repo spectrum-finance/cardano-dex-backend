@@ -79,6 +79,7 @@ library
                      Executor.Processor
                      Executor.Utils
                      Executor.Sender
+                     Executor.SettingsReader
                      
     build-depends: 
         bytestring,
@@ -103,11 +104,12 @@ library
         hw-kafka-client,
         sdk
 
--- executable executor-app
---     main-is: Main.hs
---     build-depends: 
---         base >= 4.9 && < 5,
---         executor,
---         rio
---     hs-source-dirs:   app
---     default-language: Haskell2010
+executable executor-app
+    main-is: Main.hs
+    build-depends: 
+        base >= 4.9 && < 5,
+        executor,
+        rio,
+        sdk
+    hs-source-dirs:   app
+    default-language: Haskell2010
