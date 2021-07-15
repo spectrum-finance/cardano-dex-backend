@@ -1,28 +1,40 @@
-module Tracker.KafkaClient 
-    ( KafkaProducerClient(..)
-    , mkKafkaProducerClient
+module Tracker.Services.KafkaService 
+    ( KafkaService(..)
+    , mkKafkaService
     ) where
 
-import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import RIO
 import qualified RIO.List as L
 import Data.Aeson
 import Prelude (print)
 import Kafka.Producer
-import Dex.Models (PoolId)
 import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
 import Dex.Models
 
-data KafkaProducerClient env = KafkaProducerClient
+data KafkaService env = KafkaService
     { sendProxy :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
     , sendAmm :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
     }
 
-mkKafkaProducerClient :: KafkaProducerClient env
-mkKafkaProducerClient = KafkaProducerClient sendProxy' sendAmm'
+mkKafkaService :: IO (KafkaService env)
+mkKafkaService = do
+    let service = KafkaService sendProxy' sendAmm'
+    _ <- print "Kafka service was initialized successfully"
+    pure service
 
--- ---------- Utils functions ------------
+sendProxy' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
+sendProxy' txOuts = do
+    settings <- view kafkaProducerSettingsL
+    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecord (getProxyMsgKey settings) (getProxyTopic settings) txOuts)
+
+sendAmm' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
+sendAmm' txOuts = do
+    settings <- view kafkaProducerSettingsL
+    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecordOperation (getAmmMsgKey settings) (getAmmTopic settings) (RIO.map encodeOperation txOuts)) 
+
+-------------------------------------------------------------------------------------
+
 myLogCallback :: KafkaLogLevel -> String -> String -> IO ()
 myLogCallback level facility message = print $ show level <> "|" <> facility <> "|" <> message
 
@@ -61,26 +73,9 @@ formProducerRecord s t = L.map (mkMessage t (Just s) . Just . BS.toStrict . enco
 formProducerRecordOperation :: RIO.ByteString -> TopicName -> [BS.ByteString] -> [ProducerRecord]
 formProducerRecordOperation s t = L.map (mkMessage t (Just s) . Just . BS.toStrict)
 
-
--- ---------- Module api -----------------
-
--- Check if new producer creates on each call
-
--- Send unspent boxes with proxy contract to kafka
-sendProxy' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
-sendProxy' txOuts = do
-    settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecord (proxyMsgKey settings) (proxyTopic settings) txOuts)
-
 encodeOperation :: ParsedOperation -> BS.ByteString
 encodeOperation (ParsedOperation op) = 
     case op of
-        x@ (SwapOperation swapData) -> encode swapData
-        x@ (DepositOperation depositData) -> encode depositData
-        x@ (RedeemOperation redeemData) -> encode redeemData  
-
--- Send unspent boxes with amm contract to kafka
-sendAmm' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
-sendAmm' txOuts = do
-    settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (brokersListS settings) (sendMessages $ formProducerRecordOperation (ammMsgKey settings) (ammTopic settings) (RIO.map encodeOperation txOuts)) 
+        (SwapOperation swapData) -> encode swapData
+        (DepositOperation depositData) -> encode depositData
+        (RedeemOperation redeemData) -> encode redeemData  

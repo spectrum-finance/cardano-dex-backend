@@ -19,7 +19,6 @@ common project-config
 
   default-extensions:   OverloadedStrings
                         DeriveAnyClass
-                        AutoDeriveTypeable
                         BangPatterns
                         BinaryLiterals
                         ConstraintKinds
@@ -41,7 +40,6 @@ common project-config
                         InstanceSigs
                         KindSignatures
                         LambdaCase
-                        MonadFailDesugaring
                         MultiParamTypeClasses
                         MultiWayIf
                         NamedFieldPuns
@@ -73,20 +71,19 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Tracker.HttpClient
-                     Tracker.TxOutsProcessor
+    exposed-modules: Tracker.Services.HttpReqService 
+                     Tracker.Services.TxOutsProcessor
                      Tracker.Models.AppSettings
                      Tracker.Utils
-                     Tracker.KafkaClient
+                     Tracker.Services.KafkaService 
+                     Tracker.Services.SettingsReader
+                     Tracker.Wirings.WiringApp
 
     build-depends: 
         bytestring,
-        http-conduit,
         aeson,
         rio,
-        aeson-casing,
         text,
-        containers,
         bytestring,
         streamly,
         req,
@@ -95,9 +92,7 @@ library
         req-conduit,
         conduit-extra,
         modern-uri,
-        monad-control,
         plutus-ledger-api -any,
-        plutus-tx -any,
         hw-kafka-client,
         sdk
 
@@ -106,11 +101,6 @@ executable tracker-app
     build-depends: 
         base >= 4.9 && < 5,
         tracker,
-        rio,
-        sdk,
-        plutus-tx,
-        cardano-dex,
-        aeson,
-        plutus-ledger
+        rio
     hs-source-dirs:   app
     default-language: Haskell2010

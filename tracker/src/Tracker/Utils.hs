@@ -1,4 +1,6 @@
-module Tracker.Utils (unsafeFromEither) where
+module Tracker.Utils 
+    ( unsafeFromEither
+    ) where
 
 import RIO
 

@@ -1,6 +1,6 @@
-module Tracker.HttpClient 
-    ( HttpClient(..)
-    , mkHttpClient
+module Tracker.Services.HttpReqService 
+    ( HttpReqService(..)
+    , mkHttpReqService
     ) where
 
 import Tracker.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
@@ -21,46 +21,39 @@ import Data.List as L ( foldl )
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Dex.Models
 
--- ---------- Types declaration ----------
-
-data HttpClient env = HttpClient
+data HttpReqService env = HttpReqService
     { getUnspentOuts :: HasHttpSettings env => RIO env [FullTxOut]
     , getCurrentHeight :: HasHttpSettings env => RIO env Int
     }
 
-mkHttpClient :: HttpClient env
-mkHttpClient = HttpClient getUnspentOuts' getCurrentHeight'
+mkHttpReqService :: HttpReqService env
+mkHttpReqService = HttpReqService getUnspentOuts' getCurrentHeight'
 
--- ---------- Utils functions ------------
+getUnspentOuts' :: HasHttpSettings env => RIO env [FullTxOut]
+getUnspentOuts' = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
+
+getCurrentHeight' :: HasHttpSettings env => RIO env Int
+getCurrentHeight' = baseGetReq ["api", "v0", "block", "height"]
+
+-------------------------------------------------------------------------------------
 
 baseGetReq :: forall a env . (FromJSON a, HasHttpSettings env) => [Text] -> RIO env a
 baseGetReq reqPaths = do
     settings <- view httpSettingsL
     runReq defaultHttpConfig $ do
-        let uri = L.foldl (/:) (http (T.pack $ hostS settings)) reqPaths
-        r <- req GET uri NoReqBody jsonResponse (port $ portS settings)
+        let uri = L.foldl (/:) (http (T.pack $ getHost settings)) reqPaths
+        r <- req GET uri NoReqBody jsonResponse (port $ getPort settings)
         let result = responseBody r :: a
         pure result
 
--- ---------- Module api -----------------
-
--- Get current unspent boxes from the chain --
-getUnspentOuts' :: HasHttpSettings env => RIO env [FullTxOut]
-getUnspentOuts' = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
-
--- Get current chain height
-getCurrentHeight' :: HasHttpSettings env => RIO env Int
-getCurrentHeight' = baseGetReq ["api", "v0", "block", "height"]
-
 -- ---------- Experimental feature -------
 
--- Stream current unspent boxes from the chain --
 getUnspentOutsStream :: HasHttpSettings env => RIO env ()
 getUnspentOutsStream = do
     settings <- view httpSettingsL
     runReq defaultHttpConfig $ do
-        let url = http (T.pack $ hostS settings) /: "experimental" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
-        reqBr GET url NoReqBody (port $ portS settings) $ \r ->
+        let url = http (T.pack $ getHost settings) /: "experimental" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
+        reqBr GET url NoReqBody (port $ getPort settings) $ \r ->
             runConduit $ 
                 responseBodySource r
                     .| C.map fromStrict

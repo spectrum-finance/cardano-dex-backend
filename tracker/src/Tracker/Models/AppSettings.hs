@@ -10,30 +10,29 @@ module Tracker.Models.AppSettings
     ) where
 
 import RIO ( Show, Int, id, lens, String, Lens' )
-import RIO.Text
 import RIO.ByteString as BS
 import Kafka.Producer
 
 data HttpSettings = HttpSettings
-    { hostS :: String
-    , portS :: Int
+    { getHost :: String
+    , getPort :: Int
     } deriving (Show)
 
 newtype BlockRequestSettings = BlockRequestSettings
-    { period :: Int } deriving (Show)
+    { getPeriod :: Int } deriving (Show)
 
 data AppSettings = AppSettings
-    { httpSettings :: HttpSettings
-    , blockRequestSettings :: BlockRequestSettings
-    , kafkaProducerSettings :: KafkaProducerSettings
+    { getHttpSettings :: HttpSettings
+    , getBlockRequestSettings :: BlockRequestSettings
+    , getKafkaProducerSettings :: KafkaProducerSettings
     } deriving (Show)
 
 data KafkaProducerSettings = KafkaProducerSettings 
-  { ammTopic :: TopicName
-  , proxyTopic :: TopicName
-  , brokersListS :: [BrokerAddress]
-  , proxyMsgKey :: BS.ByteString
-  , ammMsgKey :: BS.ByteString
+  { getAmmTopic :: TopicName
+  , getProxyTopic :: TopicName
+  , getBrokersList :: [BrokerAddress]
+  , getProxyMsgKey :: BS.ByteString
+  , getAmmMsgKey :: BS.ByteString
   } deriving (Show)
 
 class HasHttpSettings env where
@@ -41,14 +40,14 @@ class HasHttpSettings env where
 instance HasHttpSettings HttpSettings where
   httpSettingsL = id
 instance HasHttpSettings AppSettings where
-  httpSettingsL = lens httpSettings (\x y -> x { httpSettings = y })
+  httpSettingsL = lens getHttpSettings (\x y -> x { getHttpSettings = y })
 
 class HasBlockRequestSettings env where
   blockRequestSettingsL :: Lens' env BlockRequestSettings
 instance HasBlockRequestSettings BlockRequestSettings where
   blockRequestSettingsL = id
 instance HasBlockRequestSettings AppSettings where
-  blockRequestSettingsL = lens blockRequestSettings (\x y -> x { blockRequestSettings = y })
+  blockRequestSettingsL = lens getBlockRequestSettings (\x y -> x { getBlockRequestSettings = y })
 
 class HasAppSettings env where
   appSettingsL :: Lens' env AppSettings
@@ -60,4 +59,4 @@ class HasKafkaProducerSettings env where
 instance HasKafkaProducerSettings KafkaProducerSettings where
   kafkaProducerSettingsL = id
 instance HasKafkaProducerSettings AppSettings where
-  kafkaProducerSettingsL = lens kafkaProducerSettings (\x y -> x { kafkaProducerSettings = y })
+  kafkaProducerSettingsL = lens getKafkaProducerSettings (\x y -> x { getKafkaProducerSettings = y })
