@@ -13,8 +13,8 @@ import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSe
 import Dex.Models
 
 data KafkaService env = KafkaService
-    { sendProxy :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
-    , sendAmm :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
+    { sendProxy :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
+    , sendAmm :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
     }
 
 mkKafkaService :: IO (KafkaService env)
@@ -23,15 +23,15 @@ mkKafkaService = do
     _ <- print "Kafka service was initialized successfully"
     pure service
 
-sendProxy' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
-sendProxy' txOuts = do
+sendProxy' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
+sendProxy' parsedOps = do
     settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecord (getProxyMsgKey settings) (getProxyTopic settings) txOuts)
+    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecordOperation (getAmmMsgKey settings) (getAmmTopic settings) (RIO.map encodeOperation parsedOps))
 
-sendAmm' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
+sendAmm' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
 sendAmm' txOuts = do
     settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecordOperation (getAmmMsgKey settings) (getAmmTopic settings) (RIO.map encodeOperation txOuts)) 
+    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecord (getProxyMsgKey settings) (getProxyTopic settings) txOuts)
 
 -------------------------------------------------------------------------------------
 

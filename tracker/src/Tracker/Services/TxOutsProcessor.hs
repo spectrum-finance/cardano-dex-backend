@@ -35,8 +35,8 @@ process ProcessorService{..} KafkaService{..} HttpReqService{..} heightTVar = do
                     then atomically (writeTVar heightTVar chainHeight) >> getUnspentOuts 
                     else pure []
     _ <- liftIO $ print $ "Received unspent are: " ++ show unspent
-    let ammOuts = fmap getPoolOperation unspent & catMaybes
-        proxyOuts = fmap getPool unspent & catMaybes
+    let ammOuts = fmap getPool unspent & catMaybes
+        proxyOuts = fmap getPoolOperation unspent & catMaybes
     _ <- liftIO $ print $ "Filtered amm utxos are: " ++ show (length ammOuts)
     _ <- liftIO $ print $ "Filtered proxy utxos are: " ++ show (length proxyOuts)
     _ <- unlessM (pure $ null proxyOuts) (sendProxy proxyOuts)
