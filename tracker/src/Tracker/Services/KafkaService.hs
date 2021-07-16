@@ -26,12 +26,12 @@ mkKafkaService = do
 sendProxy' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
 sendProxy' parsedOps = do
     settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecordOperation (getAmmMsgKey settings) (getAmmTopic settings) (RIO.map encodeOperation parsedOps))
+    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecordOperation (getProxyMsgKey settings) (getProxyTopic settings) (RIO.map encodeOperation parsedOps))
 
 sendAmm' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
 sendAmm' txOuts = do
     settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecord (getProxyMsgKey settings) (getProxyTopic settings) txOuts)
+    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecord (getAmmMsgKey settings) (getAmmTopic settings) txOuts)
 
 -------------------------------------------------------------------------------------
 
