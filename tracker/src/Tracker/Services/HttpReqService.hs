@@ -30,10 +30,16 @@ mkHttpReqService :: HttpReqService env
 mkHttpReqService = HttpReqService getUnspentOuts' getCurrentHeight'
 
 getUnspentOuts' :: HasHttpSettings env => RIO env [FullTxOut]
-getUnspentOuts' = baseGetReq ["api", "v0", "tx", "outs", "unspent"]
+getUnspentOuts' = do
+    res <- baseGetReq ["api", "v0", "utxo"]
+    _ <- liftIO $ print $ "Get utxos finished successfully.." ++ show res
+    return res
 
 getCurrentHeight' :: HasHttpSettings env => RIO env Int
-getCurrentHeight' = baseGetReq ["api", "v0", "block", "height"]
+getCurrentHeight' = do
+    res <- baseGetReq ["api", "v0", "block", "height"]
+    _ <- liftIO $ print $ "Get current height finished successfully.." ++ show res
+    return res
 
 -------------------------------------------------------------------------------------
 

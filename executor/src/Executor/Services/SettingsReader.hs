@@ -15,6 +15,6 @@ mkSettingsReader = SettingsReader read'
 
 read' :: IO AppSettings
 read' = do
-    let kafkaS = KafkaConsumerSettings ["0.0.0.0:9000"] "resolver_group_id_1" ["amm-topic"] 1000
+    let kafkaS = KafkaConsumerSettings ["0.0.0.0:9092"] "resolver_group_id_1" ["amm-topic"] 1000
         httpS  = HttpSettings "0.0.0.0" 8081
     pure $ AppSettings kafkaS httpS

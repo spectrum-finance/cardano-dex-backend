@@ -14,7 +14,6 @@ import RIO.ByteString.Lazy as LBS
 import Dex.Models
 import Executor.Models.Settings
 import Executor.Services.Processor
-import Executor.Utils
 
 data KafkaService env = KafkaService
     { runKafka :: HasKafkaConsumerSettings env => RIO env ()
@@ -55,15 +54,16 @@ mkKafka p settings =
 runF :: Processor -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
 runF p settings consumer = S.drain $ S.repeatM $ pollMessageF p settings consumer
 
-pollMessageF :: Processor -> KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe ParsedOperation)
+pollMessageF :: Processor -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
 pollMessageF Processor{..} settings consumer = do
     msg <- pollMessage consumer (Timeout $ getPollRate settings)
     _   <- print msg
     let parsedMsg = parseMessage msg
     err <- commitAllOffsets OffsetCommit consumer
     _   <- print $ "Offsets: " <> maybe "Committed." show err
-    _ <- process $ unsafeFromMaybe parsedMsg
-    pure $ parsedMsg
+    case parsedMsg of 
+        Just toProcess -> void $ process toProcess
+        _ -> pure ()
 
 parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe ParsedOperation
 parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> decodeTest msg)
