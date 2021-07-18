@@ -10,7 +10,6 @@ import Executor.Services.HttpReqService
 import Executor.Utils
 import Executor.Services.Sender
 import Plutus.V1.Ledger.Tx
-import Ledger.Constraints.OffChain
 import Prelude (print)
 
 data Processor = Processor
@@ -22,10 +21,10 @@ mkProcessor s h i = Processor $ process' s h i
 process' :: SenderService -> HttpReqService -> InterpreterService -> ParsedOperation -> IO ()
 process'  SenderService{..} r@HttpReqService{..} i (ParsedOperation op) = do
     (pool, tx) <- mkTxPool i r op
-    print $ show pool
-    print $ show tx
-    _ <- send tx
+    print $ "Pool is: " ++ show pool
     sendPredicted pool
+    send tx
+    
 
 mkTxPool :: InterpreterService -> HttpReqService-> Operation a -> IO (Pool, Tx)
 mkTxPool InterpreterService{..} HttpReqService{..} op =
