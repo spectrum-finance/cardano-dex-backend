@@ -8,6 +8,7 @@ import Resolver.Repositories.PoolRepository
 import Prelude (print)
 import Dex.Models
 import Resolver.Models.CfmmPool
+import Utils (PoolId(..))
 
 data PoolResolver = PoolResolver
     { resolve :: PoolId -> IO (Maybe Pool) 
@@ -29,7 +30,7 @@ process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
     case (confirmedMaybe, predictedMaybe) of 
         (Just (ConfirmedPool confirmed), Just (PredictedPool predicted)) -> do
             _ <- print "Got confirmed and predicted pools in process function."
-            let upToDate = gIdx (gId confirmed) == gIdx (gId predicted)              
+            let upToDate = (gIdx $ outGId (fullTxOut confirmed)) == (gIdx $ outGId (fullTxOut predicted))           
             consistentChain <- existsPredicted (poolId $ poolData confirmed) (refId $ fullTxOut confirmed) (refIdx $ fullTxOut confirmed)
             fmap Just (if upToDate then pure predicted else pessimistic p consistentChain (PredictedPool predicted) (ConfirmedPool confirmed))
         (Just (ConfirmedPool confirmed), _) -> do
@@ -41,10 +42,10 @@ process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
 
 pessimistic :: PoolRepository -> Bool -> PredictedPool Pool -> ConfirmedPool Pool -> IO Pool 
 pessimistic p consistentChain predictedPool confirmedPool = do
-    if consistentChain then needToUpdate p predictedPool (gId $ confirmed confirmedPool) else pure $ confirmed confirmedPool
+    if consistentChain then needToUpdate p predictedPool (outGId $ fullTxOut $ confirmed confirmedPool) else pure $ confirmed confirmedPool
 
 needToUpdate :: PoolRepository -> PredictedPool Pool -> GId -> IO Pool
-needToUpdate PoolRepository{..} (PredictedPool (Pool _ b (FullTxOut q w e r t) s)) newGix = do
-    let updatedPool = PredictedPool $ Pool newGix b (FullTxOut q w e r t) s
+needToUpdate PoolRepository{..} (PredictedPool (Pool b (FullTxOut _ q w e r t) s)) newGix = do
+    let updatedPool = PredictedPool $ Pool b (FullTxOut newGix q w e r t) s
     _ <- putPredicted updatedPool
     pure $ predicted updatedPool

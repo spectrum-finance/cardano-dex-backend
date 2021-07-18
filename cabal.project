@@ -180,9 +180,9 @@ source-repository-package
 source-repository-package
   type: git
   location:https://github.com/ergolabs/dex-sdk
-  tag: 80f3af5ce61fdeea4f9498c63c3095e92f6aaa4e
+  tag: 8a727884679bbf8a1a8fd6f73843f1bf94b2f7be
 
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex
-  tag: 5a4bd32c95b04880f33036ca7bfd5360e1fdb1d2
+  tag: cac6777daa66a39d45489572fa44237dc6e7aea8

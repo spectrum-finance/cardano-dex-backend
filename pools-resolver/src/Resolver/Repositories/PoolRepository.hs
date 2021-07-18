@@ -14,6 +14,7 @@ import Prelude (print)
 import Data.ByteString.UTF8 as BSU
 import RIO.ByteString.Lazy as LBS
 import Resolver.Utils
+import Utils (PoolId(..))
 
 data PoolRepository = PoolRepository
     { putPredicted :: PredictedPool Pool -> IO ()
@@ -32,7 +33,7 @@ mkPoolRepository = do
 putPredicted' :: Connection -> PredictedPool Pool -> IO ()
 putPredicted' conn (PredictedPool pool@Pool{..}) = do 
     res <- runRedis conn $ do
-        let predictedNext = mkPredicted (poolId poolData) (refId fullTxOut) (gIdx gId)
+        let predictedNext = mkPredicted (poolId poolData) (refId fullTxOut) (gIdx $ outGId fullTxOut)
             predictedLast = mkLastPredictedKey (poolId poolData)
             encodedPool = (BS.toStrict . encode) pool
         Redis.set predictedNext encodedPool

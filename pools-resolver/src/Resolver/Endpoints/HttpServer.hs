@@ -13,6 +13,7 @@ import Network.Wai.Handler.Warp as Warp
 import Prelude (print)
 import Resolver.Models.CfmmPool
 import Resolver.Repositories.PoolRepository
+import Utils (PoolId(..))
 
 data HttpServer env = HttpServer
     { runHttpServer :: HasHttpServerSettings env => RIO env () 
