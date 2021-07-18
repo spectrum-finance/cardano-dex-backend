@@ -10,6 +10,7 @@ import RIO.Text as T ( pack )
 import Data.List as L ( foldl )
 import Dex.Models
 import Data.Aeson
+import Utils (PoolId(..))
 
 data HttpReqService = HttpReqService
     { resolvePoolReq :: PoolId -> IO (Maybe Pool)
