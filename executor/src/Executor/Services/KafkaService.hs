@@ -56,14 +56,12 @@ runF p settings consumer = S.drain $ S.repeatM $ pollMessageF p settings consume
 
 pollMessageF :: Processor -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
 pollMessageF Processor{..} settings consumer = do
-    msg <- pollMessage consumer (Timeout $ getPollRate settings)
-    _   <- print msg
-    let parsedMsg = parseMessage msg
+    msgs <- pollMessageBatch consumer (Timeout $ getPollRate settings) (BatchSize $ getBatchSize settings)
+    _   <- print msgs
+    let parsedMsgs = fmap parseMessage msgs & catMaybes
+    traverse process parsedMsgs
     err <- commitAllOffsets OffsetCommit consumer
-    _   <- print $ "Offsets: " <> maybe "Committed." show err
-    case parsedMsg of 
-        Just toProcess -> void $ process toProcess
-        _ -> pure ()
+    print $ "Offsets: " <> maybe "Committed." show err
 
 parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe ParsedOperation
 parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> decodeTest msg)

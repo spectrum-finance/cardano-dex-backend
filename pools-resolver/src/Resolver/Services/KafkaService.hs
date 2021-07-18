@@ -55,17 +55,15 @@ mkKafka p settings =
 runF :: PoolRepository -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
 runF p settings consumer = S.drain $ S.repeatM $ pollMessageF p settings consumer
 
-pollMessageF :: PoolRepository -> KafkaConsumerSettings -> KafkaConsumer -> IO (Maybe Pool)
+pollMessageF :: PoolRepository -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
 pollMessageF PoolRepository{..} settings consumer = do
-    msg <- pollMessage consumer (Timeout $ getPollRate settings)
-    _   <- print msg
-    let parsedMsg = parseMessage msg
-        confirmed = ConfirmedPool <$> parsedMsg
-    _   <- print confirmed
+    msgs <- pollMessageBatch consumer (Timeout $ getPollRate settings) (BatchSize $ getBatchSize settings)
+    _   <- print msgs
+    let parsedMsg = fmap parseMessage msgs
+        confirmed = fmap (ConfirmedPool <$>) parsedMsg & catMaybes
     _ <- traverse putConfirmed confirmed
     err <- commitAllOffsets OffsetCommit consumer
-    _   <- print $ "Offsets: " <> maybe "Committed." show err
-    pure parsedMsg
+    print $ "Offsets: " <> maybe "Committed." show err
 
 parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe Pool
 parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> (decode $ LBS.fromStrict msg) :: Maybe Pool)

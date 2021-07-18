@@ -15,6 +15,6 @@ mkSettingsReader = SettingsReader read'
 
 read' :: IO AppSettings
 read' = do
-    let kafkaS = KafkaConsumerSettings ["0.0.0.0:9092"] "executor_group_id_1" ["proxy-topic"] 1000
+    let kafkaS = KafkaConsumerSettings ["0.0.0.0:9092"] "executor_group_id_1" ["proxy-topic"] 1000 1
         httpS  = HttpSettings "0.0.0.0" 8082
     pure $ AppSettings kafkaS httpS

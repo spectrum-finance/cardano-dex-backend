@@ -11,6 +11,7 @@ import Executor.Utils
 import Executor.Services.Sender
 import Plutus.V1.Ledger.Tx
 import Ledger.Constraints.OffChain
+import Prelude (print)
 
 data Processor = Processor
     { process :: ParsedOperation -> IO () }
@@ -23,6 +24,8 @@ process'  SenderService{..} HttpReqService{..} i (ParsedOperation op) = do
     currentPoolMaybe <- resolvePoolReq
     let currentPool = unsafeFromMaybe currentPoolMaybe
         unsafeTx = unsafeFromEither $ mkTxF i op currentPool
+    print $ show currentPool
+    print $ show unsafeTx
     _ <- send unsafeTx
     sendPredicted currentPool
 

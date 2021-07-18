@@ -19,6 +19,7 @@ data KafkaConsumerSettings = KafkaConsumerSettings
   , getGroupId :: ConsumerGroupId
   , getTopicsList :: [TopicName]
   , getPollRate :: Int
+  , getBatchSize :: Int
   }
 
 data HttpSettings = HttpSettings

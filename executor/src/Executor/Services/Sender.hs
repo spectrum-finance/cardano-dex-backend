@@ -5,6 +5,7 @@ module Executor.Services.Sender
 
 import RIO
 import Plutus.V1.Ledger.Tx
+import Prelude (print)
 
 data SenderService = SenderService
     { send :: Tx -> IO () }
@@ -12,5 +13,5 @@ data SenderService = SenderService
 mkSenderService :: SenderService
 mkSenderService = SenderService send'
 
-send' :: Tx -> IO ()
-send' = undefined
+send' :: Tx -> IO () 
+send' tx = print "Submittings next tx to the netwokr..." >> pure ()
