@@ -20,18 +20,30 @@ mkProcessor :: SenderService -> HttpReqService -> InterpreterService -> Processo
 mkProcessor s h i = Processor $ process' s h i
 
 process' :: SenderService -> HttpReqService -> InterpreterService -> ParsedOperation -> IO ()
-process'  SenderService{..} HttpReqService{..} i (ParsedOperation op) = do
-    currentPoolMaybe <- resolvePoolReq
-    let currentPool = unsafeFromMaybe currentPoolMaybe
-        unsafeTx = unsafeFromEither $ mkTxF i op currentPool
-    print $ show currentPool
-    print $ show unsafeTx
-    _ <- send unsafeTx
-    sendPredicted currentPool
+process'  SenderService{..} r@HttpReqService{..} i (ParsedOperation op) = do
+    (pool, tx) <- mkTxPool i r op
+    print $ show pool
+    print $ show tx
+    _ <- send tx
+    sendPredicted pool
 
-mkTxF :: InterpreterService -> Operation a -> Pool -> Either MkTxError Tx
-mkTxF InterpreterService{..} op pool =
+mkTxPool :: InterpreterService -> HttpReqService-> Operation a -> IO (Pool, Tx)
+mkTxPool InterpreterService{..} HttpReqService{..} op =
         case op of
-            x@ (SwapOperation _) -> deposit x pool
-            x@ (DepositOperation _) -> redeem x pool
-            x@ (RedeemOperation _) -> swap x pool
+            x@ (SwapOperation r) -> do
+                currentPoolMaybe <- resolvePoolReq (swapPoolId r)
+                let currentPool = unsafeFromMaybe currentPoolMaybe
+                    unsafeTx = unsafeFromEither $ deposit x currentPool
+                pure $ (currentPool, unsafeTx)
+            x@ (DepositOperation r) -> do
+                currentPoolMaybe <- resolvePoolReq (depositPoolId r)
+                let currentPool = unsafeFromMaybe currentPoolMaybe
+                    unsafeTx = unsafeFromEither $ redeem x currentPool
+                pure $ (currentPool, unsafeTx)
+                
+            x@ (RedeemOperation r) -> do
+                currentPoolMaybe <- resolvePoolReq (redeemPoolId r)
+                let currentPool = unsafeFromMaybe currentPoolMaybe
+                    unsafeTx = unsafeFromEither $ swap x currentPool
+                pure $ (currentPool, unsafeTx)
+                

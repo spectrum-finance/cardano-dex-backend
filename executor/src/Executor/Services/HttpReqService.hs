@@ -12,39 +12,29 @@ import Dex.Models
 import Data.Aeson
 
 data HttpReqService = HttpReqService
-    { resolvePoolReq :: IO (Maybe Pool)
+    { resolvePoolReq :: PoolId -> IO (Maybe Pool)
     , sendPredicted :: Pool -> IO ()
     }
 
 mkHttpReqService :: HasHttpSettings env => RIO env HttpReqService
 mkHttpReqService = do
     settings <- view httpSettingsL
-    pure $ HttpReqService (resolvePoolReq' settings) (sendPredicted' settings)
+    pure $ HttpReqService (resolvePoolReq' settings) (sendPredictedReq' settings)
 -- ---------- Types declaration ----------
-
--- ---------- Utils functions ------------
-
-baseGetReq :: forall a . FromJSON a => HttpSettings -> [Text] -> IO a
-baseGetReq settings reqPaths = do
-    runReq defaultHttpConfig $ do
-        let uri = L.foldl (/:) (http (T.pack $ hostS settings)) reqPaths
-        r <- req GET uri NoReqBody jsonResponse (port $ portS settings)
-        let result = responseBody r :: a
-        pure result
-
-basePostReq :: forall b . ToJSON b => HttpSettings -> [Text] -> b -> IO ()
-basePostReq settings reqPaths model = do
-    runReq defaultHttpConfig $ do
-        let uri = L.foldl (/:) (http (T.pack $ hostS settings)) reqPaths
-        _ <- req POST uri (ReqBodyJson model) ignoreResponse (port $ portS settings)
-        pure ()
 -- ---------- Module api -----------------
 
-resolvePoolReq' :: HttpSettings -> IO (Maybe Pool)
-resolvePoolReq' settings = baseGetReq settings ["resolve"]
+resolvePoolReq' :: HttpSettings -> PoolId -> IO (Maybe Pool)
+resolvePoolReq' settings poolId = do
+    runReq defaultHttpConfig $ do
+        let url = L.foldl (/:) (http (T.pack $ hostS settings)) ["resolve"]
+        res <- req POST url (ReqBodyJson poolId) jsonResponse (port $ portS settings)
+        pure $ ((responseBody res) :: Maybe Pool)
 
 -- Get current chain height
-sendPredicted' :: HttpSettings -> Pool -> IO ()
-sendPredicted' settings pool = basePostReq settings ["update"] pool
+sendPredictedReq' :: HttpSettings -> Pool -> IO ()
+sendPredictedReq' settings pool = do
+    runReq defaultHttpConfig $ do
+        let uri = L.foldl (/:) (http (T.pack $ hostS settings)) ["update"]
+        void $ req POST uri (ReqBodyJson pool) ignoreResponse (port $ portS settings)
 
 -- ---------- Experimental feature -------

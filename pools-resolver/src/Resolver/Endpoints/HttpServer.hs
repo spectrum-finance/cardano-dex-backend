@@ -29,7 +29,7 @@ runHttpServer' r p = do
 -------------------------------------------------------------------------------------
 
 type Api =
-         "resolve" :> ReqBody '[JSON] PoolId :> Get '[JSON] (Maybe Pool)
+         "resolve" :> ReqBody '[JSON] PoolId :> Post '[JSON] (Maybe Pool)
     :<|> "update"  :> ReqBody '[JSON] Pool :> Post '[JSON] ()
 
 apiProxy :: Proxy Api
