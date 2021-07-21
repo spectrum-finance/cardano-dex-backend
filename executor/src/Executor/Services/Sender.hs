@@ -14,4 +14,4 @@ mkSenderService :: SenderService
 mkSenderService = SenderService send'
 
 send' :: Tx -> IO () 
-send' tx = print "Submittings next tx to the netwokr..." >> pure ()
+send' tx = print "Submittings next tx to the network..." >> pure ()
