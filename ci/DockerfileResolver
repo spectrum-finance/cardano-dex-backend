@@ -1,4 +1,5 @@
 FROM basebackend
 
 RUN bash -c 'cd cardano-dex-backend/pools-resolver && cabal v2-build'
-RUN bash -c 'cd cardano-dex-backend && cabal run pools-resolver'
+WORKDIR "cardano-dex-backend"
+CMD cabal run pools-resolver

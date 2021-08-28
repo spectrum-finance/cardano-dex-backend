@@ -1,6 +1,14 @@
 version: '2.1'
 
+
 services:
+  explorer:
+    image: explorer:latest
+    healthcheck:
+      test: [ "CMD", "curl", -f", "http://0.0.0.0:8081/api/v0/block/height" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   redis:
     image: 'docker.io/bitnami/redis:6.0-debian-10'
     healthcheck:
@@ -47,5 +55,14 @@ services:
       - 9092:9092
   executor:
     image: executor:latest
+    depends_on:
+      - kafka
+  tracker:
+    image: tracker:latest
+    depends_on:
+      explorer:
+        condition: service_healthy
+  resolver:
+    image: resolver:latest
     depends_on:
       - kafka
