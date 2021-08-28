@@ -1,0 +1,4 @@
+FROM basebackend
+
+RUN bash -c 'cd cardano-dex-backend/tracker && cabal v2-build'
+RUN bash -c 'cd cardano-dex-backend && cabal run tracker'
