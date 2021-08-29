@@ -26,7 +26,7 @@ data PoolRepository = PoolRepository
 
 mkPoolRepository :: IO PoolRepository
 mkPoolRepository = do
-    conn <- checkedConnect defaultConnectInfo
+    conn <- checkedConnect $ defaultConnectInfo { connectHost = "redis" }
     _ <- print "Redis connection established..."
     pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 
