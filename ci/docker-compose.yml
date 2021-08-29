@@ -2,8 +2,8 @@ version: '2.1'
 
 
 services:
-  explorer:
-    image: explorer:latest
+  # explorer:
+  #   image: explorer:latest
   redis:
     image: 'docker.io/bitnami/redis:6.0-debian-10'
     healthcheck:
@@ -48,10 +48,11 @@ services:
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
     ports:
       - 9092:9092
-  executor:
-    image: executor:latest
-  tracker:
-    image: tracker:latest
-    restart: always
+  # executor:
+  #   image: executor:latest
+  #   restart: always
+  # tracker:
+  #   image: tracker:latest
+  #   restart: always
   resolver:
     image: resolver:latest
