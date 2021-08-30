@@ -1,6 +1,11 @@
 FROM haskell:8.10
 
 RUN apt-get update -y && apt install git
+RUN bash -c 'mkdir -m 0755 /nix && chown root /nix && mkdir -m 0755 /etc/nix && echo "build-users-group =" > /etc/nix/nix.conf'
+
+RUN bash -c 'curl -L https://nixos.org/nix/install | sh -s -- --no-daemon'
+RUN bash -c '. /root/.nix-profile/etc/profile.d/nix.sh'
+
 RUN apt-get install -y libsodium-dev
 RUN apt install librdkafka-dev -y
 RUN cabal update

@@ -1,6 +1,5 @@
 version: '2.1'
 
-
 services:
   explorer:
     image: explorer:latest
