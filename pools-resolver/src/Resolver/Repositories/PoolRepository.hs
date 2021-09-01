@@ -15,6 +15,7 @@ import Data.ByteString.UTF8 as BSU
 import RIO.ByteString.Lazy as LBS
 import Resolver.Utils
 import Utils (PoolId(..))
+import Resolver.Models.AppSettings (RedisSettings(..))
 
 data PoolRepository = PoolRepository
     { putPredicted :: PredictedPool Pool -> IO ()
@@ -24,9 +25,9 @@ data PoolRepository = PoolRepository
     , existsPredicted :: PoolId -> TxId -> Integer -> IO Bool
     }
 
-mkPoolRepository :: IO PoolRepository
-mkPoolRepository = do
-    conn <- checkedConnect $ defaultConnectInfo { connectHost = "redis" }
+mkPoolRepository :: RedisSettings -> IO PoolRepository
+mkPoolRepository redis = do
+    conn <- checkedConnect $ defaultConnectInfo { connectHost = getRedisHost redis }
     _ <- print "Redis connection established..."
     pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 

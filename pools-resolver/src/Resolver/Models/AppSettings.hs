@@ -5,6 +5,7 @@ module Resolver.Models.AppSettings
   , HasHttpServerSettings(..)
   , AppSettings(..)
   , HasAppSettings(..)
+  , RedisSettings(..)
   ) where
 
 import RIO
@@ -14,6 +15,7 @@ import Dhall
 data AppSettings = AppSettings
     { getKafkaSettings :: KafkaConsumerSettings
     , getHttpSettings :: HttpServerSettings
+    , redisSettings :: RedisSettings
     } deriving (Generic)
 
 instance FromDhall AppSettings
@@ -34,6 +36,12 @@ data HttpServerSettings = HttpServerSettings
   } deriving (Generic)
 
 instance FromDhall HttpServerSettings
+
+data RedisSettings = RedisSettings
+  { getRedisHost :: String 
+  } deriving (Generic)
+
+instance FromDhall RedisSettings
 
 class HasKafkaConsumerSettings env where
   kafkaSettingsL :: Lens' env KafkaConsumerSettings

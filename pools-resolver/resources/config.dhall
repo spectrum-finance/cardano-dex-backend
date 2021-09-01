@@ -8,5 +8,8 @@
   getHttpSettings = 
     { getHost = "0.0.0.0"
     , getPort = 8088
+    },
+  redisSettings =
+    { getRedisHost = "redis"
     }
 }
