@@ -15,6 +15,8 @@ import Resolver.Models.CfmmPool
 import Dex.Models
 import Resolver.Models.AppSettings
 import Resolver.Repositories.PoolRepository
+import RIO.List as List
+import GHC.Natural
 
 data KafkaService env = KafkaService
     { runKafka :: HasKafkaConsumerSettings env => RIO env () 
@@ -31,13 +33,13 @@ runKafka' p = do
 ----------------------------------------------------------------------
 
 consumerProps :: KafkaConsumerSettings -> ConsumerProperties
-consumerProps settings = brokersList (getBrokerList settings)
-             <> groupId (getGroupId settings)
+consumerProps settings = brokersList (List.map BrokerAddress (getBrokerList settings))
+             <> groupId (ConsumerGroupId $ getGroupId settings)
              <> noAutoCommit
              <> logLevel KafkaLogInfo
 
 consumerSub :: KafkaConsumerSettings -> Subscription
-consumerSub settings = topics (getTopicsList settings)
+consumerSub settings = topics (List.map TopicName (getTopicsList settings))
            <> offsetReset Earliest
 
 mkKafka :: PoolRepository -> KafkaConsumerSettings -> RIO env ()
@@ -57,7 +59,7 @@ runF p settings consumer = S.drain $ S.repeatM $ pollMessageF p settings consume
 
 pollMessageF :: PoolRepository -> KafkaConsumerSettings -> KafkaConsumer -> IO ()
 pollMessageF PoolRepository{..} settings consumer = do
-    msgs <- pollMessageBatch consumer (Timeout $ getPollRate settings) (BatchSize $ getBatchSize settings)
+    msgs <- pollMessageBatch consumer (Timeout $ fromIntegral . naturalToInteger $ getPollRate settings) (BatchSize $ fromIntegral . naturalToInteger $ getBatchSize settings)
     _   <- print msgs
     let parsedMsg = fmap parseMessage msgs
         confirmed = fmap (ConfirmedPool <$>) parsedMsg & catMaybes

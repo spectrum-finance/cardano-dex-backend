@@ -98,7 +98,8 @@ library
         warp,
         hedis,
         utf8-string,
-        cardano-dex
+        cardano-dex,
+        dhall
 
 executable pools-resolver-app
     main-is: Main.hs

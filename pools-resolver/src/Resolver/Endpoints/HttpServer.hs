@@ -5,7 +5,7 @@ module Resolver.Endpoints.HttpServer
 
 import Resolver.Models.AppSettings as AppSettings
 import Control.Monad.IO.Class as CIO (liftIO)
-import RIO as RIO (Maybe, ($), (>>), RIO(..), view, liftIO)
+import RIO as RIO (Maybe, ($), (>>), RIO(..), view, liftIO, (.), fromIntegral)
 import Dex.Models
 import Resolver.Services.PoolsResolver (PoolResolver(..))
 import Servant
@@ -14,6 +14,7 @@ import Prelude (print)
 import Resolver.Models.CfmmPool
 import Resolver.Repositories.PoolRepository
 import Utils (PoolId(..))
+import GHC.Natural
 
 data HttpServer env = HttpServer
     { runHttpServer :: HasHttpServerSettings env => RIO env () 
@@ -25,7 +26,7 @@ mkHttpServer r p = HttpServer $ runHttpServer' r p
 runHttpServer' :: HasHttpServerSettings env => PoolResolver -> PoolRepository -> RIO env ()
 runHttpServer' r p = do
     settings <- view httpSettingsL
-    RIO.liftIO $ print "Running http server" >> (Warp.run (AppSettings.getPort settings) (app r p))
+    RIO.liftIO $ print "Running http server" >> (Warp.run (fromIntegral . naturalToInteger $ AppSettings.getPort settings) (app r p))
 
 -------------------------------------------------------------------------------------
 
