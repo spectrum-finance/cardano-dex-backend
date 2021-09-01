@@ -20,6 +20,7 @@ import RIO.Text as T ( pack )
 import Data.List as L ( foldl )
 import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Dex.Models
+import GHC.Natural
 
 data HttpReqService env = HttpReqService
     { getUnspentOuts :: HasHttpSettings env => RIO env [FullTxOut]
@@ -48,7 +49,7 @@ baseGetReq reqPaths = do
     settings <- view httpSettingsL
     runReq defaultHttpConfig $ do
         let uri = L.foldl (/:) (http (T.pack $ getHost settings)) reqPaths
-        r <- req GET uri NoReqBody jsonResponse (port $ getPort settings)
+        r <- req GET uri NoReqBody jsonResponse (port $ fromIntegral . naturalToInteger $ getPort settings)
         let result = responseBody r :: a
         pure result
 
@@ -59,7 +60,7 @@ getUnspentOutsStream = do
     settings <- view httpSettingsL
     runReq defaultHttpConfig $ do
         let url = http (T.pack $ getHost settings) /: "experimental" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
-        reqBr GET url NoReqBody (port $ getPort settings) $ \r ->
+        reqBr GET url NoReqBody (port $ fromIntegral . naturalToInteger $ getPort settings) $ \r ->
             runConduit $ 
                 responseBodySource r
                     .| C.map fromStrict

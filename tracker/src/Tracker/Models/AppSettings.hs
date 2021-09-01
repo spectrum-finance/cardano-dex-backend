@@ -12,28 +12,37 @@ module Tracker.Models.AppSettings
 import RIO ( Show, Int, id, lens, String, Lens' )
 import RIO.ByteString as BS
 import Kafka.Producer
+import Dhall
 
 data HttpSettings = HttpSettings
     { getHost :: String
-    , getPort :: Int
-    } deriving (Show)
+    , getPort :: Natural
+    } deriving (Generic, Show)
+
+instance FromDhall HttpSettings
 
 newtype BlockRequestSettings = BlockRequestSettings
-    { getPeriod :: Int } deriving (Show)
+    { getPeriod :: Natural } deriving (Generic, Show)
+
+instance FromDhall BlockRequestSettings
 
 data AppSettings = AppSettings
     { getHttpSettings :: HttpSettings
     , getBlockRequestSettings :: BlockRequestSettings
     , getKafkaProducerSettings :: KafkaProducerSettings
-    } deriving (Show)
+    } deriving (Generic, Show)
+
+instance FromDhall AppSettings
 
 data KafkaProducerSettings = KafkaProducerSettings 
-  { getAmmTopic :: TopicName
-  , getProxyTopic :: TopicName
-  , getBrokersList :: [BrokerAddress]
-  , getProxyMsgKey :: BS.ByteString
-  , getAmmMsgKey :: BS.ByteString
-  } deriving (Show)
+  { getAmmTopic :: Text
+  , getProxyTopic :: Text
+  , getBrokersList :: [Text]
+  , getProxyMsgKey :: Text
+  , getAmmMsgKey :: Text
+  } deriving (Generic, Show)
+
+instance FromDhall KafkaProducerSettings
 
 class HasHttpSettings env where
   httpSettingsL :: Lens' env HttpSettings

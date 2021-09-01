@@ -5,17 +5,11 @@ module Tracker.Services.SettingsReader
 
 import RIO
 import Tracker.Models.AppSettings
+import Dhall
 
 data SettingsReader = SettingsReader
     { read :: IO AppSettings 
     }
 
 mkSettingsReader :: SettingsReader
-mkSettingsReader = SettingsReader read'
-
-read' :: IO AppSettings
-read' = do
-    let httpSettings = HttpSettings "explorer" 8089 
-        reqPeriodSettings = BlockRequestSettings 0
-        kafkaSettings = KafkaProducerSettings "amm-topic" "proxy-topic" ["kafka:9092"] "default-proxy-key" "default-amm-key" 
-    pure $ AppSettings httpSettings reqPeriodSettings kafkaSettings
+mkSettingsReader = SettingsReader $ input auto "./tracker/resources/config.dhall"

@@ -11,6 +11,8 @@ import Kafka.Producer
 import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
 import Dex.Models
+import RIO.List as List
+import RIO.Text as Text
 
 data KafkaService env = KafkaService
     { sendProxy :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
@@ -26,12 +28,18 @@ mkKafkaService = do
 sendProxy' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
 sendProxy' parsedOps = do
     settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecordOperation (getProxyMsgKey settings) (getProxyTopic settings) (RIO.map encodeOperation parsedOps))
+    liftIO $ runProducerLocal 
+        (List.map BrokerAddress (getBrokersList settings)) 
+        (sendMessages $ formProducerRecordOperation 
+            (Text.encodeUtf8 $ getProxyMsgKey settings) 
+            (TopicName $ getProxyTopic settings) 
+            (RIO.map encodeOperation parsedOps)
+        )
 
 sendAmm' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
 sendAmm' txOuts = do
     settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal (getBrokersList settings) (sendMessages $ formProducerRecord (getAmmMsgKey settings) (getAmmTopic settings) txOuts)
+    liftIO $ runProducerLocal (List.map BrokerAddress (getBrokersList settings)) (sendMessages $ formProducerRecord (Text.encodeUtf8 $ getAmmMsgKey settings) (TopicName $ getAmmTopic settings) txOuts)
 
 -------------------------------------------------------------------------------------
 

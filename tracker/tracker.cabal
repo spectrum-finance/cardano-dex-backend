@@ -94,7 +94,8 @@ library
         modern-uri,
         plutus-ledger-api -any,
         hw-kafka-client,
-        sdk
+        sdk,
+        dhall
 
 executable tracker-app
     main-is: Main.hs
