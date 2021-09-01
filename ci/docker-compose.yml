@@ -50,9 +50,15 @@ services:
   executor:
     image: executor:latest
     restart: always
+    volumes: 
+      - ./../executor/resources/config.dhall:/cardano-dex-backend/executor/resources/config.dhall:ro
   tracker:
     image: tracker:latest
-    restart: always
+    restart: always 
+    volumes: 
+      - ./../tracker/resources/config.dhall:/cardano-dex-backend/tracker/resources/config.dhall:ro
   resolver:
     image: resolver:latest
     restart: always
+    volumes: 
+      - ./../pools-resolver/resources/config.dhall:/cardano-dex-backend/pools-resolver/resources/config.dhall:ro
