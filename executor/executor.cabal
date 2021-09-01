@@ -92,7 +92,8 @@ library
         plutus-ledger,
         hw-kafka-client,
         sdk,
-        cardano-dex
+        cardano-dex,
+        dhall
 
 executable executor-app
     main-is: Main.hs

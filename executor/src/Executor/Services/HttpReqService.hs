@@ -11,6 +11,7 @@ import Data.List as L ( foldl )
 import Dex.Models
 import Data.Aeson
 import Utils (PoolId(..))
+import GHC.Natural
 
 data HttpReqService = HttpReqService
     { resolvePoolReq :: PoolId -> IO (Maybe Pool)
@@ -28,7 +29,7 @@ resolvePoolReq' :: HttpSettings -> PoolId -> IO (Maybe Pool)
 resolvePoolReq' settings poolId = do
     runReq defaultHttpConfig $ do
         let url = L.foldl (/:) (http (T.pack $ hostS settings)) ["resolve"]
-        res <- req POST url (ReqBodyJson poolId) jsonResponse (port $ portS settings)
+        res <- req POST url (ReqBodyJson poolId) jsonResponse (port $ fromIntegral . naturalToInteger $ portS settings)
         pure $ ((responseBody res) :: Maybe Pool)
 
 -- Get current chain height
@@ -36,6 +37,6 @@ sendPredictedReq' :: HttpSettings -> Pool -> IO ()
 sendPredictedReq' settings pool = do
     runReq defaultHttpConfig $ do
         let uri = L.foldl (/:) (http (T.pack $ hostS settings)) ["update"]
-        void $ req POST uri (ReqBodyJson pool) ignoreResponse (port $ portS settings)
+        void $ req POST uri (ReqBodyJson pool) ignoreResponse (port $ fromIntegral . naturalToInteger $ portS settings)
 
 -- ---------- Experimental feature -------

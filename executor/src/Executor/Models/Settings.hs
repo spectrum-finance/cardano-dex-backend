@@ -8,24 +8,31 @@ module Executor.Models.Settings
 
 import RIO
 import Kafka.Consumer
+import Dhall
 
 data AppSettings = AppSettings
   { getKafkaSettings :: KafkaConsumerSettings
   , getHttpSettings :: HttpSettings
-  }
+  } deriving (Generic)
+
+instance FromDhall AppSettings
 
 data KafkaConsumerSettings = KafkaConsumerSettings
-  { getBrokerList :: [BrokerAddress]
-  , getGroupId :: ConsumerGroupId
-  , getTopicsList :: [TopicName]
-  , getPollRate :: Int
-  , getBatchSize :: Int
-  }
+  { getBrokerList :: [Text]
+  , getGroupId :: Text
+  , getTopicsList :: [Text]
+  , getPollRate :: Natural
+  , getBatchSize :: Natural
+  } deriving (Generic)
+
+instance FromDhall KafkaConsumerSettings
 
 data HttpSettings = HttpSettings
     { hostS :: String
-    , portS :: Int
-    } deriving (Show)
+    , portS :: Natural
+    } deriving (Generic, Show)
+
+instance FromDhall HttpSettings
 
 class HasKafkaConsumerSettings env where
   kafkaSettingsL :: Lens' env KafkaConsumerSettings
