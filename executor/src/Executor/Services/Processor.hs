@@ -24,25 +24,25 @@ process' :: SenderService -> HttpReqService -> InterpreterService -> ParsedOpera
 process'  SenderService{..} r@HttpReqService{..} i (ParsedOperation op) = do
     (pool, tx) <- mkTxPool i r op
     print $ "Pool is: " ++ show pool
-    print $ encode tx
+    print $ encode $ unsafeFromEither tx
     sendPredicted pool    
 
-mkTxPool :: InterpreterService -> HttpReqService-> Operation a -> IO (Pool, Either MkTxError Tx)
+mkTxPool :: InterpreterService -> HttpReqService-> Operation a -> IO (Pool, Either ProcError Tx)
 mkTxPool InterpreterService{..} HttpReqService{..} op =
         case op of
-            x@ (SwapOperation r) -> do
-                currentPoolMaybe <- resolvePoolReq (swapPoolId r)
+            x@ (DepositOperation r) -> do
+                currentPoolMaybe <- resolvePoolReq (depositPoolId  r)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = deposit x currentPool
                 pure $ (currentPool, unsafeTx)
-            x@ (DepositOperation r) -> do
-                currentPoolMaybe <- resolvePoolReq (depositPoolId r)
+            x@ (RedeemOperation r) -> do
+                currentPoolMaybe <- resolvePoolReq (redeemPoolId r)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = redeem x currentPool
                 pure $ (currentPool, unsafeTx)
                 
-            x@ (RedeemOperation r) -> do
-                currentPoolMaybe <- resolvePoolReq (redeemPoolId r)
+            x@ (SwapOperation r) -> do
+                currentPoolMaybe <- resolvePoolReq (swapPoolId r)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = swap x currentPool
                 pure $ (currentPool, unsafeTx)
