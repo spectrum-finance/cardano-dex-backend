@@ -32,7 +32,7 @@ process ProcessorService{..} KafkaService{..} HttpReqService{..} heightTVar = do
     chainHeight <- getCurrentHeight
     appHeight   <- readTVarIO heightTVar
     unspent     <- if chainHeight > appHeight 
-                    then atomically (writeTVar heightTVar chainHeight) >> getUnspentOuts 
+                    then atomically (writeTVar heightTVar chainHeight) >> getProxyBoxes >>= (\proxy -> (proxy ++) <$> getAmmBoxes)
                     else pure []
     _ <- liftIO $ print $ "Received unspent are: " ++ show unspent
     let ammOuts = fmap getPool unspent & catMaybes

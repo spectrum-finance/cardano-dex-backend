@@ -23,17 +23,24 @@ import Dex.Models
 import GHC.Natural
 
 data HttpReqService env = HttpReqService
-    { getUnspentOuts :: HasHttpSettings env => RIO env [FullTxOut]
+    { getProxyBoxes :: HasHttpSettings env => RIO env [FullTxOut]
+    , getAmmBoxes :: HasHttpSettings env => RIO env [FullTxOut]
     , getCurrentHeight :: HasHttpSettings env => RIO env Int
     }
 
 mkHttpReqService :: HttpReqService env
-mkHttpReqService = HttpReqService getUnspentOuts' getCurrentHeight'
+mkHttpReqService = HttpReqService getProxyBoxes' getAmmBoxes' getCurrentHeight'
 
-getUnspentOuts' :: HasHttpSettings env => RIO env [FullTxOut]
-getUnspentOuts' = do
-    res <- baseGetReq ["api", "v0", "utxo"]
-    _ <- liftIO $ print $ "Get utxos finished successfully.." ++ show res
+getAmmBoxes' :: HasHttpSettings env => RIO env [FullTxOut]
+getAmmBoxes' = do
+    res <- baseGetReq ["poolRoutes"]
+    _ <- liftIO $ print $ "Get amm boxes finished successfully.." ++ show res
+    return res
+
+getProxyBoxes' :: HasHttpSettings env => RIO env [FullTxOut]
+getProxyBoxes' = do
+    res <- baseGetReq ["proxyContracts"]
+    _ <- liftIO $ print $ "Get proxy boxes finished successfully.." ++ show res
     return res
 
 getCurrentHeight' :: HasHttpSettings env => RIO env Int
