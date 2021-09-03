@@ -45,7 +45,7 @@ getProxyBoxes' = do
 
 getCurrentHeight' :: HasHttpSettings env => RIO env Int
 getCurrentHeight' = do
-    res <- baseGetReq ["api", "v0", "block", "height"]
+    res <- baseGetReq ["block", "getBestHeight"]
     _ <- liftIO $ print $ "Get current height finished successfully.." ++ show res
     return res
 
