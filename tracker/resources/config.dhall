@@ -1,9 +1,9 @@
 { getHttpSettings = 
-    { getHost = "explorer"
-    , getPort = 8089
+    { getHost = "127.0.0.1"
+    , getPort = 8012
     },
 getKafkaProducerSettings = 
-    { getBrokersList = ["kafka:9092"]
+    { getBrokersList = ["127.0.0.1:9092"]
     , getAmmTopic = "amm-topic"
     , getProxyTopic = "proxy-topic"
     , getProxyMsgKey = "default-proxy-key"
