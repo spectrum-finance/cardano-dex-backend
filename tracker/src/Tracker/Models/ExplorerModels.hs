@@ -1,4 +1,8 @@
-module Tracker.Models.ExplorerModels
+module Tracker.Models.ExplorerModels where
+
+import Data.ByteString
+import Data.Int
+import Data.Eq
 
 data ApiBlockchainInfo = ApiBlockchainInfo {
 	bestHeight :: Height,

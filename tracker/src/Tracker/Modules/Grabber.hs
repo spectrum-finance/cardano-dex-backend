@@ -1,4 +1,4 @@
-module Tracker.Modules.Grabber
+module Tracker.Modules.Grabber where
 
 import Dex.Models
 import Tracker.Services.ExplorerService
@@ -10,7 +10,7 @@ data Grabber env = Grabber {
 	getPools :: RIO env [Pool]
 }
 
-mkGrabber :: ExplorerService -> Grabber
+mkGrabber :: ExplorerService -> Grabber env
 mkGrabber exService = do
   heightTvar <- newTVarIO $ Height 0
   parsedOpsTvar <- newTVarIO ([] :: [ParsedOperation])

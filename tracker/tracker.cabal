@@ -73,7 +73,12 @@ library
     
     exposed-modules: Tracker.Services.HttpReqService 
                      Tracker.Services.TxOutsProcessor
+                     Tracker.Services.ExplorerService
                      Tracker.Models.AppSettings
+                     Tracker.Programs.TrackerProgram
+                     Tracker.Modules.Grabber
+                     Tracker.Models.ExplorerModels
+                     Tracker.Clients.ExplorerClient
                      Tracker.Utils
                      Tracker.Services.KafkaService 
                      Tracker.Services.SettingsReader

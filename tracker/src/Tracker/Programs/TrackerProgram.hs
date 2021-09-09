@@ -1,3 +1,3 @@
-module Tracker.Programs.TrackerProgram
+module Tracker.Programs.TrackerProgram where
 
 data TrackerProgram = TrackerProgram { run :: IO () }

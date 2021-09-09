@@ -1,4 +1,4 @@
-module Tracker.Services.ExplorerService
+module Tracker.Services.ExplorerService where
 
 import RIO
 
@@ -7,7 +7,7 @@ data ExplorerService env = ExplorerService {
 	getNewOutputs :: RIO env [ApiFullTxOut]
 }
 
-mkExplorerService :: ExplorerService
+mkExplorerService :: ExplorerService env
 mkExplorerService = ExplorerService getBestHeight' getNewOutputs'
 
 getBestHeight' :: RIO env Int
