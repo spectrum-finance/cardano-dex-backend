@@ -1,8 +1,8 @@
 module Tracker.Models.ExplorerModels
 
 data ApiBlockchainInfo = ApiBlockchainInfo {
-	bestHeight :: Int,
-	lastBlockHash :: ByteString
+	bestHeight :: Height,
+	lastBlockHash :: Hash
 }
 
 data ApiTxInfo = ApiTxInfo {
@@ -13,3 +13,8 @@ data ApiFullTxOut = ApiFullTxOut
 
 newtype Id = Id Int
 	deriving (Eq)
+
+newtype Height = Height Int
+  deriving (Eq)
+
+newtype Hash = Hash ByteString
