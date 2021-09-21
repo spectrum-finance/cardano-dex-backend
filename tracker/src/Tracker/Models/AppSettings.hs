@@ -1,9 +1,9 @@
 module Tracker.Models.AppSettings 
-    ( HttpSettings(..)
+    ( ExplorerSettings(..)
     , BlockRequestSettings(..)
     , KafkaProducerSettings(..)
     , AppSettings(..)
-    , HasHttpSettings(..)
+    , HasExplorerSettings(..)
     , HasBlockRequestSettings(..)
     , HasKafkaProducerSettings(..)
     , HasAppSettings(..)
@@ -14,12 +14,12 @@ import RIO.ByteString as BS
 import Kafka.Producer
 import Dhall
 
-data HttpSettings = HttpSettings
-    { getHost :: String
-    , getPort :: Natural
+data ExplorerSettings = ExplorerSettings
+    { getExplorerHost :: String
+    , getExplorerPort :: Natural
     } deriving (Generic, Show)
 
-instance FromDhall HttpSettings
+instance FromDhall ExplorerSettings
 
 newtype BlockRequestSettings = BlockRequestSettings
     { getPeriod :: Natural } deriving (Generic, Show)
@@ -27,7 +27,7 @@ newtype BlockRequestSettings = BlockRequestSettings
 instance FromDhall BlockRequestSettings
 
 data AppSettings = AppSettings
-    { getHttpSettings :: HttpSettings
+    { getExplorerSettings :: ExplorerSettings
     , getBlockRequestSettings :: BlockRequestSettings
     , getKafkaProducerSettings :: KafkaProducerSettings
     } deriving (Generic, Show)
@@ -44,12 +44,12 @@ data KafkaProducerSettings = KafkaProducerSettings
 
 instance FromDhall KafkaProducerSettings
 
-class HasHttpSettings env where
-  httpSettingsL :: Lens' env HttpSettings
-instance HasHttpSettings HttpSettings where
-  httpSettingsL = id
-instance HasHttpSettings AppSettings where
-  httpSettingsL = lens getHttpSettings (\x y -> x { getHttpSettings = y })
+class HasExplorerSettings env where
+  explorerSettingsL :: Lens' env ExplorerSettings
+instance HasExplorerSettings ExplorerSettings where
+  explorerSettingsL = id
+instance HasExplorerSettings AppSettings where
+  explorerSettingsL = lens getExplorerSettings (\x y -> x { getExplorerSettings = y })
 
 class HasBlockRequestSettings env where
   blockRequestSettingsL :: Lens' env BlockRequestSettings

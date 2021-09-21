@@ -14,31 +14,29 @@ import Dex.Models
 import RIO.List as List
 import RIO.Text as Text
 
-data KafkaService env = KafkaService
-    { sendProxy :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
-    , sendAmm :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
+data KafkaService = KafkaService
+    { sendProxy :: [ParsedOperation] -> IO ()
+    , sendAmm :: [Pool] -> IO ()
     }
 
-mkKafkaService :: IO (KafkaService env)
-mkKafkaService = do
-    let service = KafkaService sendProxy' sendAmm'
+mkKafkaService :: KafkaProducerSettings -> IO KafkaService
+mkKafkaService settings = do
+    let service = KafkaService (sendProxy' settings) (sendAmm' settings)
     _ <- print "Kafka service was initialized successfully"
     pure service
 
-sendProxy' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
-sendProxy' parsedOps = do
-    settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal 
-        (List.map BrokerAddress (getBrokersList settings)) 
-        (sendMessages $ formProducerRecordOperation 
-            (Text.encodeUtf8 $ getProxyMsgKey settings) 
-            (TopicName $ getProxyTopic settings) 
-            (RIO.map encodeOperation parsedOps)
-        )
+sendProxy' :: KafkaProducerSettings -> [ParsedOperation] -> IO ()
+sendProxy' settings parsedOps = do
+    runProducerLocal
+      (List.map BrokerAddress (getBrokersList settings))
+      (sendMessages $ formProducerRecordOperation
+          (Text.encodeUtf8 $ getProxyMsgKey settings)
+          (TopicName $ getProxyTopic settings)
+          (RIO.map encodeOperation parsedOps)
+      )
 
-sendAmm' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
-sendAmm' txOuts = do
-    settings <- view kafkaProducerSettingsL
+sendAmm' :: KafkaProducerSettings -> [Pool] -> IO ()
+sendAmm' settings txOuts = do
     liftIO $ runProducerLocal (List.map BrokerAddress (getBrokersList settings)) (sendMessages $ formProducerRecord (Text.encodeUtf8 $ getAmmMsgKey settings) (TopicName $ getAmmTopic settings) txOuts)
 
 -------------------------------------------------------------------------------------

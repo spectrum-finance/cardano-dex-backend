@@ -2,7 +2,7 @@ module Tracker.Clients.ExplorerClient where
 
 import Tracker.Models.ExplorerModels
 import RIO
-import Tracker.Models.AppSettings (HasHttpSettings(..))
+import Tracker.Models.AppSettings (HasExplorerSettings(..))
 
 data ExplorerClient env = ExplorerClient {
 	getBlockchainInfo :: RIO env ApiBlockchainInfo,
@@ -10,14 +10,14 @@ data ExplorerClient env = ExplorerClient {
 	getTxsInBlock :: Id -> RIO env [ApiTxInfo]
 }
 
-mkExplorerClient :: HasHttpSettings env => ExplorerClient env
+mkExplorerClient :: HasExplorerSettings env => ExplorerClient env
 mkExplorerClient = ExplorerClient getBlockchainInfo' getFullTxOutById' getTxsInBlock'
 
-getBlockchainInfo' :: HasHttpSettings env => RIO env ApiBlockchainInfo
+getBlockchainInfo' :: HasExplorerSettings env => RIO env ApiBlockchainInfo
 getBlockchainInfo' = undefined
 
-getFullTxOutById' :: HasHttpSettings env => Id -> RIO env (Maybe ApiFullTxOut)
+getFullTxOutById' :: HasExplorerSettings env => Id -> RIO env (Maybe ApiFullTxOut)
 getFullTxOutById' id = undefined
 
-getTxsInBlock' :: HasHttpSettings env => Id -> RIO env [ApiTxInfo]
+getTxsInBlock' :: HasExplorerSettings env => Id -> RIO env [ApiTxInfo]
 getTxsInBlock' id = undefined

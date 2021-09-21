@@ -1,9 +1,6 @@
-module Tracker.Services.HttpReqService 
-    ( HttpReqService(..)
-    , mkHttpReqService
-    ) where
+module Tracker.Services.HttpReqService where
 
-import Tracker.Models.AppSettings (HttpSettings(..), HasHttpSettings(httpSettingsL))
+import Tracker.Models.AppSettings (ExplorerSettings(..), HasExplorerSettings(explorerSettingsL))
 import RIO as R
 import Conduit ( (.|), runConduit )
 import Network.HTTP.Req
@@ -22,54 +19,54 @@ import Plutus.V1.Ledger.Tx ( TxOut(..) )
 import Dex.Models
 import GHC.Natural
 
-data HttpReqService env = HttpReqService
-    { getProxyBoxes :: HasHttpSettings env => RIO env [FullTxOut]
-    , getAmmBoxes :: HasHttpSettings env => RIO env [FullTxOut]
-    , getCurrentHeight :: HasHttpSettings env => RIO env Int
+data HttpReqService = HttpReqService
+    { getProxyBoxes :: IO [FullTxOut]
+    , getAmmBoxes :: IO [FullTxOut]
+    , getCurrentHeight :: IO Int
     }
-
-mkHttpReqService :: HttpReqService env
-mkHttpReqService = HttpReqService getProxyBoxes' getAmmBoxes' getCurrentHeight'
-
-getAmmBoxes' :: HasHttpSettings env => RIO env [FullTxOut]
-getAmmBoxes' = do
-    res <- baseGetReq ["poolRoutes"]
-    _ <- liftIO $ print $ "Get amm boxes finished successfully.." ++ show res
-    return res
-
-getProxyBoxes' :: HasHttpSettings env => RIO env [FullTxOut]
-getProxyBoxes' = do
-    res <- baseGetReq ["proxyContracts"]
-    _ <- liftIO $ print $ "Get proxy boxes finished successfully.." ++ show res
-    return res
-
-getCurrentHeight' :: HasHttpSettings env => RIO env Int
-getCurrentHeight' = do
-    res <- baseGetReq ["block", "getBestHeight"]
-    _ <- liftIO $ print $ "Get current height finished successfully.." ++ show res
-    return res
-
--------------------------------------------------------------------------------------
-
-baseGetReq :: forall a env . (FromJSON a, HasHttpSettings env) => [Text] -> RIO env a
-baseGetReq reqPaths = do
-    settings <- view httpSettingsL
-    runReq defaultHttpConfig $ do
-        let uri = L.foldl (/:) (http (T.pack $ getHost settings)) reqPaths
-        r <- req GET uri NoReqBody jsonResponse (port $ fromIntegral . naturalToInteger $ getPort settings)
-        let result = responseBody r :: a
-        pure result
-
--- ---------- Experimental feature -------
-
-getUnspentOutsStream :: HasHttpSettings env => RIO env ()
-getUnspentOutsStream = do
-    settings <- view httpSettingsL
-    runReq defaultHttpConfig $ do
-        let url = http (T.pack $ getHost settings) /: "experimental" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
-        reqBr GET url NoReqBody (port $ fromIntegral . naturalToInteger $ getPort settings) $ \r ->
-            runConduit $ 
-                responseBodySource r
-                    .| C.map fromStrict
-                    .| C.map (eitherDecode :: BL.ByteString -> Either String TxOut)
-                    .| C.mapM_ P.print
+--
+mkHttpReqService :: HttpReqService
+mkHttpReqService = undefined
+--
+--getAmmBoxes' :: HasHttpSettings env => RIO env [FullTxOut]
+--getAmmBoxes' = do
+--    res <- baseGetReq ["poolRoutes"]
+--    _ <- liftIO $ print $ "Get amm boxes finished successfully.." ++ show res
+--    return res
+--
+--getProxyBoxes' :: HasHttpSettings env => RIO env [FullTxOut]
+--getProxyBoxes' = do
+--    res <- baseGetReq ["proxyContracts"]
+--    _ <- liftIO $ print $ "Get proxy boxes finished successfully.." ++ show res
+--    return res
+--
+--getCurrentHeight' :: HasHttpSettings env => RIO env Int
+--getCurrentHeight' = do
+--    res <- baseGetReq ["block", "getBestHeight"]
+--    _ <- liftIO $ print $ "Get current height finished successfully.." ++ show res
+--    return res
+--
+---------------------------------------------------------------------------------------
+--
+--baseGetReq :: forall a env . (FromJSON a, HasHttpSettings env) => [Text] -> RIO env a
+--baseGetReq reqPaths = do
+--    settings <- view httpSettingsL
+--    runReq defaultHttpConfig $ do
+--        let uri = L.foldl (/:) (http (T.pack $ getHost settings)) reqPaths
+--        r <- req GET uri NoReqBody jsonResponse (port $ fromIntegral . naturalToInteger $ getPort settings)
+--        let result = responseBody r :: a
+--        pure result
+--
+---- ---------- Experimental feature -------
+--
+--getUnspentOutsStream :: HasHttpSettings env => RIO env ()
+--getUnspentOutsStream = do
+--    settings <- view httpSettingsL
+--    runReq defaultHttpConfig $ do
+--        let url = http (T.pack $ getHost settings) /: "experimental" /: "api" /: "v0" /: "tx" /: "outs" /: "unspent"
+--        reqBr GET url NoReqBody (port $ fromIntegral . naturalToInteger $ getPort settings) $ \r ->
+--            runConduit $
+--                responseBodySource r
+--                    .| C.map fromStrict
+--                    .| C.map (eitherDecode :: BL.ByteString -> Either String TxOut)
+--                    .| C.mapM_ P.print

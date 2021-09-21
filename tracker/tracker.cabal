@@ -71,12 +71,14 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Tracker.Services.HttpReqService 
+    exposed-modules: Tracker.App
+                     Tracker.Services.HttpReqService
                      Tracker.Services.TxOutsProcessor
                      Tracker.Services.ExplorerService
                      Tracker.Models.AppSettings
                      Tracker.Programs.TrackerProgram
                      Tracker.Modules.Grabber
+                     Tracker.Modules.Publisher
                      Tracker.Models.ExplorerModels
                      Tracker.Clients.ExplorerClient
                      Tracker.Utils
@@ -90,6 +92,9 @@ library
         rio,
         text,
         bytestring,
+        parallel-io,
+        loop,
+        stm,
         streamly,
         req,
         conduit,
@@ -100,7 +105,9 @@ library
         plutus-ledger-api -any,
         hw-kafka-client,
         sdk,
-        dhall
+        dhall,
+        http-conduit,
+        yaml
 
 executable tracker-app
     main-is: Main.hs

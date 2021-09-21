@@ -41,7 +41,7 @@ instance HasKafkaConsumerSettings KafkaConsumerSettings where
 instance HasKafkaConsumerSettings AppSettings where
   kafkaSettingsL = lens getKafkaSettings (\x y -> x { getKafkaSettings = y })
 
-class HasHttpSettings env where
+class HasSettings env where
   httpSettingsL :: Lens' env HttpSettings
 instance HasHttpSettings HttpSettings where
   httpSettingsL = id
