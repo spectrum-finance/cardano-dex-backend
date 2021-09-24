@@ -73,7 +73,6 @@ library
     
     exposed-modules: Tracker.App
                      Tracker.Services.HttpReqService
-                     Tracker.Services.TxOutsProcessor
                      Tracker.Services.ExplorerService
                      Tracker.Models.AppSettings
                      Tracker.Programs.TrackerProgram

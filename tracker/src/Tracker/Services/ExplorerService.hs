@@ -14,11 +14,12 @@ import Network.HTTP.Simple
 
 data ExplorerService = ExplorerService {
 	getBestHeight :: IO Height,
-	getOutputsInBlock :: Id -> IO [ApiFullTxOut]
+	getOutputsInTx :: String -> Int -> IO [ApiFullTxOut]
+	getTxsInBlock :: Height -> IO [Transaction]
 }
 
 mkExplorerService :: ExplorerSettings -> IO ExplorerService
-mkExplorerService exSettings = pure $ ExplorerService (getBestHeight' exSettings) (getOutputsInBlock' exSettings)
+mkExplorerService exSettings = pure $ ExplorerService (getBestHeight' exSettings) (getOutputsInTx' exSettings) (getTxsInBlock' exSettings)
 
 getBestHeight' :: ExplorerSettings -> IO Height
 getBestHeight' explorerSettings = do
@@ -31,8 +32,8 @@ getBestHeight' explorerSettings = do
   liftIO $ print $ getResponseHeader "Content-Type" response
   pure (getResponseBody response :: Height)
 
-getTxInBlock' :: ExplorerSettings -> Id -> IO [Transaction]
-getTxInBlock' explorerSettings blockId = do
+getTxsInBlock' :: ExplorerSettings -> Height -> IO [Transaction]
+getTxsInBlock' explorerSettings height = do
     let request
             = setRequestPath "/blocks/transaction"
             $ setRequestHost "0.0.0.0:9010"
@@ -42,8 +43,8 @@ getTxInBlock' explorerSettings blockId = do
     liftIO $ print $ getResponseHeader "Content-Type" response
     pure (getResponseBody response :: [Transaction])
 
-getOutputsInBlock' :: ExplorerSettings -> Id -> IO [ApiFullTxOut]
-getOutputsInBlock' explorerSettings blockId = do
+getOutputsInTx' :: ExplorerSettings -> String -> Int -> IO [ApiFullTxOut]
+getOutputsInTx' explorerSettings txHash index = do
     let request
             = setRequestPath "/blocks/getOutputs"
             $ setRequestHost "0.0.0.0:9010"

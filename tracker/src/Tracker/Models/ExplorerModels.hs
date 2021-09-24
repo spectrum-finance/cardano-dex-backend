@@ -40,6 +40,7 @@ data ApiBlockchainInfo = ApiBlockchainInfo {
 
 data Transaction = Transaction {
 	blockHash :: Hash,
+	txHash :: String,
 	outputs :: [ApiFullTxOut]
 }
 

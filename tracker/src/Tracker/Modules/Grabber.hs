@@ -42,8 +42,15 @@ updateOpsAndPools :: ExplorerService -> Height -> Height -> IO ()
 updateOpsAndPools explorer savedHeight prevHeight = do
 
 saveOutputsFromBlock :: ExplorerService -> Height -> IO ()
-saveOutputsFromBlock ExplorerService{..} heightToGrab =
+saveOutputsFromBlock ExplorerService{..} heightToGrab = do
+	txsOnHeight <- getTxsInBlock heightToGrab
+	forLoopState 0 (<= length txsOnHeight) (+1) ([] :: [ApiFullTxOut])
 
+getOutputsFromTx :: ExplorerService -> [Transaction] -> [ApiFullTxOut] -> Int -> [ApiFullTxOut]
+getOutputsFromTx ExplorerService{..} txsList acc txId = do
+  let tx = txsList !! txId
+  txOutputs <- getOutputsInTx (txHash tx) txId
+  return acc ++ txOutputs
 
 getParsedOperation' :: TVar [ParsedOperation] -> IO [ParsedOperation]
 getParsedOperation' parsedOpsT =
