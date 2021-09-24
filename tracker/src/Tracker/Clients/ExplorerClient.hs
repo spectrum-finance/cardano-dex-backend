@@ -1,7 +1,7 @@
 module Tracker.Clients.ExplorerClient where
 
 import Tracker.Models.ExplorerModels
-import RIO
+import RIO ( Maybe, undefined, RIO )
 import Tracker.Models.AppSettings (HasExplorerSettings(..))
 
 data ExplorerClient env = ExplorerClient {

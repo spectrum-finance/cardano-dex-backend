@@ -11,7 +11,7 @@ import Tracker.Modules.Publisher
 import Tracker.Models.AppSettings
 import RIO
 import Tracker.Services.SettingsReader
-import Prelude (IO(..), return, pure)
+import Prelude ( IO(..), return, pure )
 
 data App = App {
 	runApp :: IO ()

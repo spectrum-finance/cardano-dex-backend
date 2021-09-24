@@ -7,15 +7,21 @@ module Tracker.Services.ExplorerService (
 
 import RIO
 import Tracker.Models.ExplorerModels
-import qualified Data.Yaml             as Yaml
 import Prelude
 import Tracker.Models.AppSettings (ExplorerSettings(..), HasExplorerSettings(explorerSettingsL), AppSettings(..))
 import Network.HTTP.Simple
+    ( defaultRequest,
+      getResponseBody,
+      getResponseHeader,
+      getResponseStatusCode,
+      httpJSON,
+      setRequestHost,
+      setRequestPath )
 
 data ExplorerService = ExplorerService {
-	getBestHeight :: IO Height,
-	getOutputsInTx :: String -> Int -> IO [ApiFullTxOut]
-	getTxsInBlock :: Height -> IO [Transaction]
+        getBestHeight :: IO Height,
+        getOutputsInTx :: String -> Int -> IO [ApiFullTxOut],
+        getTxsInBlock :: Height -> IO [Transaction]
 }
 
 mkExplorerService :: ExplorerSettings -> IO ExplorerService
@@ -35,10 +41,10 @@ getBestHeight' explorerSettings = do
 getTxsInBlock' :: ExplorerSettings -> Height -> IO [Transaction]
 getTxsInBlock' explorerSettings height = do
     let request
-            = setRequestPath "/blocks/transaction"
+            = setRequestPath "blocks/transaction"
             $ setRequestHost "0.0.0.0:9010"
             $ defaultRequest
-    response <- liftIO $ httpJSON request
+    response <- httpJSON request
     liftIO $ putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
     liftIO $ print $ getResponseHeader "Content-Type" response
     pure (getResponseBody response :: [Transaction])
@@ -49,7 +55,7 @@ getOutputsInTx' explorerSettings txHash index = do
             = setRequestPath "/blocks/getOutputs"
             $ setRequestHost "0.0.0.0:9010"
             $ defaultRequest
-    response <- liftIO $ httpJSON request
+    response <- httpJSON request
     liftIO $ putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
     liftIO $ print $ getResponseHeader "Content-Type" response
     pure (getResponseBody response :: [ApiFullTxOut])

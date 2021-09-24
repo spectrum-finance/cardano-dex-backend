@@ -3,7 +3,6 @@
 {-# LANGUAGE DuplicateRecordFields     #-}
 {-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE KindSignatures            #-}
-{-# LANGUAGE DeriveAnyClass            #-}
 {-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE AllowAmbiguousTypes       #-}
 {-# LANGUAGE ExistentialQuantification #-}
@@ -15,6 +14,13 @@ import Data.ByteString
 import Data.Int
 import Data.Eq
 import Data.String
+import Plutus.V1.Ledger.Tx
+import Plutus.V1.Ledger.Address
+import Plutus.V1.Ledger.Value
+import Plutus.V1.Ledger.TxId
+import Plutus.V1.Ledger.Scripts
+import Plutus.V1.Ledger.Crypto
+import Dex.Models
 import Data.Aeson (FromJSON)
 import Prelude
 import GHC.Generics
@@ -42,7 +48,7 @@ data Transaction = Transaction {
 	blockHash :: Hash,
 	txHash :: String,
 	outputs :: [ApiFullTxOut]
-}
+} deriving (Show, Generic, FromJSON)
 
 data ApiTxInfo = ApiTxInfo {
 	id :: Id
@@ -52,7 +58,7 @@ data ApiFullTxOut = ApiFullTxOut {
   outGId           :: GId,
   refId            :: TxId,
   refIdx           :: Integer,
-  txOutAddress     :: AddressPubKeyHash,
+  txOutAddress     :: String,
   jsValue          :: Value,
-  'data'           :: Datum
+  datum            :: Datum
 } deriving (Show, Generic, FromJSON)

@@ -3,7 +3,6 @@ module Tracker.Wirings.WiringApp
     ) where
 
 import RIO
-import Tracker.Services.TxOutsProcessor
 import Tracker.Services.KafkaService
 import Tracker.Services.HttpReqService
 import Tracker.Services.SettingsReader
