@@ -39,21 +39,24 @@ grab explorer parsedOpsT parsedPoolsT heightT = do
   savedHeight <- readTVarIO heightT
   currentBlockchainHeight <- getBestHeight explorer
   _ <- if (savedHeight < currentBlockchainHeight)
-        then updateOpsAndPools explorer savedHeight currentBlockchainHeight
+        then updateOpsAndPools explorer parsedOpsT parsedPoolsT heightT currentBlockchainHeight
         else pure ()
   pure ()
 
-updateOpsAndPools :: ExplorerService -> Height -> Height -> IO ()
-updateOpsAndPools explorer savedHeight prevHeight = undefined
+updateOpsAndPools :: ExplorerService -> TVar [ParsedOperation] -> TVar [Pool] -> TVar Height -> Height -> IO ()
+updateOpsAndPools explorer parsedOpsT poolT curHeightT newHeight = undefined
+
  
-saveOutputsFromBlock :: ExplorerService -> Height -> IO ()
-saveOutputsFromBlock explorer heightToGrab = do
+saveOutputsFromBlock :: ExplorerService -> TVar [ParsedOperation] -> TVar [Pool] -> Height -> IO ()
+saveOutputsFromBlock explorer parsedOpsT poolsT heightToGrab = do
   txsOnHeight <- (getTxsInBlock explorer) heightToGrab
   fulltxOuts <- forLoopState 0 (<= length txsOnHeight) (+1) ([]) (getOutputsFromTx explorer txsOnHeight)
   let processorService = mkProcessorService
       unspent = fmap toFullTxOut fulltxOuts
       ammOuts = fmap (getPool processorService) unspent & catMaybes
       proxyOuts = fmap (getPoolOperation processorService) unspent & catMaybes
+  atomically (modifyTVar parsedOpsT (\prevValue -> prevValue ++ proxyOuts))
+  atomically (modifyTVar poolsT (\prevValue -> prevValue ++ ammOuts))
   pure ()
 
 getOutputsFromTx :: ExplorerService -> [Transaction] -> [ApiFullTxOut] -> Int -> IO [ApiFullTxOut]
