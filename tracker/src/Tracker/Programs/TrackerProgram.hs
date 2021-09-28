@@ -11,7 +11,7 @@ import Prelude
 data TrackerProgram = TrackerProgram { run :: IO () }
 
 mkTrackerProgram :: Grabber -> Publisher -> IO (TrackerProgram)
-mkTrackerProgram grabber publisher = undefined
+mkTrackerProgram grabber publisher = pure $ TrackerProgram (run' grabber publisher)
 
 run' :: Grabber -> Publisher -> IO ()
 run' grabber publisher = parallel_ [publishStream grabber publisher, startGrabber grabber]

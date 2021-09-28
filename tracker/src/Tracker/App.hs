@@ -25,5 +25,5 @@ mkApp = do
   kafkaService <- mkKafkaService (getKafkaProducerSettings appSettings)
   grabber <- mkGrabber explorerSer
   publisher <- mkPublisher kafkaService
-  mkTrackerProgram grabber publisher
-  return ( App (pure ()) )
+  tracker <- mkTrackerProgram grabber publisher
+  return ( App (run tracker) )

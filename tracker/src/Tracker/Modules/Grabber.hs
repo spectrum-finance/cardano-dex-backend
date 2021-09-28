@@ -44,9 +44,11 @@ grab explorer parsedOpsT parsedPoolsT heightT = do
   pure ()
 
 updateOpsAndPools :: ExplorerService -> TVar [ParsedOperation] -> TVar [Pool] -> TVar Height -> Height -> IO ()
-updateOpsAndPools explorer parsedOpsT poolT curHeightT newHeight = undefined
+updateOpsAndPools explorer parsedOpsT poolT curHeightT newHeight = do
+  a <- readTVarIO curHeightT
+  atomically (modifyTVar curHeightT (\prevValue -> Height 10))
+  pure ()
 
- 
 saveOutputsFromBlock :: ExplorerService -> TVar [ParsedOperation] -> TVar [Pool] -> Height -> IO ()
 saveOutputsFromBlock explorer parsedOpsT poolsT heightToGrab = do
   txsOnHeight <- (getTxsInBlock explorer) heightToGrab
