@@ -27,6 +27,8 @@ process'  SenderService{..} r@HttpReqService{..} i (ParsedOperation op) = do
     print $ encode $ unsafeFromEither tx
     sendPredicted pool    
 
+-- take pool's datum hash from Pool
+
 mkTxPool :: InterpreterService -> HttpReqService-> Operation a -> IO (Pool, Either ProcError Tx)
 mkTxPool InterpreterService{..} HttpReqService{..} op =
         case op of
