@@ -42,7 +42,7 @@ mkTxBody Tx {..} ErgoDexPool {..} = do
                     "\" " ++ outputPoolValueTokenLP ++ policy ++ ".tsLP\"" ++ "\\n" ++
                 "--change-address=" ++ poolAndChangeOutputAddr ++ "\\n" ++
                 "--testnet-magic 8 \\n --out-file tx.build \\n --alonzo-era"
-    _ <- println bashScript
+    println bashScript
 
         
 policy :: String
