@@ -13,6 +13,7 @@ import Plutus.V1.Ledger.Tx
 import Prelude (print)
 import Data.Aeson
 import Ledger.Constraints.OffChain
+import Executor.Services.BashService
 
 data Processor = Processor
     { process :: ParsedOperation -> IO () }
@@ -25,7 +26,8 @@ process'  SenderService{..} r@HttpReqService{..} i (ParsedOperation op) = do
     (pool, tx) <- mkTxPool i r op
     print $ "Pool is: " ++ show pool
     print $ encode $ unsafeFromEither tx
-    sendPredicted pool    
+    _ <- sendPredicted pool    
+    mkTxBody (unsafeFromEither tx) pool
 
 -- take pool's datum hash from Pool
 

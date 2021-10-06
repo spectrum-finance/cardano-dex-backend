@@ -2,12 +2,11 @@ module Executor.Models.Settings
     ( KafkaConsumerSettings(..)
     , HttpSettings(..)
     , HasKafkaConsumerSettings(..)
-    , HasHttpSettings(..)
+    , HasSettings(..)
     , AppSettings(..)
     ) where
 
 import RIO
-import Kafka.Consumer
 import Dhall
 
 data AppSettings = AppSettings
@@ -43,7 +42,7 @@ instance HasKafkaConsumerSettings AppSettings where
 
 class HasSettings env where
   httpSettingsL :: Lens' env HttpSettings
-instance HasHttpSettings HttpSettings where
+instance HasSettings HttpSettings where
   httpSettingsL = id
-instance HasHttpSettings AppSettings where
+instance HasSettings AppSettings where
   httpSettingsL = lens getHttpSettings (\x y -> x { getHttpSettings = y })

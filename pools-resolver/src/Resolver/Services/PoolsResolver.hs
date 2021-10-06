@@ -7,6 +7,10 @@ import RIO
 import Resolver.Repositories.PoolRepository
 import Prelude (print)
 import Dex.Models
+    ( Pool(Pool, poolData, fullTxOut),
+      FullTxOut(FullTxOut, refId, refIdx, outGId),
+      PoolData(poolId),
+      GId(gIdx) )
 import Resolver.Models.CfmmPool
 import Utils (PoolId(..))
 

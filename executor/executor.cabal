@@ -75,6 +75,7 @@ library
                      Executor.Models.Settings
                      Executor.Services.KafkaService
                      Executor.Services.Processor
+                     Executor.Services.BashService
                      Executor.Utils
                      Executor.Services.Sender 
                      Executor.Services.SettingsReader
