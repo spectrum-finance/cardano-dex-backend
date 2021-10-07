@@ -95,7 +95,8 @@ library
         sdk,
         cardano-dex,
         dhall,
-        containers
+        containers,
+        process
 
 executable executor-app
     main-is: Main.hs

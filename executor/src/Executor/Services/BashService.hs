@@ -11,11 +11,16 @@ import Executor.Utils
 import Prelude (print)
 import Plutus.V1.Ledger.Value
 import qualified Dex.Models as Dex
+import System.Process
+import qualified Dex.Models as Dex
+import qualified Dex.Models as PD (PoolData(..))
  --todo
  -- 1. Min ada value calculation in pool output
-mkTxBody :: Tx -> ErgoDexPool -> IO ()
-mkTxBody Tx {..} ErgoDexPool {..} = do
-    let swapInput = Set.elemAt 0 txInputs
+mkTxBody :: Tx -> Dex.Pool -> IO ()
+mkTxBody Tx {..} p@Dex.Pool {..} = do
+    let pdl = Dex.poolData p
+        ErgoDexPool {..} = ErgoDexPool (Dex.poolFee pdl) (Dex.xPoolCoin pdl) (Dex.yPoolCoin pdl) (Dex.lpPoolCoin pdl)
+        swapInput = Set.elemAt 0 txInputs
         poolInput = Set.elemAt 1 txInputs
         swapHashAddr = show ((txOutRefId . txInRef) swapInput) ++ "#" ++ show (txOutRefIdx $ txInRef swapInput)
         poolHashAddr = show ((txOutRefId . txInRef) poolInput) ++ "#" ++ show (txOutRefIdx $ txInRef poolInput)
@@ -51,7 +56,8 @@ mkTxBody Tx {..} ErgoDexPool {..} = do
                 "--tx-out-datum-hash" ++ show poolDatumHash ++ "\\n" ++
                 "--change-address=" ++ show poolAndChangeOutputAddr ++ "\\n" ++
                 "--testnet-magic 8 \\n --out-file tx.build \\n --alonzo-era"
-    print bashScript
+    _ <- print bashScript
+    void $ readProcess bashScript [] ""
 
         
 policy :: String
