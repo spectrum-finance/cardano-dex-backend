@@ -1,6 +1,6 @@
-{ getHttpSettings = 
-    { getHost = "127.0.0.1"
-    , getPort = 8012
+{ getExplorerSettings = 
+    { getExplorerHost = "127.0.0.1"
+    , getExplorerPort = 8083
     },
 getKafkaProducerSettings = 
     { getBrokersList = ["127.0.0.1:9092"]
