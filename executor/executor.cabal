@@ -76,9 +76,9 @@ library
                      Executor.Services.KafkaService
                      Executor.Services.Processor
                      Executor.Utils
-                     Executor.Services.Sender 
                      Executor.Services.SettingsReader
                      Executor.Wirings.WiringApp
+                     Executor.Services.BashService
                      
     build-depends: 
         bytestring,
@@ -94,7 +94,9 @@ library
         hw-kafka-client,
         sdk,
         cardano-dex,
-        dhall
+        dhall,
+        containers,
+        process
 
 executable executor-app
     main-is: Main.hs

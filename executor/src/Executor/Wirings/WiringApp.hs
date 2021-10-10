@@ -4,10 +4,10 @@ module Executor.Wirings.WiringApp
 
 import Executor.Services.SettingsReader
 import Executor.Services.HttpReqService
-import Executor.Services.Sender
 import Executor.Services.Processor
 import Dex.Interpreter
 import Executor.Services.KafkaService
+import Executor.Services.BashService
 import RIO
 
 runApp :: IO ()
@@ -16,8 +16,8 @@ runApp = do
     appSettings <- read settingsReader
     runRIO appSettings $ do
         httpClient <- mkHttpReqService
-        let sender = mkSenderService
-            interpreter = mkInterpreterService
-            processor = mkProcessor sender httpClient interpreter
+        let interpreter = mkInterpreterService
+            bashService = mkBashService
+            processor = mkProcessor bashService httpClient interpreter
             kafkaClient = mkKafkaService processor
         runKafka kafkaClient

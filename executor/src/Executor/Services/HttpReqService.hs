@@ -18,7 +18,7 @@ data HttpReqService = HttpReqService
     , sendPredicted :: Pool -> IO ()
     }
 
-mkHttpReqService :: HasHttpSettings env => RIO env HttpReqService
+mkHttpReqService :: HasSettings env => RIO env HttpReqService
 mkHttpReqService = do
     settings <- view httpSettingsL
     pure $ HttpReqService (resolvePoolReq' settings) (sendPredictedReq' settings)
