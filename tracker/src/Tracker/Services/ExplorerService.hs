@@ -1,61 +1,31 @@
-{-# LANGUAGE OverloadedStrings #-}
+module Tracker.Services.ExplorerService 
+        ( ExplorerService(..)
+        , mkExplorerService
+        ) where
 
-module Tracker.Services.ExplorerService (
-	ExplorerService(..),
-	mkExplorerService
-) where
-
-import RIO
+import qualified RIO
 import Tracker.Models.ExplorerModels
 import Prelude
-import Tracker.Models.AppSettings (ExplorerSettings(..), HasExplorerSettings(explorerSettingsL), AppSettings(..))
-import Network.HTTP.Simple
-    ( defaultRequest,
-      getResponseBody,
-      getResponseHeader,
-      getResponseStatusCode,
-      httpJSON,
-      setRequestHost,
-      setRequestPath )
+import Tracker.Models.AppSettings
+import Tracker.Clients.ExplorerClient
+import Control.Concurrent.STM.TVar
+import GHC.Natural as Natural
 
-data ExplorerService = ExplorerService {
-        getBestHeight :: IO Height,
-        getOutputsInTx :: String -> Int -> IO [ApiFullTxOut],
-        getTxsInBlock :: Height -> IO [Transaction]
-}
+data ExplorerService = ExplorerService
+ { getOutputs :: IO [ApiFullTxOut] 
+ }
 
-mkExplorerService :: ExplorerSettings -> IO ExplorerService
-mkExplorerService exSettings = pure $ ExplorerService (getBestHeight' exSettings) (getOutputsInTx' exSettings) (getTxsInBlock' exSettings)
+mkExplorerService :: ExplorerSettings -> ExplorerClient -> IO ExplorerService
+mkExplorerService settings client = do
+        offsetsT <- newTVarIO 0 --todo persist
+        pure $ ExplorerService $ getOutputs' settings client offsetsT
 
-getBestHeight' :: ExplorerSettings -> IO Height
-getBestHeight' explorerSettings = do
-  let request
-          = setRequestPath "/blocks/getBestHeight"
-          $ setRequestHost "0.0.0.0:9010"
-          $ defaultRequest
-  response <- liftIO $ httpJSON request
-  liftIO $ putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
-  liftIO $ print $ getResponseHeader "Content-Type" response
-  pure (getResponseBody response :: Height)
-
-getTxsInBlock' :: ExplorerSettings -> Height -> IO [Transaction]
-getTxsInBlock' explorerSettings height = do
-    let request
-            = setRequestPath "blocks/transaction"
-            $ setRequestHost "0.0.0.0:9010"
-            $ defaultRequest
-    response <- httpJSON request
-    liftIO $ putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
-    liftIO $ print $ getResponseHeader "Content-Type" response
-    pure (getResponseBody response :: [Transaction])
-
-getOutputsInTx' :: ExplorerSettings -> String -> Int -> IO [ApiFullTxOut]
-getOutputsInTx' explorerSettings txHash index = do
-    let request
-            = setRequestPath "/blocks/getOutputs"
-            $ setRequestHost "0.0.0.0:9010"
-            $ defaultRequest
-    response <- httpJSON request
-    liftIO $ putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
-    liftIO $ print $ getResponseHeader "Content-Type" response
-    pure (getResponseBody response :: [ApiFullTxOut])
+-- todo: make newtypes for Int as minIndex
+getOutputs' :: ExplorerSettings -> ExplorerClient -> TVar Int -> IO [ApiFullTxOut]
+getOutputs' ExplorerSettings{..} ExplorerClient{..} offsetsT = do
+        minIndex <- readTVarIO offsetsT
+        outputs  <- getUspentOutputs minIndex (Natural.naturalToInt limitOffset)
+        let nextMinIndex = minIndex + length outputs
+        print $ "ExplorerService::nextMinIndex=" ++ show nextMinIndex
+        RIO.atomically (modifyTVar offsetsT (\prevValue -> prevValue + length outputs))
+        pure outputs

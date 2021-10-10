@@ -9,7 +9,7 @@ import Data.Aeson
 import Prelude (print)
 import Kafka.Producer
 import RIO.ByteString.Lazy as BS
-import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
+import Tracker.Models.AppSettings (KafkaProducerSettings(..))
 import Dex.Models
 import RIO.List as List
 import RIO.Text as Text

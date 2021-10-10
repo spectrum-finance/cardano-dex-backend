@@ -1,28 +1,32 @@
 module Tracker.Programs.TrackerProgram where
 
 import System.IO
-import Tracker.Modules.Grabber
-import Control.Concurrent.ParallelIO.Global
 import qualified Streamly.Prelude as S
-import Tracker.Modules.Publisher
-import RIO
-import Prelude
+import RIO 
+import Tracker.Services.ExplorerService
+import Tracker.Services.KafkaService
+import Dex.Processor
+import Tracker.Utils
 
-data TrackerProgram = TrackerProgram { run :: IO () }
+data TrackerProgram = TrackerProgram 
+  { run :: IO () 
+  }
 
-mkTrackerProgram :: Grabber -> Publisher -> IO (TrackerProgram)
-mkTrackerProgram grabber publisher = pure $ TrackerProgram (run' grabber publisher)
+mkTrackerProgram :: ProcessorService -> ExplorerService -> KafkaService -> IO TrackerProgram
+mkTrackerProgram p e k = pure $ TrackerProgram $ publishStream p e k
 
-run' :: Grabber -> Publisher -> IO ()
-run' grabber publisher = parallel_ [publishStream grabber publisher, startGrabber grabber]
+publishStream :: ProcessorService -> ExplorerService -> KafkaService -> IO ()
+publishStream p e k =
+  S.repeatM (threadDelay 1000000) >> liftIO (process p e k) & S.drain
 
-publishStream :: Grabber -> Publisher -> IO ()
-publishStream grabber publisher =
-  liftIO $ S.repeatM (threadDelay 1000000) >> (liftIO $ getTxOutsAndPublish grabber publisher) & S.drain
-
-getTxOutsAndPublish :: Grabber -> Publisher -> IO ()
-getTxOutsAndPublish Grabber{..} Publisher{..} = do
-  newPools <- getPools
-  newOps <- getParsedOperation
-  publishPool newPools
-  publishParsedOp newOps
+process :: ProcessorService -> ExplorerService -> KafkaService -> IO ()
+process ProcessorService{..} ExplorerService{..} KafkaService{..} = do
+  fulltxOuts <- getOutputs
+  let unspent = fmap toFullTxOut fulltxOuts
+      ammOuts = mapMaybe getPool unspent
+      proxyOuts = mapMaybe getPoolOperation unspent
+  print $ "TrackerProgramm::newAmmOutputsLength=" ++ show (length ammOuts)
+  print $ "TrackerProgramm::newProxyOutputs=" ++ show (length proxyOuts)
+  unless (null ammOuts) (sendAmm ammOuts)
+  unless (null proxyOuts) (sendProxy proxyOuts)
+  print "TrackerProgramm::Kafka messages produces successfully"

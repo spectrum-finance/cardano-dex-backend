@@ -72,18 +72,14 @@ library
     hs-source-dirs: src
     
     exposed-modules: Tracker.App
-                     Tracker.Services.HttpReqService
-                     Tracker.Services.ExplorerService
-                     Tracker.Models.AppSettings
                      Tracker.Programs.TrackerProgram
-                     Tracker.Modules.Grabber
-                     Tracker.Modules.Publisher
-                     Tracker.Models.ExplorerModels
-                     Tracker.Clients.ExplorerClient
-                     Tracker.Utils
+                     Tracker.Services.ExplorerService
                      Tracker.Services.KafkaService 
                      Tracker.Services.SettingsReader
-                     Tracker.Wirings.WiringApp
+                     Tracker.Clients.ExplorerClient
+                     Tracker.Models.AppSettings
+                     Tracker.Models.ExplorerModels
+                     Tracker.Utils
 
     build-depends: 
         bytestring,

@@ -12,4 +12,4 @@ data SettingsReader = SettingsReader
     }
 
 mkSettingsReader :: SettingsReader
-mkSettingsReader = SettingsReader $ input auto "./resources/config.dhall"
+mkSettingsReader = SettingsReader $ input auto "./tracker/resources/config.dhall"

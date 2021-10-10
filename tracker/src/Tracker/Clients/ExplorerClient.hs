@@ -1,23 +1,27 @@
 module Tracker.Clients.ExplorerClient where
 
 import Tracker.Models.ExplorerModels
-import RIO ( Maybe, undefined, RIO )
-import Tracker.Models.AppSettings (HasExplorerSettings(..))
+import Tracker.Models.AppSettings
+import Prelude
+import RIO
+import Network.HTTP.Simple
+import Data.ByteString.Char8 as Data
+import GHC.Natural as Natural
 
-data ExplorerClient env = ExplorerClient {
-	getBlockchainInfo :: RIO env ApiBlockchainInfo,
-	getFullTxOutById :: Id -> RIO env (Maybe ApiFullTxOut),
-	getTxsInBlock :: Id -> RIO env [ApiTxInfo]
-}
+data ExplorerClient = ExplorerClient 
+ { getUspentOutputs :: Int -> Int -> IO [ApiFullTxOut]
+ }
 
-mkExplorerClient :: HasExplorerSettings env => ExplorerClient env
-mkExplorerClient = ExplorerClient getBlockchainInfo' getFullTxOutById' getTxsInBlock'
+mkExplorerClient :: ClientSettings -> IO ExplorerClient
+mkExplorerClient settings = pure $ ExplorerClient $ getUspentOutputs' settings
 
-getBlockchainInfo' :: HasExplorerSettings env => RIO env ApiBlockchainInfo
-getBlockchainInfo' = undefined
-
-getFullTxOutById' :: HasExplorerSettings env => Id -> RIO env (Maybe ApiFullTxOut)
-getFullTxOutById' id = undefined
-
-getTxsInBlock' :: HasExplorerSettings env => Id -> RIO env [ApiTxInfo]
-getTxsInBlock' id = undefined
+getUspentOutputs' :: ClientSettings -> Int -> Int -> IO [ApiFullTxOut]
+getUspentOutputs' ClientSettings{..} minIndex limit = do
+	let request = defaultRequest 
+		& setRequestPath (Data.pack $ "/outputs/unspent/indexed?minIndex=" ++ show minIndex ++ "&limit=" ++ show limit)
+		& setRequestHost (Data.pack getExplorerHost)
+		& setRequestPort (Natural.naturalToInt getExplorerPort)
+	response <- httpJSON request
+	let result = getResponseBody response :: [ApiFullTxOut]
+	print $ "ExplorerClient::unspentResultIs=" ++ show result
+	pure result
