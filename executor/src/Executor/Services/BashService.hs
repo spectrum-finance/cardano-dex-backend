@@ -24,7 +24,7 @@ mkBashService :: BashService
 mkBashService = BashService mkTxBody'
 
  --todo
- -- 1. Min ada value calculation in pool output
+ -- 1. ada for fee?
 mkTxBody' :: Tx -> Dex.Pool -> IO ()
 mkTxBody' Tx {..} p@Dex.Pool {..} = do
     let pdl = Dex.poolData p
