@@ -1,5 +1,5 @@
 { getExplorerSettings =
-    { limitOffset = 500
+    { limitOffset = 1
     },
   getClientSettings =
     { getExplorerHost = "127.0.0.1"

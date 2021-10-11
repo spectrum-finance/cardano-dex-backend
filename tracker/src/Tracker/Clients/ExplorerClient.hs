@@ -23,5 +23,5 @@ getUspentOutputs' ClientSettings{..} minIndex limit = do
 		& setRequestPort (Natural.naturalToInt getExplorerPort)
 	response <- httpJSON request
 	let result = getResponseBody response :: Items
-	-- print $ "ExplorerClient::unspentResultIs=" ++ show result
+	print $ "ExplorerClient::unspentResultIs=" ++ show result
 	pure $ items result 
