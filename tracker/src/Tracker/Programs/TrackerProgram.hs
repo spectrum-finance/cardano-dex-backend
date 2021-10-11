@@ -22,11 +22,12 @@ publishStream p e k =
 process :: ProcessorService -> ExplorerService -> KafkaService -> IO ()
 process ProcessorService{..} ExplorerService{..} KafkaService{..} = do
   fulltxOuts <- getOutputs
-  let unspent = fmap toFullTxOut fulltxOuts
-      ammOuts = mapMaybe getPool unspent
+  unspent <- mapM toFullTxOut fulltxOuts
+  let ammOuts = mapMaybe getPool unspent
       proxyOuts = mapMaybe getPoolOperation unspent
+  -- print $ "TrackerProgramm::unspent=" ++ show unspent
   print $ "TrackerProgramm::newAmmOutputsLength=" ++ show (length ammOuts)
   print $ "TrackerProgramm::newProxyOutputs=" ++ show (length proxyOuts)
-  unless (null ammOuts) (sendAmm ammOuts)
-  unless (null proxyOuts) (sendProxy proxyOuts)
-  print "TrackerProgramm::Kafka messages produces successfully"
+  unless (null ammOuts) (sendAmm ammOuts >> print "TrackerProgramm::AmmSuccessfullySentIntoKafka")
+  unless (null proxyOuts) (sendProxy proxyOuts >> print "TrackerProgramm::ProxySuccessfullySentIntoKafka")
+  -- print "TrackerProgramm::Kafka messages produces successfully"

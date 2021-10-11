@@ -102,7 +102,8 @@ library
         sdk,
         dhall,
         http-conduit,
-        yaml
+        yaml,
+        plutus-tx
 
 executable tracker-app
     main-is: Main.hs
