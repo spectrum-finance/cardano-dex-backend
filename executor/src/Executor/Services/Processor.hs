@@ -4,8 +4,6 @@ module Executor.Services.Processor
     ) where
 
 import RIO
-import Dex.Interpreter
-import Dex.Models
 import Executor.Services.HttpReqService
 import Executor.Utils
 import Plutus.V1.Ledger.Tx
@@ -13,15 +11,18 @@ import Prelude (print)
 import Data.Aeson
 import Ledger.Constraints.OffChain
 import Executor.Services.BashService
+import ErgoDex.InterpreterService
+import ErgoDex.Amm.Orders
+import ErgoDex.Amm.Pool
 
 data Processor = Processor
-    { process :: ParsedOperation -> IO () }
+    { process :: OrderAction a -> IO () }
 
 mkProcessor :: BashService -> HttpReqService -> InterpreterService -> Processor
 mkProcessor b h i = Processor $ process' b h i
 
-process' :: BashService -> HttpReqService -> InterpreterService -> ParsedOperation -> IO ()
-process' BashService{..} r@HttpReqService{..} i (ParsedOperation op) = do
+process' :: BashService -> HttpReqService -> InterpreterService -> OrderAction a -> IO ()
+process' BashService{..} r@HttpReqService{..} i op = do
     (pool, tx) <- mkTxPool i r op
     print $ "Pool is: " ++ show pool
     print $ encode $ unsafeFromEither tx
@@ -29,23 +30,22 @@ process' BashService{..} r@HttpReqService{..} i (ParsedOperation op) = do
     mkTxBody (unsafeFromEither tx) pool
 
 
-mkTxPool :: InterpreterService -> HttpReqService-> Operation a -> IO (Pool, Either ProcError Tx)
+mkTxPool :: InterpreterService -> HttpReqService-> OrderAction a -> IO (Pool, Either Err Tx)
 mkTxPool InterpreterService{..} HttpReqService{..} op =
         case op of
-            x@ (DepositOperation r) -> do
+            x@ (Deposit r) -> do
                 currentPoolMaybe <- resolvePoolReq (depositPoolId  r)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = deposit x currentPool
-                pure $ (currentPool, unsafeTx)
-            x@ (RedeemOperation r) -> do
+                pure (currentPool, unsafeTx)
+            x@ (Redeem r) -> do
                 currentPoolMaybe <- resolvePoolReq (redeemPoolId r)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = redeem x currentPool
-                pure $ (currentPool, unsafeTx)
-                
-            x@ (SwapOperation r) -> do
+                pure (currentPool, unsafeTx)
+            x@ (Swap r) -> do
                 currentPoolMaybe <- resolvePoolReq (swapPoolId r)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = swap x currentPool
-                pure $ (currentPool, unsafeTx)
+                pure (currentPool, unsafeTx)
                 

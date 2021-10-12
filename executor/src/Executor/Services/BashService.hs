@@ -39,6 +39,7 @@ mkScriptAddress' = do
         scriptSBS = SBS.toShort . LBS.toStrict $ serialise validatorScript
         scriptSerial = Shelley.PlutusScriptSerialised scriptSBS
     writePlutusScript 42 "test.plutus" scriptSerial scriptSBS
+    -- todo call cli + read resulted string
 
 writePlutusScript :: Integer -> FilePath -> Shelley.PlutusScript Shelley.PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusScript scriptnum filename scriptSerial scriptSBS =

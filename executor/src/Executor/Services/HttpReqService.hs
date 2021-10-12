@@ -9,14 +9,13 @@ import Network.HTTP.Req
 import RIO.Text as T ( pack )
 import Data.List as L ( foldl )
 import ErgoDex.Amm.Pool
-import ErgoDex.Amm.Types
 import Data.Aeson
 import Utils
 import GHC.Natural
 
 data HttpReqService = HttpReqService
     { resolvePoolReq :: PoolId -> IO (Maybe Pool)
-    , sendPredicted :: Pool -> IO ()
+    , sendPredicted  :: Pool   -> IO ()
     }
 
 mkHttpReqService :: HasSettings env => RIO env HttpReqService
