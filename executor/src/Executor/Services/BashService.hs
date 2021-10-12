@@ -3,33 +3,61 @@ module Executor.Services.BashService
     , BashService(..)
     ) where
 
+import System.FilePath
 import Plutus.V1.Ledger.Tx
 import Data.Set as Set
 import Data.List as List
-import Dex.Contract.Models
 import RIO
 import Executor.Utils
 import Prelude (print)
 import Plutus.V1.Ledger.Value
-import qualified Dex.Models as Dex
 import System.Process
-import qualified Dex.Models as Dex
-import qualified Dex.Models as PD (PoolData(..))
+import qualified Data.ByteString.Short as SBS
+import qualified Data.ByteString.Lazy  as LBS
+import qualified Plutus.V1.Ledger.Scripts as Plutus
+import qualified Plutus.V1.Ledger.Api as PlutusApi
+import qualified Cardano.Ledger.Alonzo.Data as Alonzo
+import           Codec.Serialise
+import qualified Cardano.Api.Shelley as Shelley
+import           Prelude
+import           System.Environment
+import ErgoDex.Amm.Pool
+import ErgoDex.Contracts.Types
+import ErgoDex.OffChain
+import qualified Ledger.Typed.Scripts   as Scripts
 
 data BashService = BashService
-    { mkTxBody :: Tx -> Dex.Pool -> IO ()
+    { mkTxBody :: Tx -> Pool -> IO ()
     }
 
 mkBashService :: BashService
 mkBashService = BashService mkTxBody'
 
+mkScriptAddress' :: IO ()
+mkScriptAddress' = 
+    do
+    let validatorScript = Plutus.unValidatorScript $ Scripts.validatorScript poolInstance
+        scriptSBS = SBS.toShort . LBS.toStrict $ serialise validatorScript
+        scriptSerial = Shelley.PlutusScriptSerialised scriptSBS
+    case PlutusApi.defaultCostModelParams of
+        Just m ->
+          let Alonzo.Data pData = Shelley.toAlonzoData (Shelley.ScriptDataNumber 42) --todo 42?
+              (logout, e) = PlutusApi.evaluateScriptCounting PlutusApi.Verbose m scriptSBS [pData]
+          in do print ("Log output" :: String) >> print logout
+                case e of
+                  Left evalErr -> print ("Eval Error" :: String) >> print evalErr
+                  Right exbudget -> print ("Ex Budget" :: String) >> print exbudget
+        Nothing -> error "defaultCostModelParams failed"
+    result <- Shelley.writeFileTextEnvelope "test.plutus" Nothing scriptSerial
+    case result of
+        Left err -> print err
+        Right () -> return ()
+  
  --todo
  -- 1. ada for fee?
-mkTxBody' :: Tx -> Dex.Pool -> IO ()
-mkTxBody' Tx {..} p@Dex.Pool {..} = do
-    let pdl = Dex.poolData p
-        ErgoDexPool {..} = ErgoDexPool (Dex.poolFee pdl) (Dex.xPoolCoin pdl) (Dex.yPoolCoin pdl) (Dex.lpPoolCoin pdl)
-        swapInput = Set.elemAt 0 txInputs
+mkTxBody' :: Tx -> Pool -> IO ()
+mkTxBody' Tx {..} p@Pool {..} = do
+    let swapInput = Set.elemAt 0 txInputs
         poolInput = Set.elemAt 1 txInputs
         swapHashAddr = show ((txOutRefId . txInRef) swapInput) ++ "#" ++ show (txOutRefIdx $ txInRef swapInput)
         poolHashAddr = show ((txOutRefId . txInRef) poolInput) ++ "#" ++ show (txOutRefIdx $ txInRef poolInput)
@@ -39,13 +67,11 @@ mkTxBody' Tx {..} p@Dex.Pool {..} = do
         poolAndChangeOutputAddr = txOutAddress poolOutput
         poolDatumHash = unsafeFromMaybe $ txOutDatumHash poolOutput
         swapValue = txOutValue swapOutput
-        outputSwapValueTokenX = assetClassValueOf swapValue xCoin
-        outputSwapValueTokenY = assetClassValueOf swapValue yCoin
-        outputSwapValueTokenLP = assetClassValueOf swapValue lpCoin
+        outputSwapValueTokenX = assetClassValueOf swapValue (unCoin poolCoinX)
+        outputSwapValueTokenY = assetClassValueOf swapValue (unCoin poolCoinY)
         poolValue = txOutValue poolOutput
-        outputPoolValueTokenX = assetClassValueOf poolValue xCoin
-        outputPoolValueTokenY = assetClassValueOf poolValue yCoin
-        outputPoolValueTokenLP = assetClassValueOf poolValue lpCoin
+        outputPoolValueTokenX = assetClassValueOf poolValue (unCoin poolCoinX)
+        outputPoolValueTokenY = assetClassValueOf poolValue (unCoin poolCoinY)
     _ <- print swapValue
     _ <- print poolValue
     let
@@ -53,15 +79,13 @@ mkTxBody' Tx {..} p@Dex.Pool {..} = do
             "$CARDANO_CLI transaction build \\n" ++ 
                 "--tx-in " ++ swapHashAddr ++ "\\n" ++
                 "--tx-in " ++ poolHashAddr ++ "\\n" ++
-                "-tx-out " ++ show swapOutputAddr ++ "+" ++ show outputSwapValueTokenX ++ "+" ++ show outputSwapValueTokenY ++ "+" ++ show outputSwapValueTokenLP ++
+                "-tx-out " ++ show swapOutputAddr ++ "+" ++ show outputSwapValueTokenX ++ "+" ++ show outputSwapValueTokenY ++
                     "\" " ++ show outputSwapValueTokenX ++ policy ++ ".tima\"+" ++
-                    "\" " ++ show outputSwapValueTokenY ++ policy ++ ".sasha\"+" ++
-                    "\" " ++ show outputSwapValueTokenLP ++ policy ++ ".tsLP\"" ++ "\\n" ++
-                                                    --    "v - here have to be all ada from prev output "
-                "--tx-out" ++ show poolAndChangeOutputAddr ++ "+1" ++ "+" ++ show outputPoolValueTokenX ++ "+" ++ show outputPoolValueTokenY ++ "+" ++ show outputPoolValueTokenLP ++
+                    "\" " ++ show outputSwapValueTokenY ++ policy ++ ".sasha\"\\n" ++
+                                                        --    "v - here have to be all ada from prev output "
+                "--tx-out" ++ show poolAndChangeOutputAddr ++ "+1" ++ "+" ++ show outputPoolValueTokenX ++ "+" ++ show outputPoolValueTokenY ++ "+" ++
                     "\" " ++ show outputPoolValueTokenX ++ policy ++ ".tima\"+" ++
-                    "\" " ++ show outputPoolValueTokenY ++ policy ++ ".sasha\"+" ++
-                    "\" " ++ show outputPoolValueTokenLP ++ policy ++ ".tsLP\"" ++ "\\n" ++
+                    "\" " ++ show outputPoolValueTokenY ++ policy ++ ".sasha\"\\n" ++
                 "--tx-out-datum-hash" ++ show poolDatumHash ++ "\\n" ++
                 "--change-address=" ++ show poolAndChangeOutputAddr ++ "\\n" ++
                 "--testnet-magic 8 \\n --out-file tx.build \\n --alonzo-era"

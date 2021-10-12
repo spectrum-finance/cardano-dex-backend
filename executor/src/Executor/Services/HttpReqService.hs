@@ -8,9 +8,10 @@ import RIO as R
 import Network.HTTP.Req
 import RIO.Text as T ( pack )
 import Data.List as L ( foldl )
-import Dex.Models
+import ErgoDex.Amm.Pool
+import ErgoDex.Amm.Types
 import Data.Aeson
-import Utils (PoolId(..))
+import Utils
 import GHC.Natural
 
 data HttpReqService = HttpReqService

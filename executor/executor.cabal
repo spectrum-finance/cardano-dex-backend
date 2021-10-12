@@ -96,7 +96,12 @@ library
         cardano-dex,
         dhall,
         containers,
-        process
+        process,
+        cardano-dex,
+        serialise,
+        cardano-api,
+        cardano-ledger-alonzo,
+        filepath
 
 executable executor-app
     main-is: Main.hs
