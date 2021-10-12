@@ -34,24 +34,28 @@ mkBashService :: BashService
 mkBashService = BashService mkTxBody'
 
 mkScriptAddress' :: IO ()
-mkScriptAddress' = 
-    do
+mkScriptAddress' = do
     let validatorScript = Plutus.unValidatorScript $ Scripts.validatorScript poolInstance
         scriptSBS = SBS.toShort . LBS.toStrict $ serialise validatorScript
         scriptSerial = Shelley.PlutusScriptSerialised scriptSBS
-    case PlutusApi.defaultCostModelParams of
+    writePlutusScript 42 "test.plutus" scriptSerial scriptSBS
+
+writePlutusScript :: Integer -> FilePath -> Shelley.PlutusScript Shelley.PlutusScriptV1 -> SBS.ShortByteString -> IO ()
+writePlutusScript scriptnum filename scriptSerial scriptSBS =
+  do
+  case PlutusApi.defaultCostModelParams of
         Just m ->
-          let Alonzo.Data pData = Shelley.toAlonzoData (Shelley.ScriptDataNumber 42) --todo 42?
+          let Alonzo.Data pData = Shelley.toAlonzoData (Shelley.ScriptDataNumber scriptnum)
               (logout, e) = PlutusApi.evaluateScriptCounting PlutusApi.Verbose m scriptSBS [pData]
           in do print ("Log output" :: String) >> print logout
                 case e of
                   Left evalErr -> print ("Eval Error" :: String) >> print evalErr
                   Right exbudget -> print ("Ex Budget" :: String) >> print exbudget
         Nothing -> error "defaultCostModelParams failed"
-    result <- Shelley.writeFileTextEnvelope "test.plutus" Nothing scriptSerial
-    case result of
-        Left err -> print err
-        Right () -> return ()
+  result <- Shelley.writeFileTextEnvelope filename Nothing scriptSerial
+  case result of
+    Left err -> print err
+    Right () -> return ()
   
  --todo
  -- 1. ada for fee?
