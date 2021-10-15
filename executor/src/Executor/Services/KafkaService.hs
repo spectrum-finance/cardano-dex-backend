@@ -11,11 +11,14 @@ import qualified Streamly.Prelude as S
 import RIO.ByteString as BS
 import Data.Aeson
 import RIO.ByteString.Lazy as LBS
-import Dex.Models
 import Executor.Models.Settings
 import Executor.Services.Processor
 import GHC.Natural
 import RIO.List as List
+
+import ErgoDex.Amm.Orders
+import ErgoDex.Amm.Pool
+import Executor.Services.Processor
 
 data KafkaService env = KafkaService
     { runKafka :: HasKafkaConsumerSettings env => RIO env ()
@@ -70,14 +73,14 @@ parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> decodeTest msg)
                            _ -> Nothing
 
 decodeTest :: BS.ByteString -> Maybe ParsedOperation
-decodeTest testData =
-    let lazyStr = LBS.fromStrict testData
-        decodedA = decode lazyStr :: Maybe SwapOpData
-        decodeB = decode lazyStr :: Maybe DepositOpData
-        decodeC = decode lazyStr :: Maybe RedeemOpData
-    in 
-        if (isJust decodedA) then ParsedOperation <$> (SwapOperation <$> decodedA)
-        else if (isJust decodeB) then ParsedOperation <$> (DepositOperation <$> decodeB)
-        else if (isJust decodeC) then ParsedOperation <$> (RedeemOperation <$> decodeC)
-        else Nothing
+decodeTest testData = undefined 
+    -- let lazyStr = LBS.fromStrict testData
+    --     decodedA = decode lazyStr :: Maybe Swap
+    --     decodeB = decode lazyStr :: Maybe Deposit
+    --     decodeC = decode lazyStr :: Maybe Redeem
+    -- in 
+    --     if (isJust decodedA) then ParsedOperation <$> (SwapAction <$> decodedA)
+    --     else if (isJust decodeB) then ParsedOperation <$> (DepositAction <$> decodeB)
+    --     else if (isJust decodeC) then ParsedOperation <$> (RedeemAction <$> decodeC)
+    --     else Nothing
     -- in ParsedOperation <$> getFirst (First decodedA <> First decodeB <> First decodeC)

@@ -5,10 +5,10 @@ module Executor.Wirings.WiringApp
 import Executor.Services.SettingsReader
 import Executor.Services.HttpReqService
 import Executor.Services.Processor
-import Dex.Interpreter
 import Executor.Services.KafkaService
 import Executor.Services.BashService
 import RIO
+import ErgoDex.InterpreterService
 
 runApp :: IO ()
 runApp = do

@@ -6,6 +6,9 @@ packages:
 -- You never, ever, want this.
 write-ghc-environment-files: never
 
+package cardano-crypto-praos
+  flags: -external-libsodium-vrf
+  
 -- Always build tests and benchmarks.
 tests: true
 benchmarks: true

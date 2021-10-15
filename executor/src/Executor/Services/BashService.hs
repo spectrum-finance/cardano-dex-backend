@@ -1,6 +1,9 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Executor.Services.BashService
     ( mkBashService
     , BashService(..)
+    , mkScriptAddress'
     ) where
 
 import System.FilePath
@@ -17,14 +20,20 @@ import qualified Data.ByteString.Lazy  as LBS
 import qualified Plutus.V1.Ledger.Scripts as Plutus
 import qualified Plutus.V1.Ledger.Api as PlutusApi
 import qualified Cardano.Ledger.Alonzo.Data as Alonzo
+import qualified Cardano.Ledger.Alonzo.Language as Alonzo
+import qualified Cardano.Ledger.Alonzo.Scripts as Alonzo
 import           Codec.Serialise
 import qualified Cardano.Api.Shelley as Shelley
+import qualified Cardano.Api as Script
 import           Prelude
 import           System.Environment
 import ErgoDex.Amm.Pool
 import ErgoDex.Contracts.Types
 import ErgoDex.OffChain
 import qualified Ledger.Typed.Scripts   as Scripts
+import Data.Aeson.Encode.Pretty (Config (..), encodePretty', defConfig, keyOrder)
+import qualified Cardano.Ledger.Core as Ledger
+import qualified Cardano.Ledger.Era  as Ledger
 
 data BashService = BashService
     { mkTxBody :: Tx -> Pool -> IO ()
@@ -33,13 +42,43 @@ data BashService = BashService
 mkBashService :: BashService
 mkBashService = BashService mkTxBody'
 
+-- data Script lang where
+
+--      SimpleScript :: !(SimpleScriptVersion lang)
+--                   -> !(SimpleScript lang)
+--                   -> Script lang
+
+--      PlutusScript :: !(PlutusScriptVersion lang)
+--                   -> !(PlutusScript lang)
+--                   -> Script lang
+
 mkScriptAddress' :: IO ()
 mkScriptAddress' = do
     let validatorScript = Plutus.unValidatorScript $ Scripts.validatorScript poolInstance
         scriptSBS = SBS.toShort . LBS.toStrict $ serialise validatorScript
-        scriptSerial = Shelley.PlutusScriptSerialised scriptSBS
-    writePlutusScript 42 "test.plutus" scriptSerial scriptSBS
+        abc =       Script.ScriptHash 
+                  . Ledger.hashScript @(Shelley.ShelleyLedgerEra Shelley.AlonzoEra) 
+                  $ Alonzo.PlutusScript script
+        (scriptSerial1 :: (Shelley.PlutusScript Shelley.PlutusScriptV1)) = Shelley.PlutusScriptSerialised scriptSBS
+        (scriptSerial2 :: (Shelley.Script (Shelley.PlutusScript Shelley.PlutusScriptV1))) = Shelley.PlutusScriptSerialised scriptSBS
+        -- (scriptSerial @(Shelley.PlutusScript Shelley.PlutusScriptV1 (Shelley.PlutusScriptSerialised r))) = Shelley.PlutusScriptSerialised scriptSBS
+        -- payCred = Shelley.PaymentCredentialByScript $ Script.hashScript scriptSerialT
+        payCredT = Shelley.PaymentCredentialByScript $ Script.hashScript scriptSerial1
+        -- res = Script.serialiseAddress . Script.makeShelleyAddress 8 scriptSerial
+    let a = LBS.toStrict $ encodePretty' textEnvelopeJSONConfig
+                               (Shelley.serialiseToTextEnvelope Nothing scriptSerial)
+              <> "\n"
+    print a
+    -- writePlutusScript 42 "test.plutus" scriptSerial scriptSBS
     -- todo call cli + read resulted string
+
+
+textEnvelopeJSONConfig :: Config
+textEnvelopeJSONConfig = defConfig { confCompare = textEnvelopeJSONKeyOrder }
+
+textEnvelopeJSONKeyOrder :: Text -> Text -> Ordering
+textEnvelopeJSONKeyOrder = keyOrder ["type", "description", "cborHex"]
+
 
 writePlutusScript :: Integer -> FilePath -> Shelley.PlutusScript Shelley.PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusScript scriptnum filename scriptSerial scriptSBS =

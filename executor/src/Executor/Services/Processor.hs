@@ -1,5 +1,6 @@
 module Executor.Services.Processor
     ( Processor(..)
+    , ParsedOperation(..)
     , mkProcessor
     ) where
 
@@ -15,14 +16,16 @@ import ErgoDex.InterpreterService
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
 
+data ParsedOperation = forall a. ParsedOperation { op :: OrderAction a }
+
 data Processor = Processor
-    { process :: OrderAction a -> IO () }
+    { process :: ParsedOperation -> IO () }
 
 mkProcessor :: BashService -> HttpReqService -> InterpreterService -> Processor
 mkProcessor b h i = Processor $ process' b h i
 
-process' :: BashService -> HttpReqService -> InterpreterService -> OrderAction a -> IO ()
-process' BashService{..} r@HttpReqService{..} i op = do
+process' :: BashService -> HttpReqService -> InterpreterService -> ParsedOperation -> IO ()
+process' BashService{..} r@HttpReqService{..} i (ParsedOperation op) = do
     (pool, tx) <- mkTxPool i r op
     print $ "Pool is: " ++ show pool
     print $ encode $ unsafeFromEither tx
@@ -33,18 +36,18 @@ process' BashService{..} r@HttpReqService{..} i op = do
 mkTxPool :: InterpreterService -> HttpReqService-> OrderAction a -> IO (Pool, Either Err Tx)
 mkTxPool InterpreterService{..} HttpReqService{..} op =
         case op of
-            x@ (Deposit r) -> do
-                currentPoolMaybe <- resolvePoolReq (depositPoolId  r)
+            x@ (DepositAction a) -> do
+                currentPoolMaybe <- resolvePoolReq (depositPoolId a)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = deposit x currentPool
                 pure (currentPool, unsafeTx)
-            x@ (Redeem r) -> do
-                currentPoolMaybe <- resolvePoolReq (redeemPoolId r)
+            x@ (RedeemAction a) -> do
+                currentPoolMaybe <- resolvePoolReq (redeemPoolId a)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = redeem x currentPool
                 pure (currentPool, unsafeTx)
-            x@ (Swap r) -> do
-                currentPoolMaybe <- resolvePoolReq (swapPoolId r)
+            x@ (SwapAction a) -> do
+                currentPoolMaybe <- resolvePoolReq (swapPoolId a)
                 let currentPool = unsafeFromMaybe currentPoolMaybe
                     unsafeTx = swap x currentPool
                 pure (currentPool, unsafeTx)

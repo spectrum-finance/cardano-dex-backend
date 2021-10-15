@@ -99,9 +99,11 @@ library
         process,
         cardano-dex,
         serialise,
-        cardano-api,
+        cardano-api >= 1.29.0,
         cardano-ledger-alonzo,
-        filepath
+        filepath,
+        aeson-pretty,
+        cardano-ledger-core
 
 executable executor-app
     main-is: Main.hs
