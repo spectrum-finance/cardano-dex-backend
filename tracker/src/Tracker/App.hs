@@ -10,7 +10,6 @@ import Tracker.Models.AppSettings
 import RIO
 import Tracker.Services.SettingsReader
 import Tracker.Clients.ExplorerClient
-import Dex.Processor
 
 data App = App
   { runApp :: IO ()
@@ -23,6 +22,5 @@ mkApp = do
   explorerClient <- mkExplorerClient getClientSettings
   explorerService <- mkExplorerService getExplorerSettings explorerClient
   kafkaService <- mkKafkaService getKafkaProducerSettings
-  let processorService = mkProcessorService 
-  tracker <- mkTrackerProgram processorService explorerService kafkaService 
+  tracker <- mkTrackerProgram explorerService kafkaService 
   return ( App (run tracker) )

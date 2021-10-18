@@ -10,13 +10,14 @@ import Prelude (print)
 import Kafka.Producer
 import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..))
-import Dex.Models
 import RIO.List as List
 import RIO.Text as Text
+import ErgoDex.Amm.Orders
+import ErgoDex.Amm.Pool
 
 data KafkaService = KafkaService
-    { sendProxy :: [ParsedOperation] -> IO ()
-    , sendAmm :: [Pool] -> IO ()
+    { sendProxy :: [AnyOrder] -> IO ()
+    , sendAmm   :: [Pool]     -> IO ()
     }
 
 mkKafkaService :: KafkaProducerSettings -> IO KafkaService
@@ -25,7 +26,7 @@ mkKafkaService settings = do
     _ <- print "Kafka service was initialized successfully"
     pure service
 
-sendProxy' :: KafkaProducerSettings -> [ParsedOperation] -> IO ()
+sendProxy' :: KafkaProducerSettings -> [AnyOrder] -> IO ()
 sendProxy' settings parsedOps = do
     runProducerLocal
       (List.map BrokerAddress (getBrokersList settings))
@@ -79,9 +80,9 @@ formProducerRecord s t = L.map (mkMessage t (Just s) . Just . BS.toStrict . enco
 formProducerRecordOperation :: RIO.ByteString -> TopicName -> [BS.ByteString] -> [ProducerRecord]
 formProducerRecordOperation s t = L.map (mkMessage t (Just s) . Just . BS.toStrict)
 
-encodeOperation :: ParsedOperation -> BS.ByteString
-encodeOperation (ParsedOperation op) = 
-    case op of
-        (SwapOperation swapData) -> encode swapData
-        (DepositOperation depositData) -> encode depositData
-        (RedeemOperation redeemData) -> encode redeemData  
+encodeOperation :: AnyOrder -> BS.ByteString
+encodeOperation (AnyOrder _ anyOrderAction) = 
+    case anyOrderAction of
+        SwapAction swap       -> encode swap
+        DepositAction deposit -> encode deposit
+        RedeemAction redeem   -> encode redeem  
