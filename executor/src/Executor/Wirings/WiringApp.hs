@@ -8,7 +8,6 @@ import Executor.Services.Processor
 import Executor.Services.KafkaService
 import Executor.Services.BashService
 import RIO
-import ErgoDex.InterpreterService
 
 runApp :: IO ()
 runApp = do
@@ -16,8 +15,8 @@ runApp = do
     appSettings <- read settingsReader
     runRIO appSettings $ do
         httpClient <- mkHttpReqService
-        let interpreter = mkInterpreterService
+        let 
             bashService = mkBashService
-            processor = mkProcessor bashService httpClient interpreter
+            processor = mkProcessor bashService httpClient
             kafkaClient = mkKafkaService processor
         runKafka kafkaClient
