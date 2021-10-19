@@ -96,7 +96,10 @@ library
         cardano-dex,
         dhall,
         containers,
-        process
+        process,
+        prettyprinter,
+        cardano-api,
+        plutus-tx
 
 executable executor-app
     main-is: Main.hs

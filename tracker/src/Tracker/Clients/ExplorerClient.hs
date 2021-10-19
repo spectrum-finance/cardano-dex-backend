@@ -17,11 +17,12 @@ mkExplorerClient settings = pure $ ExplorerClient $ getUspentOutputs' settings
 
 getUspentOutputs' :: ClientSettings -> Int -> Int -> IO [ApiFullTxOut]
 getUspentOutputs' ClientSettings{..} minIndex limit = do
-	let request = defaultRequest 
+  let request = defaultRequest 
 		& setRequestPath (Data.pack $ "/outputs/unspent/indexed?minIndex=" ++ show minIndex ++ "&limit=" ++ show limit)
 		& setRequestHost (Data.pack getExplorerHost)
 		& setRequestPort (Natural.naturalToInt getExplorerPort)
 	response <- httpJSON request
 	let result = getResponseBody response :: Items
 	print $ "ExplorerClient::unspentResultIs=" ++ show result
-	pure $ items result 
+  pure $ items result 
+  
