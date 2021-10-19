@@ -17,7 +17,7 @@ import ErgoDex.Amm.PoolActions
 import Cardano.Models
 
 data Processor = Processor
-    { process :: Confirmed AnyOrder -> IO () }
+  { process :: Confirmed AnyOrder -> IO () }
 
 mkProcessor :: PoolActions -> BashService -> PoolsResolverClient  -> Processor
 mkProcessor p b h = Processor $ process' p b h

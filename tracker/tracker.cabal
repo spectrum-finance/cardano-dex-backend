@@ -80,6 +80,7 @@ library
                      Tracker.Models.AppSettings
                      Tracker.Models.ExplorerModels
                      Tracker.Utils
+                     Tracker.Models.KafkaModel
 
     build-depends: 
         bytestring,
