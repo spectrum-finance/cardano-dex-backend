@@ -71,14 +71,15 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Executor.Services.HttpReqService 
-                     Executor.Models.Settings
+    exposed-modules: Executor.Models.Settings
                      Executor.Services.KafkaService
                      Executor.Services.Processor
                      Executor.Utils
                      Executor.Services.SettingsReader
                      Executor.Wirings.WiringApp
                      Executor.Services.BashService
+                     Executor.Clients.PoolsResolverClient
+                     Executor.Models.KafkaModel
                      
     build-depends: 
         bytestring,
@@ -99,7 +100,9 @@ library
         process,
         prettyprinter,
         cardano-api,
-        plutus-tx
+        plutus-tx,
+        http-conduit,
+        http-client
 
 executable executor-app
     main-is: Main.hs

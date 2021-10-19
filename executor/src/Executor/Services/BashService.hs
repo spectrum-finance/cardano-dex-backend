@@ -3,29 +3,25 @@ module Executor.Services.BashService
     , BashService(..)
     ) where
 
-import Plutus.V1.Ledger.Tx
-import qualified Data.Set as Set
-import qualified Data.List as List
+import qualified PlutusTx.AssocMap as AssocMap
+import           Plutus.V1.Ledger.Tx
+import           Plutus.V1.Ledger.Value
+import           Plutus.V1.Ledger.Address
+import           Plutus.V1.Ledger.Credential
+import           Ledger.Scripts
+
 import qualified Data.Map as Map
-import RIO
-import Executor.Utils
-import Prelude (print)
-import Plutus.V1.Ledger.Value
-import System.Process
-import ErgoDex.Amm.Pool
-import Cardano.Models
-import Plutus.V1.Ledger.TxId
-import Data.Text.Prettyprint.Doc
-import qualified Ledger.Typed.Scripts     as Scripts
-import Ledger.Scripts
-import ErgoDex.Amm.Scripts
-import Plutus.V1.Ledger.Address
-import Plutus.V1.Ledger.Credential
-import ErgoDex.OffChain
-import Cardano.Address
-import qualified Cardano.Api              as Script
-import qualified PlutusTx.AssocMap                as AssocMap
-import qualified Data.Text as Data
+import           RIO
+import           Prelude (print)
+import           System.Process
+import qualified Cardano.Api as Script
+import qualified Data.Text   as Data
+
+import           Cardano.Address
+import           Cardano.Models
+import           ErgoDex.Amm.Scripts
+import           ErgoDex.OffChain
+
 
 data BashService = BashService
   { submit :: TxCandidate -> IO ()
@@ -54,7 +50,7 @@ mkTxBody' TxCandidate{..} =
       "--change-address=" ++ "" ++ "\\n" ++
       "--testnet-magic 8 \\n --out-file tx.build \\n --alonzo-era"
   where
-    txInScript = mkTxInScript `RIO.concatMap` txCandidateInputs
+    txInScript  = mkTxInScript `RIO.concatMap` txCandidateInputs
     txOutScript = renderTxOut `RIO.concatMap` txCandidateOutputs
 
 mkTxInScript :: FullTxIn -> String
@@ -63,29 +59,24 @@ mkTxInScript (FullTxIn (FullTxOut _ TxOutRef{..} _ _ _) _ _) =
 
 renderTxOut :: TxOutCandidate -> String
 renderTxOut TxOutCandidate{..} =
-    "--tx-out " ++ address ++ value ++ datumHash
+    "--tx-out " ++ address ++ value ++ datumHashV
   where
-    address = Data.unpack $ mkTxOutAddress txOutCandidateAddress
-    value = mkTxOutValue txOutCandidateValue
-    datumHash = renderTxOutDatumHash txOutCandidateDatum
+    address    = Data.unpack $ mkTxOutAddress txOutCandidateAddress
+    value      = mkTxOutValue txOutCandidateValue
+    datumHashV = renderTxOutDatumHash txOutCandidateDatum
 
 renderTxOutDatumHash :: Maybe Datum -> String
 renderTxOutDatumHash hash =
   case hash of
     Just v -> "--tx-out-datum-hash " ++ show v ++ "\\n"
-    _ -> ""
+    _      -> ""
   
 mkTxOutAddress :: Address -> Text
 mkTxOutAddress (Address (ScriptCredential hash) _)
-  | hash == validatorHash poolScript = renderToShellyAddress Script.Mainnet poolInstance
-  | hash == validatorHash swapScript = renderToShellyAddress Script.Mainnet swapInstance
+  | hash == validatorHash poolScript    = renderToShellyAddress Script.Mainnet poolInstance
+  | hash == validatorHash swapScript    = renderToShellyAddress Script.Mainnet swapInstance
   | hash == validatorHash depositScript = renderToShellyAddress Script.Mainnet depositInstance
-  | otherwise = renderToShellyAddress Script.Mainnet redeemInstance
-
-isPool :: Address -> Bool
-isPool (Address (ScriptCredential hash) _)
-  | hash == validatorHash poolScript = True 
-  | otherwise = False
+  | otherwise                           = renderToShellyAddress Script.Mainnet redeemInstance
 
 mkTxOutValue :: Value -> String
 mkTxOutValue (Value inValue) = Map.foldrWithKey (\k v acc -> acc ++ renderTxOutValue k v ) "" (asDataMap inValue) 
@@ -94,9 +85,9 @@ renderTxOutValue :: CurrencySymbol -> AssocMap.Map TokenName Integer -> String
 renderTxOutValue policy inValue =
       tokenValue ++ policies
     where
-      dataMap = asDataMap inValue
+      dataMap    = asDataMap inValue
       tokenValue = RIO.concatMap (\i -> show i ++ "+") dataMap
-      policies = Map.foldrWithKey (\tn i acc -> acc ++ "\"" ++ show i ++ " " ++ show policy ++ "." ++ show tn ++ "\"" ++ "+") "" dataMap
+      policies   = Map.foldrWithKey (\tn i acc -> acc ++ "\"" ++ show i ++ " " ++ show policy ++ "." ++ show tn ++ "\"" ++ "+") "" dataMap
 
 asDataMap :: forall a b . Ord a => AssocMap.Map a b -> Map.Map a b
 asDataMap input = Map.fromList $ AssocMap.toList input

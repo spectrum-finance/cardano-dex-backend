@@ -1,18 +1,18 @@
 module Executor.Models.Settings 
     ( KafkaConsumerSettings(..)
-    , HttpSettings(..)
+    , PoolsResolverClientSettings(..)
     , HasKafkaConsumerSettings(..)
     , HasSettings(..)
     , AppSettings(..)
     ) where
 
 import RIO
-import Kafka.Consumer
 import Dhall
 
 data AppSettings = AppSettings
   { getKafkaSettings :: KafkaConsumerSettings
-  , getHttpSettings :: HttpSettings
+  , getHttpSettings  :: PoolsResolverClientSettings
+  , pubKeyHash       :: Text
   } deriving (Generic)
 
 instance FromDhall AppSettings
@@ -27,12 +27,12 @@ data KafkaConsumerSettings = KafkaConsumerSettings
 
 instance FromDhall KafkaConsumerSettings
 
-data HttpSettings = HttpSettings
-    { hostS :: String
-    , portS :: Natural
-    } deriving (Generic, Show)
+data PoolsResolverClientSettings = PoolsResolverClientSettings
+  { getHost :: String
+  , getPort :: Natural
+  } deriving (Generic, Show)
 
-instance FromDhall HttpSettings
+instance FromDhall PoolsResolverClientSettings
 
 class HasKafkaConsumerSettings env where
   kafkaSettingsL :: Lens' env KafkaConsumerSettings
@@ -42,8 +42,8 @@ instance HasKafkaConsumerSettings AppSettings where
   kafkaSettingsL = lens getKafkaSettings (\x y -> x { getKafkaSettings = y })
 
 class HasSettings env where
-  httpSettingsL :: Lens' env HttpSettings
-instance HasSettings HttpSettings where
+  httpSettingsL :: Lens' env PoolsResolverClientSettings
+instance HasSettings PoolsResolverClientSettings where
   httpSettingsL = id
 instance HasSettings AppSettings where
   httpSettingsL = lens getHttpSettings (\x y -> x { getHttpSettings = y })
