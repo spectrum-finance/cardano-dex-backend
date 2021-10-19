@@ -22,6 +22,8 @@ import           Cardano.Models
 import           ErgoDex.Amm.Scripts
 import           ErgoDex.OffChain
 
+import           Executor.Models.Settings 
+
 
 data BashService = BashService
   { submit :: TxCandidate -> IO ()
@@ -31,12 +33,12 @@ data BashService = BashService
  -- todo add files path from cfg
  -- todo fee
 
-mkBashService :: BashService
-mkBashService = BashService submit'
+mkBashService :: PaymentSettings -> BashService
+mkBashService p = BashService $ submit' p
 
-submit' :: TxCandidate -> IO ()
-submit' txCandidate = do
-  let txBody = mkTxBody' txCandidate
+submit' :: PaymentSettings -> TxCandidate -> IO ()
+submit' s txCandidate = do
+  let txBody = mkTxBody' s txCandidate
   _ <- print txBody
   _ <- readProcess txBody [] ""
   _ <- print renderSignScript
@@ -44,10 +46,10 @@ submit' txCandidate = do
   _ <- print renderSubmitScript
   void $ readProcess renderSubmitScript [] ""
 
-mkTxBody' :: TxCandidate -> String
-mkTxBody' TxCandidate{..} =
+mkTxBody' :: PaymentSettings -> TxCandidate -> String
+mkTxBody' PaymentSettings{..} TxCandidate{..} =
     "$CARDANO_CLI transaction build \\n" ++ txInScript ++ txOutScript ++
-      "--change-address=" ++ "" ++ "\\n" ++
+      "--change-address=" ++ (Data.unpack feeAddr) ++ "\\n" ++
       "--testnet-magic 8 \\n --out-file tx.build \\n --alonzo-era"
   where
     txInScript  = mkTxInScript `RIO.concatMap` txCandidateInputs

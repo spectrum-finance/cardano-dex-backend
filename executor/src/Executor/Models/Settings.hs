@@ -4,6 +4,7 @@ module Executor.Models.Settings
     , HasKafkaConsumerSettings(..)
     , HasSettings(..)
     , AppSettings(..)
+    , PaymentSettings(..)
     ) where
 
 import RIO
@@ -12,17 +13,17 @@ import Dhall
 data AppSettings = AppSettings
   { getKafkaSettings :: KafkaConsumerSettings
   , getHttpSettings  :: PoolsResolverClientSettings
-  , pubKeyHash       :: Text
+  , paymentSettings  :: PaymentSettings
   } deriving (Generic)
 
 instance FromDhall AppSettings
 
 data KafkaConsumerSettings = KafkaConsumerSettings
   { getBrokerList :: [Text]
-  , getGroupId :: Text
+  , getGroupId    :: Text
   , getTopicsList :: [Text]
-  , getPollRate :: Natural
-  , getBatchSize :: Natural
+  , getPollRate   :: Natural
+  , getBatchSize  :: Natural
   } deriving (Generic)
 
 instance FromDhall KafkaConsumerSettings
@@ -33,6 +34,13 @@ data PoolsResolverClientSettings = PoolsResolverClientSettings
   } deriving (Generic, Show)
 
 instance FromDhall PoolsResolverClientSettings
+
+data PaymentSettings = PaymentSettings
+  { pubKeyHash :: Text
+  , feeAddr    :: Text
+  } deriving (Generic, Show)
+
+instance FromDhall PaymentSettings
 
 class HasKafkaConsumerSettings env where
   kafkaSettingsL :: Lens' env KafkaConsumerSettings

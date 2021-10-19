@@ -23,8 +23,8 @@ runApp = do
     appSettings <- read settingsReader
     runRIO appSettings $ do
         let httpClient = mkPoolsResolverClient (getHttpSettings appSettings)
-            bashService = mkBashService
-            poolAction = mkPoolActions (PubKeyHash $ BuiltinByteString $ Data.encodeUtf8 $ pubKeyHash appSettings)
+            bashService = mkBashService $ paymentSettings appSettings
+            poolAction = mkPoolActions (PubKeyHash $ BuiltinByteString $ Data.encodeUtf8 $ pubKeyHash $ paymentSettings appSettings)
             processor = mkProcessor poolAction bashService httpClient
             kafkaClient = mkKafkaService processor
         runKafka kafkaClient
