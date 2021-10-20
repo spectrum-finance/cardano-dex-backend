@@ -74,7 +74,6 @@ library
     
     exposed-modules: Resolver.Services.KafkaService
                      Resolver.Models.AppSettings
-                     Resolver.Models.CfmmPool
                      Resolver.Repositories.PoolRepository
                      Resolver.Services.PoolsResolver
                      Resolver.Endpoints.HttpServer
