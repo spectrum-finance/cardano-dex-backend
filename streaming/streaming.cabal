@@ -73,6 +73,7 @@ library
 
     exposed-modules: Streaming.Producer
                      Streaming.Config
+                     Streaming.Class
 
     build-depends:
         bytestring,
