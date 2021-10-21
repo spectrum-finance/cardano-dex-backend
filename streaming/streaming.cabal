@@ -1,9 +1,9 @@
 cabal-version:      2.4
-name:               pools-resolver
+name:               streaming-kafka
 version:            0.1.0.0
 
 author:             ErgoLabs
-maintainer:         
+maintainer:
 
 extra-source-files: CHANGELOG.md
 
@@ -55,7 +55,6 @@ common project-config
                         TypeFamilies
                         TypeSynonymInstances
                         ViewPatterns
-                        TypeOperators
 
   ghc-options:          -Wall
                         -Wcompat
@@ -71,40 +70,28 @@ library
     import: base, project-config
 
     hs-source-dirs: src
-    
-    exposed-modules: Resolver.Services.KafkaService
-                     Resolver.Models.AppSettings
-                     Resolver.Repositories.PoolRepository
-                     Resolver.Services.PoolsResolver
-                     Resolver.Endpoints.HttpServer
-                     Resolver.Utils
-                     Resolver.Services.SettingsReader
-                     Resolver.Wirings.WiringApp
 
-    build-depends: 
+    exposed-modules: Streaming.Producer
+                     Streaming.Config
+
+    build-depends:
         bytestring,
         aeson,
         rio,
+        text,
         bytestring,
-        streamly == 0.8.0,
-        plutus-ledger-api -any,
-        plutus-tx -any,
+        parallel-io,
+        loop,
+        stm,
+        streamly,
+        req,
+        conduit,
+        data-default-class,
+        req-conduit,
+        conduit-extra,
         hw-kafka-client,
-        sdk,
-        servant,
-        servant-server,
-        wai,
-        warp,
-        hedis,
-        utf8-string,
-        cardano-dex,
-        dhall
-
-executable pools-resolver-app
-    main-is: Main.hs
-    build-depends: 
-        base >= 4.9 && < 5,
-        pools-resolver,
-        rio
-    hs-source-dirs:   app
-    default-language: Haskell2010
+        http-conduit,
+        resourcet,
+        yaml,
+        either,
+        mtl
