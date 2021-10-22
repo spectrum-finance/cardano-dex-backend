@@ -44,11 +44,9 @@ upstream'
   -> BatchSize
   -> S.SerialT f (k, v)
 upstream' consumer timeout batchSize =
-    readUpstream >>= (\cr -> case cr of
-      Just r  -> pure r
-      Nothing -> S.nil
-    )
+    readUpstream >>= unNone
   where
+    unNone r     = maybe S.nil pure r
     readUpstream =
         S.repeatM (pollMessageBatch consumer timeout batchSize)
       & S.fromAsync >>= S.fromList
