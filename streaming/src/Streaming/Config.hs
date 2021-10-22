@@ -3,7 +3,14 @@ module Streaming.Config where
 import RIO
 
 data KafkaProducerConfig = KafkaProducerConfig
-  { brokers   :: [Text]
-  , timeout   :: Int
-  , topicName :: Text
+  { producerBrokers :: [Text]
+  , producerTimeout :: Int
+  }
+
+data KafkaConsumerConfig = KafkaConsumerConfig
+  { consumerBrokers   :: [Text]
+  , consumerGroupId   :: Text
+  , consumerPollRate  :: Natural
+  , consumerBatchSize :: Natural
+  , consumerTimeout   :: Natural
   }

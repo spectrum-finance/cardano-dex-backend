@@ -18,19 +18,19 @@ data Producer f k v = Producer
 mkKafkaProducer
   :: (MonadError KafkaError f, S.MonadAsync f, ToKafka k v)
   => KafkaProducerConfig
+  -> TopicName
   -> ResourceT f (Producer f k v)
-mkKafkaProducer conf = do
+mkKafkaProducer conf topic = do
   let
-    props                  = mkProducerProps conf
-    spawnProd              = newProducer props
-    closeProd (Right prod) = closeProd $ Right prod
-    closeProd _            = pure ()
+    props              = mkProducerProps conf
+    spawn              = newProducer props
+    close (Right prod) = closeProducer prod
+    close _            = pure ()
 
-  (rkey, prodTry) <- allocate spawnProd closeProd
-  prod            <- eitherToError prodTry
+  (_, prodTry) <- allocate spawn close
+  prod         <- eitherToError prodTry
 
   pure $ Producer (produce' prod topic)
-    where topic = TopicName $ topicName conf
 
 produce'
   :: (MonadError KafkaError f, S.MonadAsync f, ToKafka k v)
@@ -47,8 +47,8 @@ produce' prod topic upstream =
 
 mkProducerProps :: KafkaProducerConfig -> ProducerProperties
 mkProducerProps KafkaProducerConfig{..} =
-     brokersList (fmap BrokerAddress brokers)
-  <> sendTimeout (Timeout timeout)
+     brokersList (fmap BrokerAddress producerBrokers)
+  <> sendTimeout (Timeout producerTimeout)
   <> logLevel KafkaLogDebug
 
 
