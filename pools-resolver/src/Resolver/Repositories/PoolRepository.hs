@@ -20,10 +20,10 @@ import Cardano.Models
 import Plutus.V1.Ledger.Tx
 
 data PoolRepository = PoolRepository
-    { putPredicted     :: Predicted Pool -> IO ()
-    , putConfirmed     :: Confirmed Pool -> IO ()
-    , getLastPredicted :: PoolId         -> IO (Maybe (Predicted Pool))
-    , getLastConfirmed :: PoolId         -> IO (Maybe (Confirmed Pool))
+    { putPredicted     :: (Predicted Pool, FullTxOut) -> IO ()
+    , putConfirmed     :: (Confirmed Pool, FullTxOut) -> IO ()
+    , getLastPredicted :: PoolId         -> IO (Maybe ((Predicted Pool, FullTxOut)))
+    , getLastConfirmed :: PoolId         -> IO (Maybe ((Confirmed Pool, FullTxOut)))
     , existsPredicted  :: PoolId         -> IO Bool
     }
 

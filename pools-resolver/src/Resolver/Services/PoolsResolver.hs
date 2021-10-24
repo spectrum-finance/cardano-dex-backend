@@ -25,7 +25,7 @@ resolve' p@PoolRepository{..} poolId = do
     lastPredicted <- getLastPredicted poolId
     process p lastConfirmed lastPredicted
 
-process :: PoolRepository -> Maybe (Confirmed Pool) -> Maybe (Predicted Pool) -> IO (Maybe Pool)
+process :: PoolRepository -> Maybe ((Confirmed Pool, FullTxOut)) -> Maybe (Predicted Pool) -> IO (Maybe Pool)
 process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
     case (confirmedMaybe, predictedMaybe) of 
         (Just (Confirmed out confirmed), Just (Predicted candidate predicted)) -> do
