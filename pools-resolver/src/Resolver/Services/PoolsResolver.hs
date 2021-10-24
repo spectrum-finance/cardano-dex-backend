@@ -22,9 +22,7 @@ mkPoolResolver p = PoolResolver $ resolve' p
 resolve' :: PoolRepository -> PoolId -> IO (Maybe Pool)
 resolve' p@PoolRepository{..} poolId = do
     lastConfirmed <- getLastConfirmed poolId
-    _             <- print lastConfirmed
     lastPredicted <- getLastPredicted poolId
-    _             <- print lastPredicted
     process p lastConfirmed lastPredicted
 
 process :: PoolRepository -> Maybe (Confirmed Pool) -> Maybe (Predicted Pool) -> IO (Maybe Pool)
@@ -44,10 +42,12 @@ process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
 
 pessimistic :: PoolRepository -> Bool -> Predicted Pool -> Confirmed Pool -> IO Pool 
 pessimistic p consistentChain predictedPool confirmedPool = do
-    if consistentChain then needToUpdate p predictedPool (outGId $ fullTxOut $ confirmed confirmedPool) else pure $ confirmed confirmedPool
+    if consistentChain
+     then put p predictedPool (outGId $ fullTxOut $ confirmed confirmedPool)
+     else pure $ confirmed confirmedPool
 
-needToUpdate :: PoolRepository -> Predicted Pool -> Gix -> IO Pool
-needToUpdate PoolRepository{..} (Predicted out (Pool b (FullTxOut _ q w e r t) s)) newGix = do
+put :: PoolRepository -> Predicted Pool -> Gix -> IO Pool
+put PoolRepository{..} (Predicted out (Pool b (FullTxOut _ q w e r t) s)) newGix = do
     let updatedPool = Predicted out (Pool b (FullTxOut newGix q w e r t) s)
     _ <- putPredicted updatedPool
     pure $ predicted updatedPool
