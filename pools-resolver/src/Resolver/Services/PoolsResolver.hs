@@ -29,15 +29,16 @@ process :: PoolRepository -> Maybe (Confirmed Pool) -> Maybe (Predicted Pool) ->
 process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
     case (confirmedMaybe, predictedMaybe) of 
         (Just (Confirmed out confirmed), Just (Predicted candidate predicted)) -> do
-            _ <- print "Got confirmed and predicted pools in process function."
+            -- _ <- print "Got confirmed and predicted pools in process function."
             let upToDate = (gIdx $ outGId (fullTxOut confirmed)) == (gIdx $ outGId (fullTxOut predicted))           
             consistentChain <- existsPredicted (poolId $ poolData confirmed) (refId $ fullTxOut confirmed) (refIdx $ fullTxOut confirmed)
-            fmap Just (if upToDate then pure predicted else pessimistic p consistentChain (Predicted out predicted) (Confirmed out confirmed))
+            poolM <- if upToDate then pure predicted else pessimistic p consistentChain (Predicted out predicted) (Confirmed out confirmed)
+            fmap Just (poolM)
         (Just (Confirmed confirmed), _) -> do
-            _ <- print "Just only confirmed. Predicted is empty."
+            -- _ <- print "Just only confirmed. Predicted is empty."
             pure $ Just confirmed
         _ -> do
-            _ <- print "Both are nothing."
+            -- _ <- print "Both are nothing."
             pure Nothing
 
 pessimistic :: PoolRepository -> Bool -> Predicted Pool -> Confirmed Pool -> IO Pool 
