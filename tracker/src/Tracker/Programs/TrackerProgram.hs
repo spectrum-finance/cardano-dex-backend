@@ -3,7 +3,6 @@ module Tracker.Programs.TrackerProgram where
 import qualified Streamly.Prelude as S
 import RIO 
 import Tracker.Services.ExplorerService
-import Tracker.Services.KafkaService
 import Tracker.Utils
 import ErgoDex.Class
 import ErgoDex.Amm.Orders
@@ -25,31 +24,32 @@ data TrackerProgram f = TrackerProgram
   }
 
 mkTrackerProgram 
-  :: (Monad f) 
+  :: (Monad f, S.MonadAsync f) 
   => ExplorerProgrammSettings
   -> ExplorerService f
-  -> Producer f String ConfirmedOrderEvent 
-  -> Producer f String ConfirmedPoolEvent 
+  -> Producer f PoolId ConfirmedOrderEvent 
+  -> Producer f PoolId ConfirmedPoolEvent 
   -> TrackerProgram f
 mkTrackerProgram settings explorer orderProd poolProd = 
   TrackerProgram $ run' settings explorer orderProd poolProd
 
 run' 
-  :: (Monad f) 
+  :: (Monad f, S.MonadAsync f) 
   => ExplorerProgrammSettings
   -> ExplorerService f
-  -> Producer f String ConfirmedOrderEvent
-  -> Producer f String ConfirmedPoolEvent
+  -> Producer f PoolId ConfirmedOrderEvent
+  -> Producer f PoolId ConfirmedPoolEvent
   -> f ()
 run' ExplorerProgrammSettings{..} explorer orderProd poolProd =
-    S.repeatM (threadDelay $ Natural.naturalToInt pollTime) >> process explorer orderProd poolProd --todo threadDelay replace with streamly api
+    S.repeatM ((threadDelay $ Natural.naturalToInt pollTime) >> process explorer orderProd poolProd) --todo threadDelay replace with streamly api
+  & S.drain 
   -- & --todo err handle
-  & S.drain
-
+  
 process 
-  :: ExplorerService f
-  -> Producer f String ConfirmedOrderEvent
-  -> Producer f String ConfirmedPoolEvent 
+  :: (Monad f)
+  => ExplorerService f
+  -> Producer f PoolId ConfirmedOrderEvent
+  -> Producer f PoolId ConfirmedPoolEvent 
   -> f ()
 process ExplorerService{..} orderProd poolProd = do
   fulltxOuts <- getOutputs
@@ -63,36 +63,37 @@ process ExplorerService{..} orderProd poolProd = do
         depositEvents = mkDepositEvents (parseAmm unspent :: [(Confirmed Deposit, Gix)])
         redeemEvents  = mkRedeemEvents (parseAmm unspent :: [(Confirmed Redeem, Gix)])
   
-    -- confirmedPoolEvents =
-    --     pairToPoolEvent confirmedPools
-    --   where
-    --     confirmedPools = parseAmm unspent :: [(Confirmed Pool, Integer)]
-  
-  -- _ <- produce orderProd confirmedOrderEvents
-  -- _ <- produce poolProd confirmedPoolEvents
-  pure ()
-  -- print $ "TrackerProgramm::newAmmOutputsLength=" ++ show (length res1)
-  -- print $ "TrackerProgramm::newProxyOutputs=" ++ show (length msgs)
-  -- unless (null res1) (sendAmm res1 >> print "TrackerProgramm::AmmSuccessfullySentIntoKafka")
-  -- unless (null msgs) (sendProxy msgs >> print "TrackerProgramm::ProxySuccessfullySentIntoKafka")
+    confirmedPoolEvents =
+        mkPoolEvents confirmedPools
+      where
+        confirmedPools = parseAmm unspent :: [(Confirmed Pool, Gix)]
+
+  unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
+  unless (null confirmedOrderEvents) (produce poolProd (S.fromList confirmedPoolEvents))
 
 mkSwapEvents
   :: [(Confirmed Swap, Gix)]
-  -> [ConfirmedOrderEvent]
+  -> [(PoolId, ConfirmedOrderEvent)]
 mkSwapEvents swaps =
-  fmap (\((Confirmed fullTxOut s@Swap{..}), gix) -> ConfirmedOrderEvent (AnyOrder swapPoolId (SwapAction s)) fullTxOut gix) swaps
+  fmap (\((Confirmed fullTxOut s@Swap{..}), gix) -> (swapPoolId, ConfirmedOrderEvent (AnyOrder swapPoolId (SwapAction s)) fullTxOut gix)) swaps
 
 mkRedeemEvents
   :: [(Confirmed Redeem, Gix)]
-  -> [ConfirmedOrderEvent]
+  -> [(PoolId, ConfirmedOrderEvent)]
 mkRedeemEvents redeems =
-  fmap (\((Confirmed fullTxOut s@Redeem{..}), gix) -> ConfirmedOrderEvent (AnyOrder redeemPoolId (RedeemAction s)) fullTxOut gix) redeems
+  fmap (\((Confirmed fullTxOut s@Redeem{..}), gix) -> (redeemPoolId, ConfirmedOrderEvent (AnyOrder redeemPoolId (RedeemAction s)) fullTxOut gix)) redeems
 
 mkDepositEvents
   :: [(Confirmed Deposit, Gix)]
-  -> [ConfirmedOrderEvent]
+  -> [(PoolId, ConfirmedOrderEvent)]
 mkDepositEvents deposits =
-  fmap (\((Confirmed fullTxOut s@Deposit{..}), gix) -> ConfirmedOrderEvent (AnyOrder depositPoolId (DepositAction s)) fullTxOut gix) deposits
+  fmap (\((Confirmed fullTxOut s@Deposit{..}), gix) -> (depositPoolId, ConfirmedOrderEvent (AnyOrder depositPoolId (DepositAction s)) fullTxOut gix)) deposits
+
+mkPoolEvents
+  :: [(Confirmed Pool, Gix)]
+  -> [(PoolId, ConfirmedPoolEvent)]
+mkPoolEvents pools =
+  fmap (\((Confirmed fullTxOut pool@Pool{..}), gix) -> (poolId, ConfirmedPoolEvent pool fullTxOut gix)) pools
 
 parseAmm
   :: (FromLedger amm)
@@ -100,7 +101,3 @@ parseAmm
   -> [(Confirmed amm, Gix)]
 parseAmm unspent = 
   mapMaybe (\(out, Explorer.FullTxOut{..}) -> (\r -> (r, globalIndex)) `fmap` (parseFromLedger out)) unspent
-
-pairToPoolEvent :: [(Confirmed Pool, Gix)] -> [ConfirmedPoolEvent]
-pairToPoolEvent pairs = 
-  fmap (\((Confirmed out pool), gix) -> ConfirmedPoolEvent pool out gix) pairs
