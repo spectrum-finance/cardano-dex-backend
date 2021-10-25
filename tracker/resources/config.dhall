@@ -1,8 +1,11 @@
-{ getHttpSettings = 
-    { getHost = "127.0.0.1"
-    , getPort = 8012
+{ getExplorerSettings =
+    { limitOffset = 1
     },
-getKafkaProducerSettings = 
+  getClientSettings =
+    { getExplorerHost = "127.0.0.1"
+    , getExplorerPort = 8083
+    },
+  getKafkaProducerSettings =
     { getBrokersList = ["127.0.0.1:9092"]
     , getAmmTopic = "amm-topic"
     , getProxyTopic = "proxy-topic"

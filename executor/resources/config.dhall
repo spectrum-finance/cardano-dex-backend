@@ -6,7 +6,11 @@
     , getBatchSize = 1
     },
   getHttpSettings = 
-    { hostS = "0.0.0.0"
-    , portS = 8088
+    { getHost = "0.0.0.0"
+    , getPort = 8088
+    },
+  paymentSettings =
+    { pubKeyHash = ""
+    , feeAddr = ""
     }
 }

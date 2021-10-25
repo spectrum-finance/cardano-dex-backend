@@ -1,7 +1,9 @@
 module Main where
 
-import Tracker.Wirings.WiringApp
+import Tracker.App
 import RIO
 
 main :: IO ()
-main = runApp
+main = do
+  app <- mkApp
+  runApp app

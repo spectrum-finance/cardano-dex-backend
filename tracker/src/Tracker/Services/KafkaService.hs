@@ -9,36 +9,36 @@ import Data.Aeson
 import Prelude (print)
 import Kafka.Producer
 import RIO.ByteString.Lazy as BS
-import Tracker.Models.AppSettings (KafkaProducerSettings(..), HasKafkaProducerSettings(..))
-import Dex.Models
+import Tracker.Models.AppSettings (KafkaProducerSettings(..))
 import RIO.List as List
 import RIO.Text as Text
+import ErgoDex.Amm.Orders
+import ErgoDex.Amm.Pool
+import Tracker.Models.KafkaModel
 
-data KafkaService env = KafkaService
-    { sendProxy :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
-    , sendAmm :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
+data KafkaService = KafkaService
+    { sendProxy :: [KafkaMsg] -> IO ()
+    , sendAmm   :: [KafkaMsg]     -> IO ()
     }
 
-mkKafkaService :: IO (KafkaService env)
-mkKafkaService = do
-    let service = KafkaService sendProxy' sendAmm'
+mkKafkaService :: KafkaProducerSettings -> IO KafkaService
+mkKafkaService settings = do
+    let service = KafkaService (sendProxy' settings) (sendAmm' settings)
     _ <- print "Kafka service was initialized successfully"
     pure service
 
-sendProxy' :: HasKafkaProducerSettings env => [ParsedOperation] -> RIO env ()
-sendProxy' parsedOps = do
-    settings <- view kafkaProducerSettingsL
-    liftIO $ runProducerLocal 
-        (List.map BrokerAddress (getBrokersList settings)) 
-        (sendMessages $ formProducerRecordOperation 
-            (Text.encodeUtf8 $ getProxyMsgKey settings) 
-            (TopicName $ getProxyTopic settings) 
-            (RIO.map encodeOperation parsedOps)
-        )
+sendProxy' :: KafkaProducerSettings -> [KafkaMsg] -> IO ()
+sendProxy' settings parsedOps = do
+    runProducerLocal
+      (List.map BrokerAddress (getBrokersList settings))
+      (sendMessages $ formProducerRecordOperation
+          (Text.encodeUtf8 $ getProxyMsgKey settings)
+          (TopicName $ getProxyTopic settings)
+          (RIO.map encodeOperation parsedOps)
+      )
 
-sendAmm' :: HasKafkaProducerSettings env => [Pool] -> RIO env ()
-sendAmm' txOuts = do
-    settings <- view kafkaProducerSettingsL
+sendAmm' :: KafkaProducerSettings -> [KafkaMsg] -> IO ()
+sendAmm' settings txOuts = do
     liftIO $ runProducerLocal (List.map BrokerAddress (getBrokersList settings)) (sendMessages $ formProducerRecord (Text.encodeUtf8 $ getAmmMsgKey settings) (TopicName $ getAmmTopic settings) txOuts)
 
 -------------------------------------------------------------------------------------
@@ -81,9 +81,5 @@ formProducerRecord s t = L.map (mkMessage t (Just s) . Just . BS.toStrict . enco
 formProducerRecordOperation :: RIO.ByteString -> TopicName -> [BS.ByteString] -> [ProducerRecord]
 formProducerRecordOperation s t = L.map (mkMessage t (Just s) . Just . BS.toStrict)
 
-encodeOperation :: ParsedOperation -> BS.ByteString
-encodeOperation (ParsedOperation op) = 
-    case op of
-        (SwapOperation swapData) -> encode swapData
-        (DepositOperation depositData) -> encode depositData
-        (RedeemOperation redeemData) -> encode redeemData  
+encodeOperation :: KafkaMsg -> BS.ByteString
+encodeOperation msg = encode msg

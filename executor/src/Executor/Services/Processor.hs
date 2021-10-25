@@ -3,47 +3,52 @@ module Executor.Services.Processor
     , mkProcessor
     ) where
 
-import RIO
-import Dex.Interpreter
-import Dex.Models
-import Executor.Services.HttpReqService
+import Executor.Clients.PoolsResolverClient
 import Executor.Utils
-import Executor.Services.Sender
-import Plutus.V1.Ledger.Tx
+import Executor.Services.BashService
+
+import RIO
 import Prelude (print)
-import Data.Aeson
-import Ledger.Constraints.OffChain
+
+import ErgoDex.State 
+import ErgoDex.Amm.Pool
+import ErgoDex.Amm.Orders
+import ErgoDex.Amm.PoolActions
+import Cardano.Models
 
 data Processor = Processor
-    { process :: ParsedOperation -> IO () }
+  { process :: Confirmed AnyOrder -> IO () }
 
-mkProcessor :: SenderService -> HttpReqService -> InterpreterService -> Processor
-mkProcessor s h i = Processor $ process' s h i
+mkProcessor :: PoolActions -> BashService -> PoolsResolverClient  -> Processor
+mkProcessor p b h = Processor $ process' p b h
 
-process' :: SenderService -> HttpReqService -> InterpreterService -> ParsedOperation -> IO ()
-process'  SenderService{..} r@HttpReqService{..} i (ParsedOperation op) = do
-    (pool, tx) <- mkTxPool i r op
-    print $ "Pool is: " ++ show pool
-    print $ encode $ unsafeFromEither tx
-    sendPredicted pool    
+process' :: PoolActions -> BashService -> PoolsResolverClient -> Confirmed AnyOrder -> IO ()
+process' p BashService{..} r@PoolsResolverClient{..} c = do
+    execRes <- executeOp r c p
+    let (txCandidate, predictedPool) = unsafeFromEither execRes
+    print $ "Execute order res is:" ++ show txCandidate
+    print $ "Predicted pool is:" ++ show predictedPool
+    sendPredicted predictedPool
+    submit txCandidate
 
-mkTxPool :: InterpreterService -> HttpReqService-> Operation a -> IO (Pool, Either ProcError Tx)
-mkTxPool InterpreterService{..} HttpReqService{..} op =
-        case op of
-            x@ (DepositOperation r) -> do
-                currentPoolMaybe <- resolvePoolReq (depositPoolId  r)
-                let currentPool = unsafeFromMaybe currentPoolMaybe
-                    unsafeTx = deposit x currentPool
-                pure $ (currentPool, unsafeTx)
-            x@ (RedeemOperation r) -> do
-                currentPoolMaybe <- resolvePoolReq (redeemPoolId r)
-                let currentPool = unsafeFromMaybe currentPoolMaybe
-                    unsafeTx = redeem x currentPool
-                pure $ (currentPool, unsafeTx)
-                
-            x@ (SwapOperation r) -> do
-                currentPoolMaybe <- resolvePoolReq (swapPoolId r)
-                let currentPool = unsafeFromMaybe currentPoolMaybe
-                    unsafeTx = swap x currentPool
-                pure $ (currentPool, unsafeTx)
+executeOp :: PoolsResolverClient -> Confirmed AnyOrder -> PoolActions -> IO (Either OrderExecErr (TxCandidate, Predicted Pool))
+executeOp PoolsResolverClient{..} (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
+  case order of
+    (DepositAction d@Deposit{..}) -> do
+      currentPoolMaybe <- resolvePoolReq depositPoolId
+      let currentPool = unsafeFromMaybe currentPoolMaybe
+          unsafeRes   = runDeposit (Confirmed txOut d) currentPool
+      pure unsafeRes
+
+    (RedeemAction r@Redeem{..}) -> do
+      currentPoolMaybe <- resolvePoolReq redeemPoolId
+      let currentPool = unsafeFromMaybe currentPoolMaybe
+          unsafeRes   = runRedeem (Confirmed txOut r) currentPool
+      pure unsafeRes
+        
+    (SwapAction s@Swap{..}) -> do
+      currentPoolMaybe <- resolvePoolReq swapPoolId
+      let currentPool = unsafeFromMaybe currentPoolMaybe
+          unsafeRes   = runSwap (Confirmed txOut s) currentPool
+      pure unsafeRes
                 

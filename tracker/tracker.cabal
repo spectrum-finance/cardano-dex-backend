@@ -9,7 +9,7 @@ extra-source-files: CHANGELOG.md
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/hello
+  location: https://github.com/ergolabs/cardano-dex-backend
 
 common base
   build-depends: base >= 4.9 && < 5
@@ -71,13 +71,16 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Tracker.Services.HttpReqService 
-                     Tracker.Services.TxOutsProcessor
-                     Tracker.Models.AppSettings
-                     Tracker.Utils
+    exposed-modules: Tracker.App
+                     Tracker.Programs.TrackerProgram
+                     Tracker.Services.ExplorerService
                      Tracker.Services.KafkaService 
                      Tracker.Services.SettingsReader
-                     Tracker.Wirings.WiringApp
+                     Tracker.Clients.ExplorerClient
+                     Tracker.Models.AppSettings
+                     Tracker.Models.ExplorerModels
+                     Tracker.Utils
+                     Tracker.Models.KafkaModel
 
     build-depends: 
         bytestring,
@@ -85,6 +88,9 @@ library
         rio,
         text,
         bytestring,
+        parallel-io,
+        loop,
+        stm,
         streamly,
         req,
         conduit,
@@ -95,7 +101,11 @@ library
         plutus-ledger-api -any,
         hw-kafka-client,
         sdk,
-        dhall
+        dhall,
+        http-conduit,
+        yaml,
+        plutus-tx,
+        plutus-ledger
 
 executable tracker-app
     main-is: Main.hs

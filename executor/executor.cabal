@@ -9,7 +9,7 @@ extra-source-files: CHANGELOG.md
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/hello
+  location: https://github.com/ergolabs/cardano-dex-backend
 
 common base
   build-depends: base >= 4.9 && < 5
@@ -71,20 +71,22 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Executor.Services.HttpReqService 
-                     Executor.Models.Settings
+    exposed-modules: Executor.Models.Settings
                      Executor.Services.KafkaService
                      Executor.Services.Processor
                      Executor.Utils
-                     Executor.Services.Sender 
                      Executor.Services.SettingsReader
                      Executor.Wirings.WiringApp
+                     Executor.Services.BashService
+                     Executor.Clients.PoolsResolverClient
+                     Executor.Models.KafkaModel
                      
     build-depends: 
         bytestring,
         aeson,
         rio,
         text,
+        turtle,
         bytestring,
         streamly,
         req,
@@ -93,7 +95,14 @@ library
         hw-kafka-client,
         sdk,
         cardano-dex,
-        dhall
+        dhall,
+        containers,
+        process,
+        prettyprinter,
+        cardano-api,
+        plutus-tx,
+        http-conduit,
+        http-client
 
 executable executor-app
     main-is: Main.hs
