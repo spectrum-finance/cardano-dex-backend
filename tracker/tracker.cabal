@@ -78,12 +78,11 @@ library
                      Tracker.Services.SettingsReader
                      Tracker.Clients.ExplorerClient
                      Tracker.Models.AppSettings
-                     Tracker.Models.ExplorerModels
                      Tracker.Utils
-                     Tracker.Models.KafkaModel
 
     build-depends:
         streaming-kafka == 0.1.0.0,
+        core == 0.1.0.0,
         bytestring,
         aeson,
         rio,

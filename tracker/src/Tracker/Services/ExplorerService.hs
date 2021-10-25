@@ -4,15 +4,16 @@ module Tracker.Services.ExplorerService
         ) where
 
 import qualified RIO
-import Tracker.Models.ExplorerModels
+-- import Tracker.Models.ExplorerModels
 import Prelude
 import Tracker.Models.AppSettings
 import Tracker.Clients.ExplorerClient
 import Control.Concurrent.STM.TVar
 import GHC.Natural as Natural
+import Explorer.Models
 
 data ExplorerService = ExplorerService
- { getOutputs :: IO [ApiFullTxOut] 
+ { getOutputs :: IO [FullTxOut] 
  }
 
 mkExplorerService :: ExplorerSettings -> ExplorerClient -> IO ExplorerService
@@ -21,7 +22,7 @@ mkExplorerService settings client = do
         pure $ ExplorerService $ getOutputs' settings client offsetsT
 
 -- todo: make newtypes for Int as minIndex
-getOutputs' :: ExplorerSettings -> ExplorerClient -> TVar Int -> IO [ApiFullTxOut]
+getOutputs' :: ExplorerSettings -> ExplorerClient -> TVar Int -> IO [FullTxOut]
 getOutputs' ExplorerSettings{..} ExplorerClient{..} offsetsT = do
         minIndex <- readTVarIO offsetsT
         outputs  <- getUspentOutputs minIndex (Natural.naturalToInt limitOffset)

@@ -200,4 +200,8 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: e2fc2d6c18bee72c614e71b6a27b44b225e43190
+  tag: 56a24eccdc68bc9c400d4b52d30fb37304984e00
+  subdir:
+    cardano-tx
+    dex-core
+    quickblue

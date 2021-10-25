@@ -3,11 +3,18 @@ module Tracker.Models.AppSettings
     , ClientSettings(..)
     , BlockRequestSettings(..)
     , KafkaProducerSettings(..)
+    , ExplorerProgrammSettings(..)
     , AppSettings(..)
     ) where
 
 import RIO
 import Dhall
+
+data ExplorerProgrammSettings = ExplorerProgrammSettings
+  { pollTime :: Natural
+  } deriving (Generic, Show)
+
+instance FromDhall ExplorerProgrammSettings
 
 data ExplorerSettings = ExplorerSettings
   { limitOffset :: Natural
@@ -32,6 +39,7 @@ data AppSettings = AppSettings
     , getClientSettings :: ClientSettings
     , getBlockRequestSettings :: BlockRequestSettings
     , getKafkaProducerSettings :: KafkaProducerSettings
+    , explorerProgrammSettings :: ExplorerProgrammSettings
     } deriving (Generic, Show)
 
 instance FromDhall AppSettings

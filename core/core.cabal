@@ -76,6 +76,8 @@ library
 
     build-depends: 
         streaming-kafka == 0.1.0.0,
+        dex-core == 0.1.0.0,
+        utf8-string == 1.0.2,
         bytestring,
         aeson,
         rio,
@@ -93,7 +95,6 @@ library
         modern-uri,
         plutus-ledger-api -any,
         hw-kafka-client,
-        sdk,
         dhall,
         http-conduit,
         yaml,
