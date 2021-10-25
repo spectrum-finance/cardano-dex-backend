@@ -90,7 +90,7 @@ library
         plutus-ledger-api -any,
         plutus-tx -any,
         hw-kafka-client,
-        sdk,
+        dex-core == 0.1.0.0,
         servant,
         servant-server,
         wai,

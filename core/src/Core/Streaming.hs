@@ -15,6 +15,7 @@ import Kafka.Producer
 import Kafka.Consumer
 
 import Streaming.Class
+import Explorer.Types
 
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.UTF8 as BSU
@@ -22,7 +23,7 @@ import qualified Data.ByteString.UTF8 as BSU
 data ConfirmedOrderEvent = ConfirmedOrderEvent
   { unAnyOrder :: AnyOrder
   , unTxOut    :: FullTxOut
-  , unGix      :: Integer --todo Gix
+  , unGix      :: Gix
   } deriving (Generic, FromJSON, ToJSON)
 
 instance ToKafka String ConfirmedOrderEvent where
@@ -35,5 +36,5 @@ instance ToKafka String ConfirmedOrderEvent where
 data ConfirmedPoolEvent = ConfirmedPoolEvent
   { unPool  :: Pool
   , unTxOut :: FullTxOut
-  , unGix   :: Integer --todo Gix
+  , unGix   :: Gix
   } deriving (Generic, FromJSON, ToJSON)

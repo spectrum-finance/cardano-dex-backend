@@ -74,15 +74,16 @@ library
     exposed-modules: Tracker.App
                      Tracker.Programs.TrackerProgram
                      Tracker.Services.ExplorerService
-                     Tracker.Services.KafkaService 
                      Tracker.Services.SettingsReader
-                     Tracker.Clients.ExplorerClient
                      Tracker.Models.AppSettings
                      Tracker.Utils
 
     build-depends:
         streaming-kafka == 0.1.0.0,
         core == 0.1.0.0,
+        cardano-tx == 0.1.0.0,
+        dex-core == 0.1.0.0,
+        quickblue == 0.1.0.0,
         bytestring,
         aeson,
         rio,
@@ -100,7 +101,6 @@ library
         modern-uri,
         plutus-ledger-api -any,
         hw-kafka-client,
-        sdk,
         dhall,
         http-conduit,
         yaml,

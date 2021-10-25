@@ -77,6 +77,8 @@ library
     build-depends: 
         streaming-kafka == 0.1.0.0,
         dex-core == 0.1.0.0,
+        cardano-tx == 0.1.0.0,
+        quickblue == 0.1.0.0,
         utf8-string == 1.0.2,
         bytestring,
         aeson,
