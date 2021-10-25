@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               tracker
+name:               core
 version:            0.1.0.0
 
 author:             ErgoLabs
@@ -55,6 +55,7 @@ common project-config
                         TypeFamilies
                         TypeSynonymInstances
                         ViewPatterns
+                        DuplicateRecordFields
 
   ghc-options:          -Wall
                         -Wcompat
@@ -71,18 +72,9 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Tracker.App
-                     Tracker.Programs.TrackerProgram
-                     Tracker.Services.ExplorerService
-                     Tracker.Services.KafkaService 
-                     Tracker.Services.SettingsReader
-                     Tracker.Clients.ExplorerClient
-                     Tracker.Models.AppSettings
-                     Tracker.Models.ExplorerModels
-                     Tracker.Utils
-                     Tracker.Models.KafkaModel
+    exposed-modules: Core.Streaming
 
-    build-depends:
+    build-depends: 
         streaming-kafka == 0.1.0.0,
         bytestring,
         aeson,
@@ -107,12 +99,3 @@ library
         yaml,
         plutus-tx,
         plutus-ledger
-
-executable tracker-app
-    main-is: Main.hs
-    build-depends: 
-        base >= 4.9 && < 5,
-        tracker,
-        rio
-    hs-source-dirs:   app
-    default-language: Haskell2010

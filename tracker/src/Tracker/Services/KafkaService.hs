@@ -18,7 +18,7 @@ import Tracker.Models.KafkaModel
 
 data KafkaService = KafkaService
     { sendProxy :: [KafkaMsg] -> IO ()
-    , sendAmm   :: [KafkaMsg]     -> IO ()
+    , sendAmm   :: [KafkaMsg] -> IO ()
     }
 
 mkKafkaService :: KafkaProducerSettings -> IO KafkaService

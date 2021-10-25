@@ -14,8 +14,8 @@ import Tracker.Models.KafkaModel
 import Data.Aeson
 import qualified RIO.ByteString.Lazy as BL
 
-data TrackerProgram = TrackerProgram 
-  { run :: IO () 
+data TrackerProgram f = TrackerProgram 
+  { run :: f () 
   }
 
 mkTrackerProgram :: ExplorerService -> KafkaService -> IO TrackerProgram
