@@ -9,7 +9,7 @@ extra-source-files: CHANGELOG.md
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/hello
+  location: https://github.com/ergolabs/cardano-dex-backend
 
 common base
   build-depends: base >= 4.9 && < 5
@@ -80,6 +80,7 @@ library
                      Tracker.Models.AppSettings
                      Tracker.Models.ExplorerModels
                      Tracker.Utils
+                     Tracker.Models.KafkaModel
 
     build-depends: 
         bytestring,
@@ -103,7 +104,8 @@ library
         dhall,
         http-conduit,
         yaml,
-        plutus-tx
+        plutus-tx,
+        plutus-ledger
 
 executable tracker-app
     main-is: Main.hs

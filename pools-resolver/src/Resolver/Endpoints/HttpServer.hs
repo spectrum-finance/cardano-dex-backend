@@ -6,15 +6,14 @@ module Resolver.Endpoints.HttpServer
 import Resolver.Models.AppSettings as AppSettings
 import Control.Monad.IO.Class as CIO (liftIO)
 import RIO as RIO (Maybe, ($), (>>), RIO(..), view, liftIO, (.), fromIntegral)
-import Dex.Models
 import Resolver.Services.PoolsResolver (PoolResolver(..))
 import Servant
 import Network.Wai.Handler.Warp as Warp
 import Prelude (print)
 import Resolver.Models.CfmmPool
 import Resolver.Repositories.PoolRepository
-import Utils (PoolId(..))
 import GHC.Natural
+import ErgoDex.Amm.Pool
 
 data HttpServer env = HttpServer
     { runHttpServer :: HasHttpServerSettings env => RIO env () 

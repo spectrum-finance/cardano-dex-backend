@@ -10,13 +10,15 @@ import Prelude (print)
 import Kafka.Producer
 import RIO.ByteString.Lazy as BS
 import Tracker.Models.AppSettings (KafkaProducerSettings(..))
-import Dex.Models
 import RIO.List as List
 import RIO.Text as Text
+import ErgoDex.Amm.Orders
+import ErgoDex.Amm.Pool
+import Tracker.Models.KafkaModel
 
 data KafkaService = KafkaService
-    { sendProxy :: [ParsedOperation] -> IO ()
-    , sendAmm :: [Pool] -> IO ()
+    { sendProxy :: [KafkaMsg] -> IO ()
+    , sendAmm   :: [KafkaMsg]     -> IO ()
     }
 
 mkKafkaService :: KafkaProducerSettings -> IO KafkaService
@@ -25,7 +27,7 @@ mkKafkaService settings = do
     _ <- print "Kafka service was initialized successfully"
     pure service
 
-sendProxy' :: KafkaProducerSettings -> [ParsedOperation] -> IO ()
+sendProxy' :: KafkaProducerSettings -> [KafkaMsg] -> IO ()
 sendProxy' settings parsedOps = do
     runProducerLocal
       (List.map BrokerAddress (getBrokersList settings))
@@ -35,7 +37,7 @@ sendProxy' settings parsedOps = do
           (RIO.map encodeOperation parsedOps)
       )
 
-sendAmm' :: KafkaProducerSettings -> [Pool] -> IO ()
+sendAmm' :: KafkaProducerSettings -> [KafkaMsg] -> IO ()
 sendAmm' settings txOuts = do
     liftIO $ runProducerLocal (List.map BrokerAddress (getBrokersList settings)) (sendMessages $ formProducerRecord (Text.encodeUtf8 $ getAmmMsgKey settings) (TopicName $ getAmmTopic settings) txOuts)
 
@@ -79,9 +81,5 @@ formProducerRecord s t = L.map (mkMessage t (Just s) . Just . BS.toStrict . enco
 formProducerRecordOperation :: RIO.ByteString -> TopicName -> [BS.ByteString] -> [ProducerRecord]
 formProducerRecordOperation s t = L.map (mkMessage t (Just s) . Just . BS.toStrict)
 
-encodeOperation :: ParsedOperation -> BS.ByteString
-encodeOperation (ParsedOperation op) = 
-    case op of
-        (SwapOperation swapData) -> encode swapData
-        (DepositOperation depositData) -> encode depositData
-        (RedeemOperation redeemData) -> encode redeemData  
+encodeOperation :: KafkaMsg -> BS.ByteString
+encodeOperation msg = encode msg

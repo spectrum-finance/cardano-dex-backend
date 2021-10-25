@@ -3,19 +3,24 @@ module Executor.Services.KafkaService
     , mkKafkaService
     ) where
 
-import Control.Exception as C (bracket) 
-import Kafka.Consumer
-import RIO
-import Prelude (print)
-import qualified Streamly.Prelude as S
-import RIO.ByteString as BS
-import Data.Aeson
-import RIO.ByteString.Lazy as LBS
-import Dex.Models
+import           Control.Exception   as C (bracket) 
+import           Kafka.Consumer
+import           RIO
+import           Prelude (print)
+import qualified Streamly.Prelude    as S
+import           RIO.ByteString      as BS
+import           Data.Aeson
+import           RIO.ByteString.Lazy as LBS
+import           GHC.Natural
+import           RIO.List            as List
+
 import Executor.Models.Settings
 import Executor.Services.Processor
-import GHC.Natural
-import RIO.List as List
+import Executor.Models.KafkaModel
+import Executor.Utils
+
+import ErgoDex.State
+import ErgoDex.Amm.Orders
 
 data KafkaService env = KafkaService
     { runKafka :: HasKafkaConsumerSettings env => RIO env ()
@@ -65,19 +70,19 @@ pollMessageF Processor{..} settings consumer = do
     err <- commitAllOffsets OffsetCommit consumer
     print $ "Offsets: " <> maybe "Committed." show err
 
-parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe ParsedOperation
+parseMessage :: Either e (ConsumerRecord k (Maybe BS.ByteString)) -> Maybe (Confirmed AnyOrder)
 parseMessage x = case x of Right xv -> crValue xv >>= (\msg -> decodeTest msg)
-                           _ -> Nothing
+                           _        -> Nothing
 
-decodeTest :: BS.ByteString -> Maybe ParsedOperation
+decodeTest :: BS.ByteString -> Maybe (Confirmed AnyOrder)
 decodeTest testData =
-    let lazyStr = LBS.fromStrict testData
-        decodedA = decode lazyStr :: Maybe SwapOpData
-        decodeB = decode lazyStr :: Maybe DepositOpData
-        decodeC = decode lazyStr :: Maybe RedeemOpData
+    let msg          = (decode $ LBS.fromStrict testData) :: Maybe KafkaMsg
+        KafkaMsg{..} = unsafeFromMaybe msg
+        maybeSwap    = (decode $ LBS.fromStrict order) :: Maybe Swap
+        maybeDeposit = (decode $ LBS.fromStrict order) :: Maybe Deposit
+        maybeRedeem  = (decode $ LBS.fromStrict order) :: Maybe Redeem
     in 
-        if (isJust decodedA) then ParsedOperation <$> (SwapOperation <$> decodedA)
-        else if (isJust decodeB) then ParsedOperation <$> (DepositOperation <$> decodeB)
-        else if (isJust decodeC) then ParsedOperation <$> (RedeemOperation <$> decodeC)
-        else Nothing
-    -- in ParsedOperation <$> getFirst (First decodedA <> First decodeB <> First decodeC)
+      if (isJust maybeSwap)         then Just $ Confirmed txOut (AnyOrder anyOrderPoolId (SwapAction $ unsafeFromMaybe maybeSwap))
+      else if (isJust maybeDeposit) then Just $ Confirmed txOut (AnyOrder anyOrderPoolId (DepositAction $ unsafeFromMaybe maybeDeposit))
+      else if (isJust maybeRedeem)  then Just $ Confirmed txOut (AnyOrder anyOrderPoolId (RedeemAction $ unsafeFromMaybe maybeRedeem))
+      else Nothing
