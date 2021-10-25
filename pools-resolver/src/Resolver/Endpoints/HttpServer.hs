@@ -1,53 +1,55 @@
+{-# LANGUAGE TypeOperators #-}
+
 module Resolver.Endpoints.HttpServer
-    ( HttpServer(..)
-    , mkHttpServer
-    ) where
+  ( HttpServer(..)
+  , mkHttpServer
+  ) where
 
 import Resolver.Models.AppSettings as AppSettings
-import Control.Monad.IO.Class as CIO (liftIO)
-import RIO as RIO (Maybe, ($), (>>), RIO(..), view, liftIO, (.), fromIntegral)
-import Resolver.Services.PoolsResolver (PoolResolver(..))
+import Resolver.Repositories.PoolRepository
+import Resolver.Services.PoolResolver
+import RIO
+import Data.Int
+import Control.Monad.Trans.Except
 import Servant
 import Network.Wai.Handler.Warp as Warp
-import Prelude (print)
-import Resolver.Models.CfmmPool
-import Resolver.Repositories.PoolRepository
 import GHC.Natural
 import ErgoDex.Amm.Pool
+import Cardano.Models
+import Explorer.Types
+import Resolver.Models.Types
 
-data HttpServer env = HttpServer
-    { runHttpServer :: HasHttpServerSettings env => RIO env () 
-    }
+data HttpServer f = HttpServer
+  { runHttpServer :: f ()
+  }
 
-mkHttpServer :: PoolResolver -> PoolRepository -> HttpServer env
-mkHttpServer r p = HttpServer $ runHttpServer' r p
+mkHttpServer :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRepository f -> UnliftIO f -> HttpServer f
+mkHttpServer set resolver repo uIO = HttpServer $ runHttpServer' set resolver repo uIO
 
-runHttpServer' :: HasHttpServerSettings env => PoolResolver -> PoolRepository -> RIO env ()
-runHttpServer' r p = do
-    settings <- view httpSettingsL
-    RIO.liftIO $ print "Running http server" >> (Warp.run (fromIntegral . naturalToInteger $ AppSettings.getPort settings) (app r p))
-
--------------------------------------------------------------------------------------
+runHttpServer' :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRepository f -> UnliftIO f -> f ()
+runHttpServer' HttpServerSettings{..} resolver repo uIO =
+  liftIO $ (Warp.run (fromIntegral getPort) (httpApp resolver repo uIO))
 
 type Api =
-         "resolve" :> ReqBody '[JSON] PoolId :> Post '[JSON] (Maybe Pool)
-    :<|> "update"  :> ReqBody '[JSON] Pool :> Post '[JSON] ()
+  "resolve" :> ReqBody '[JSON] PoolId         :> Post '[JSON] (Maybe ConfirmedPool) :<|>
+  "update"  :> ReqBody '[JSON] PredictedPool  :> Post '[JSON] ()
 
 apiProxy :: Proxy Api
 apiProxy = Proxy
 
-app :: PoolResolver -> PoolRepository -> Application
-app r p = serve apiProxy (server r p)
+f2Handler :: (MonadIO f) => UnliftIO f -> f a -> Servant.Handler a
+f2Handler UnliftIO{..} = liftIO . unliftIO
 
-server :: PoolResolver -> PoolRepository -> Server Api
+httpApp :: (MonadIO f) => PoolResolver f -> PoolRepository f -> UnliftIO f -> Application
+httpApp r p un = serve apiProxy $ hoistServer apiProxy (f2Handler un) (server r p)
+
+server :: PoolResolver f -> PoolRepository f -> ServerT Api f
 server r p =
-    resolvePool r :<|>
-    update p
+  resolvePool r :<|>
+  update p
  
-resolvePool :: PoolResolver -> PoolId -> Handler (Maybe Pool)
-resolvePool PoolResolver{..} pId = 
-    CIO.liftIO $ (print "Going to resolve pool") >> resolve pId
+resolvePool :: PoolResolver f -> PoolId -> f (Maybe ConfirmedPool)
+resolvePool PoolResolver{..} = resolve
 
-update :: PoolRepository -> Pool -> Handler ()
-update PoolRepository{..} pool =
-    CIO.liftIO $ putPredicted $ PredictedPool pool
+update :: PoolRepository f -> PredictedPool -> f ()
+update PoolRepository{..} = putPredicted

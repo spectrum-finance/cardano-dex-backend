@@ -3,23 +3,23 @@ module Resolver.Wirings.WiringApp
     ) where
 
 import RIO
-import Resolver.Services.KafkaService
+import Resolver.Services.ConfigReader        as CR
 import Resolver.Endpoints.HttpServer
-import qualified Streamly.Prelude as S
-import Resolver.Services.SettingsReader
 import Resolver.Repositories.PoolRepository
-import Resolver.Services.PoolsResolver
+import Resolver.Program.Resolver
+import Resolver.Services.PoolResolver
 import Resolver.Models.AppSettings
+import Control.Monad.Trans.Resource
+import Streaming.Consumer
 
 runApp :: IO ()
-runApp = do   
-    let settingsReader = mkSettingsReader
-    appSettings <- read settingsReader
-    repo <- mkPoolRepository $ redisSettings appSettings
-    let kafkaService = mkKafkaService repo
-        poolResolver = mkPoolResolver repo
-        httpServer = mkHttpServer poolResolver repo
-    runRIO appSettings $ do
-        liftIO $ 
-            S.parallel (S.fromEffect $ runRIO appSettings (runHttpServer httpServer)) (S.fromEffect $ runRIO appSettings (runKafka kafkaService))
-                & S.drain
+runApp = runResourceT $ do
+  AppSettings {..} <- lift $ CR.read CR.mkConfigReader
+  poolRepository   <- lift $ mkPoolRepository redisSettings
+  consumer         <- mkKafkaConsumer kafkaConfig [topicId]
+  let
+    resolver      = mkResolver poolRepository consumer
+    poolResolver  = mkPoolResolver poolRepository
+    httpServer    = mkHttpServer httpSettings poolResolver poolRepository (UnliftIO id)
+  _ <- lift $ runHttpServer httpServer
+  lift $ run resolver

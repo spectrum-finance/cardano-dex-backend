@@ -20,8 +20,8 @@ data OrdersExecutor f = OrdersExecutor
   }
 
 mkOrdersExecutor 
-  :: (MonadThrow f) 
-  => PoolActions 
+  :: (MonadThrow f)
+  => PoolActions
   -> PoolsResolver f 
   -> OrdersExecutor f
 mkOrdersExecutor pa pr = OrdersExecutor $ process' pa pr
