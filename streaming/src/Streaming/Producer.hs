@@ -10,13 +10,15 @@ import           Kafka.Producer
 
 import Streaming.Config
 import Streaming.Class
+import Data.Bifunctor as Either
+import Streaming.Types
 
 data Producer f k v = Producer
   { produce :: S.SerialT f (k, v) -> f ()
   }
 
 mkKafkaProducer
-  :: (MonadError KafkaError f, S.MonadAsync f, ToKafka k v)
+  :: (MonadError ProducerExecption f, MonadError KafkaError f, S.MonadAsync f, ToKafka k v)
   => KafkaProducerConfig
   -> TopicName
   -> ResourceT f (Producer f k v)
@@ -33,7 +35,7 @@ mkKafkaProducer conf topic = do
   pure $ Producer (produce' prod topic)
 
 produce'
-  :: (MonadError KafkaError f, S.MonadAsync f, ToKafka k v)
+  :: (MonadError ProducerExecption f, S.MonadAsync f, ToKafka k v)
   => KafkaProducer
   -> TopicName
   -> S.SerialT f (k, v)
@@ -42,6 +44,7 @@ produce' prod topic upstream =
     upstream
   & S.mapM (\(k, v) -> produceMessage prod (toKafka topic k v))
   & S.map (maybeToLeft ())
+  & S.map (Either.first (const ProducerExecption))
   & S.mapM eitherToError
   & S.drain
 

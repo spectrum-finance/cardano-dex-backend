@@ -84,6 +84,7 @@ library
         cardano-tx == 0.1.0.0,
         dex-core == 0.1.0.0,
         quickblue == 0.1.0.0,
+        exceptions == 0.10.4,
         bytestring,
         aeson,
         rio,

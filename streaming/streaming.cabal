@@ -75,6 +75,7 @@ library
                      Streaming.Consumer
                      Streaming.Config
                      Streaming.Class
+                     Streaming.Types
 
     build-depends:
         bytestring,
