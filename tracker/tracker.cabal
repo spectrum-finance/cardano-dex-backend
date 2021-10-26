@@ -75,6 +75,7 @@ library
                      Tracker.Programs.TrackerProgram
                      Tracker.Services.ExplorerService
                      Tracker.Services.SettingsReader
+                     Tracker.Repository.ExplorerRepo
                      Tracker.Models.AppSettings
                      Tracker.Utils
 
