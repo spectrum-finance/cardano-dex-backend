@@ -1,6 +1,6 @@
-module Tracker.Services.ExplorerService 
-  ( ExplorerService(..)
-  , mkExplorerService
+module Tracker.Services.TrackerService 
+  ( TrackerService(..)
+  , mkTrackerService
   ) where 
 
 import Prelude
@@ -11,17 +11,17 @@ import Explorer.Service
 import Tracker.Repository.ExplorerRepo
 import Explorer.Types
 
-data ExplorerService f = ExplorerService
+data TrackerService f = TrackerService
  { getOutputs :: f [FullTxOut] 
  }
 
-mkExplorerService 
+mkTrackerService 
   :: Monad f 
   => ExplorerSettings 
   -> ExplorerRepo f 
   -> Explorer f 
-  -> ExplorerService f
-mkExplorerService settings repo client = ExplorerService $ getOutputs' settings repo client
+  -> TrackerService f
+mkTrackerService settings repo client = TrackerService $ getOutputs' settings repo client
 
 getOutputs'
   :: Monad f 

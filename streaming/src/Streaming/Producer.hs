@@ -53,5 +53,3 @@ mkProducerProps KafkaProducerConfig{..} =
      brokersList (fmap BrokerAddress producerBrokers)
   <> sendTimeout (Timeout producerTimeout)
   <> logLevel KafkaLogDebug
-
-

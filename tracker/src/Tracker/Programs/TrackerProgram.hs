@@ -2,7 +2,7 @@ module Tracker.Programs.TrackerProgram where
 
 import qualified Streamly.Prelude as S
 import RIO 
-import Tracker.Services.ExplorerService
+import Tracker.Services.TrackerService
 import Tracker.Utils
 import ErgoDex.Class
 import ErgoDex.Amm.Orders
@@ -25,7 +25,7 @@ data TrackerProgram f = TrackerProgram
 mkTrackerProgram 
   :: (S.MonadAsync f, Exception ProducerExecption, MonadCatch f) 
   => ExplorerProgrammSettings
-  -> ExplorerService f
+  -> TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent 
   -> Producer f PoolId ConfirmedPoolEvent 
   -> TrackerProgram f
@@ -35,7 +35,7 @@ mkTrackerProgram settings explorer orderProd poolProd =
 run' 
   :: (S.MonadAsync f, Exception ProducerExecption, MonadCatch f) 
   => ExplorerProgrammSettings
-  -> ExplorerService f
+  -> TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent
   -> f ()
@@ -47,11 +47,11 @@ run' ExplorerProgrammSettings{..} explorer orderProd poolProd =
   
 process 
   :: (Monad f)
-  => ExplorerService f
+  => TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent 
   -> f ()
-process ExplorerService{..} orderProd poolProd = do
+process TrackerService{..} orderProd poolProd = do
   fulltxOuts <- getOutputs
   let
     unspent = map toFullTxOut fulltxOuts `zip` fulltxOuts

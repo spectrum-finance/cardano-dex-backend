@@ -73,7 +73,7 @@ library
     
     exposed-modules: Tracker.App
                      Tracker.Programs.TrackerProgram
-                     Tracker.Services.ExplorerService
+                     Tracker.Services.TrackerService 
                      Tracker.Services.SettingsReader
                      Tracker.Repository.ExplorerRepo
                      Tracker.Models.AppSettings
