@@ -72,11 +72,3 @@ getOrElse input defaultInput =
           in
             Gix int
         _ -> defaultInput
-
--- getLastPredicted' :: Connection -> PoolId -> IO (Maybe (Predicted Pool))
--- getLastPredicted' conn pIdLast = do
---     res <- runRedis conn $ do
---         Redis.get $ mkLastPredictedKey pIdLast
---     _ <- print res
---     let resParsed = (unsafeFromEither res) >>= (\s -> (Json.decode $ LBS.fromStrict s) :: Maybe (Predicted Pool))
---     pure resParsed
