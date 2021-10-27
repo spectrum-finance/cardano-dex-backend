@@ -97,4 +97,5 @@ library
         resourcet,
         yaml,
         either,
-        mtl
+        mtl,
+        dhall==1.38.1

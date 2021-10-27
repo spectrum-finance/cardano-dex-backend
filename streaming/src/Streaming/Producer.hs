@@ -7,6 +7,7 @@ import           Control.Monad.Error
 import           Control.Monad.Trans.Resource
 import qualified Streamly.Prelude             as S
 import           Kafka.Producer
+import           GHC.Natural                  as Natural
 
 import Streaming.Config
 import Streaming.Class
@@ -16,7 +17,7 @@ import Streaming.Types
 data Producer f k v = Producer
   { produce :: S.SerialT f (k, v) -> f ()
   }
-
+ 
 mkKafkaProducer
   :: (MonadError ProducerExecption f, MonadError KafkaError f, S.MonadAsync f, ToKafka k v)
   => KafkaProducerConfig
@@ -51,5 +52,5 @@ produce' prod topic upstream =
 mkProducerProps :: KafkaProducerConfig -> ProducerProperties
 mkProducerProps KafkaProducerConfig{..} =
      brokersList (fmap BrokerAddress producerBrokers)
-  <> sendTimeout (Timeout producerTimeout)
+  <> sendTimeout (Timeout $ Natural.naturalToInt producerTimeout)
   <> logLevel KafkaLogDebug

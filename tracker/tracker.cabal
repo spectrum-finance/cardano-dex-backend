@@ -80,12 +80,14 @@ library
                      Tracker.Utils
 
     build-depends:
-        streaming-kafka == 0.1.0.0,
-        core == 0.1.0.0,
-        cardano-tx == 0.1.0.0,
-        dex-core == 0.1.0.0,
-        quickblue == 0.1.0.0,
-        exceptions == 0.10.4,
+        streaming-kafka==0.1.0.0,
+        core==0.1.0.0,
+        cardano-tx==0.1.0.0,
+        dex-core==0.1.0.0,
+        quickblue==0.1.0.0,
+        exceptions==0.10.4,
+        resourcet==1.2.4.3,
+        mtl==2.2.2,
         bytestring,
         aeson,
         rio,

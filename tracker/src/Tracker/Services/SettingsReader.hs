@@ -3,13 +3,14 @@ module Tracker.Services.SettingsReader
   , mkSettingsReader
   ) where
 
-import RIO
 import Tracker.Models.AppSettings
 import Dhall
+import Control.Monad.IO.Class
+import Prelude
 
-data SettingsReader = SettingsReader
-  { read :: IO AppSettings 
+data SettingsReader f = SettingsReader
+  { read :: f AppSettings 
   }
 
-mkSettingsReader :: SettingsReader
-mkSettingsReader = SettingsReader $ input auto "./tracker/resources/config.dhall"
+mkSettingsReader :: (MonadIO f) => SettingsReader f
+mkSettingsReader = SettingsReader $ liftIO $ input auto "./tracker/resources/config.dhall"

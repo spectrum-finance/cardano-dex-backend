@@ -1,7 +1,6 @@
 module Tracker.Models.AppSettings 
     ( ExplorerSettings(..)
     , BlockRequestSettings(..)
-    , KafkaProducerSettings(..)
     , ExplorerProgrammSettings(..)
     , AppSettings(..)
     ) where
@@ -9,6 +8,7 @@ module Tracker.Models.AppSettings
 import RIO
 import Dhall
 import Explorer.Config
+import Streaming.Config
 
 data ExplorerProgrammSettings = ExplorerProgrammSettings
   { pollTime :: Natural
@@ -23,7 +23,7 @@ data ExplorerSettings = ExplorerSettings
 instance FromDhall ExplorerSettings
 
 newtype BlockRequestSettings = BlockRequestSettings
-    { getPeriod :: Natural } deriving (Generic, Show)
+  { getPeriod :: Natural } deriving (Generic)
 
 instance FromDhall BlockRequestSettings
 
@@ -31,18 +31,11 @@ data AppSettings = AppSettings
   { getExplorerSettings :: ExplorerSettings
   , getExplorerConfig :: ExplorerConfig
   , getBlockRequestSettings :: BlockRequestSettings
-  , getKafkaProducerSettings :: KafkaProducerSettings
+  , poolsProducerConfig :: KafkaProducerConfig
+  , poolsTopicName :: Text
+  , ordersProducerConfig :: KafkaProducerConfig
+  , ordersTopicName :: Text
   , explorerProgrammSettings :: ExplorerProgrammSettings
-  } deriving (Generic, Show)
+  } deriving (Generic)
 
 instance FromDhall AppSettings
-
-data KafkaProducerSettings = KafkaProducerSettings 
-  { getAmmTopic :: Text
-  , getProxyTopic :: Text
-  , getBrokersList :: [Text]
-  , getProxyMsgKey :: Text
-  , getAmmMsgKey :: Text
-  } deriving (Generic, Show)
-
-instance FromDhall KafkaProducerSettings
