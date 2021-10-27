@@ -88,6 +88,8 @@ library
         exceptions==0.10.4,
         resourcet==1.2.4.3,
         mtl==2.2.2,
+        unliftio-core==0.2.0.1,
+        transformers==0.5.6.2,
         bytestring,
         aeson,
         rio,

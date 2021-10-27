@@ -22,16 +22,20 @@ import Control.Monad.Catch
 import Streaming.Types
 import Control.Monad.Error
 import qualified Streamly.Prelude             as S
+import Control.Monad.IO.Unlift
 
 data App = App
   { runApp :: IO ()
   }
 
 mkApp :: IO App
-mkApp = return $ App $ liftIO wiring
+mkApp = return $ App mkIO
+
+mkIO :: IO ()
+mkIO = wiring
 
 wiring
-  :: (MonadIO f, MonadUnliftIO f, MonadCatch f, MonadError ProducerExecption f, MonadError KafkaError f, S.MonadAsync f)
+  :: (MonadIO f, MonadUnliftIO f, MonadCatch f, MonadThrow f, S.MonadAsync f)
   => f ()
 wiring = runResourceT $ do
   AppSettings {..} <- lift $ read mkSettingsReader
