@@ -17,7 +17,7 @@ import Streaming.Types
 data Producer f k v = Producer
   { produce :: S.SerialT f (k, v) -> f ()
   }
- --MonadError ProducerExecption f
+
 mkKafkaProducer
   :: (MonadThrow f, S.MonadAsync f, ToKafka k v)
   => KafkaProducerConfig
@@ -45,11 +45,11 @@ produce' prod topic upstream =
     upstream
   & S.mapM (\(k, v) -> produceMessage prod (toKafka topic k v))
   & S.map (maybeToLeft ())
-  -- & S.map (Either.first (const ProducerExecption))
+  & S.map (Either.first (const ProducerExecption))
   & S.mapM throwEither
   & S.drain
 
-throwEither :: (MonadThrow f) => Either KafkaError r -> f r
+throwEither :: (MonadThrow f, Exception e) => Either e r -> f r
 throwEither (Left err)    = throwM err
 throwEither (Right value) = pure value
 

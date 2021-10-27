@@ -29,18 +29,10 @@ data App = App
   }
 
 mkApp :: IO App
-mkApp = return $ App mkIO
-
-mkIO :: IO ()
-mkIO = wiring
-
-wiring
-  :: (MonadIO f, MonadUnliftIO f, MonadCatch f, MonadThrow f, S.MonadAsync f)
-  => f ()
-wiring = runResourceT $ do
+mkApp = return $ App $ runResourceT $ do
   AppSettings {..} <- lift $ read mkSettingsReader
-  poolsProducer    <- mkKafkaProducer poolsProducerConfig (TopicName poolsTopicName) -- :: ResourceT IO (Producer IO PoolId ConfirmedPoolEvent)
-  ordersProducer   <- mkKafkaProducer ordersProducerConfig (TopicName ordersTopicName) -- :: ResourceT IO (Producer IO PoolId ConfirmedOrderEvent)
+  poolsProducer    <- mkKafkaProducer poolsProducerConfig (TopicName poolsTopicName)
+  ordersProducer   <- mkKafkaProducer ordersProducerConfig (TopicName ordersTopicName)
   let 
     explorer        = mkExplorer getExplorerConfig
     exporerRepo     = mkExplorerRepo

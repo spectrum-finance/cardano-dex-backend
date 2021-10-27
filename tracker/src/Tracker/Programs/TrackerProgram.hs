@@ -21,7 +21,7 @@ import Control.Monad.Catch
 data TrackerProgram f = TrackerProgram 
   { run :: f () 
   }
---, Exception ProducerExecption
+
 mkTrackerProgram 
   :: (S.MonadAsync f, MonadCatch f) 
   => ExplorerProgrammSettings
@@ -42,7 +42,7 @@ run'
 run' ExplorerProgrammSettings{..} explorer orderProd poolProd =
     S.repeatM (process explorer orderProd poolProd)
   & S.delay (fromIntegral $ Natural.naturalToInt pollTime)
-  -- & S.handle (\ProducerExecption -> S.fromPure ()) -- log.info here
+  & S.handle (\ProducerExecption -> S.fromPure ()) -- log.info here
   & S.drain 
   
 process 
