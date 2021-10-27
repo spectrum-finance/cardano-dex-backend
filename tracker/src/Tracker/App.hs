@@ -33,9 +33,9 @@ mkApp = return $ App $ runResourceT $ do
   AppSettings {..} <- lift $ read mkSettingsReader
   poolsProducer    <- mkKafkaProducer poolsProducerConfig (TopicName poolsTopicName)
   ordersProducer   <- mkKafkaProducer ordersProducerConfig (TopicName ordersTopicName)
+  exporerRepo      <- mkExplorerRepo redisConfig
   let 
-    explorer        = mkExplorer getExplorerConfig
-    exporerRepo     = mkExplorerRepo
-    trackerService  = mkTrackerService getExplorerSettings exporerRepo explorer
+    explorer        = mkExplorer explorerConfig
+    trackerService  = mkTrackerService explorerSettings exporerRepo explorer
     trackerProgramm = mkTrackerProgram explorerProgrammSettings trackerService ordersProducer poolsProducer
   lift $ run trackerProgramm

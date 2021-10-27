@@ -1,7 +1,8 @@
 module Tracker.Models.AppSettings 
-    ( ExplorerSettings(..)
+    ( RedisSettings(..)
     , BlockRequestSettings(..)
     , ExplorerProgrammSettings(..)
+    , ExplorerSettings(..)
     , AppSettings(..)
     ) where
 
@@ -10,32 +11,40 @@ import Dhall
 import Explorer.Config
 import Streaming.Config
 
-data ExplorerProgrammSettings = ExplorerProgrammSettings
+newtype ExplorerProgrammSettings = ExplorerProgrammSettings
   { pollTime :: Natural
-  } deriving (Generic, Show)
+  } deriving (Generic)
 
 instance FromDhall ExplorerProgrammSettings
-
-data ExplorerSettings = ExplorerSettings
-  { limitOffset :: Natural
-  } deriving (Generic, Show)
-
-instance FromDhall ExplorerSettings
 
 newtype BlockRequestSettings = BlockRequestSettings
   { getPeriod :: Natural } deriving (Generic)
 
 instance FromDhall BlockRequestSettings
 
+data RedisSettings = RedisSettings
+  { redisHost :: String
+  , redisPort :: String 
+  } deriving (Generic)
+
+instance FromDhall RedisSettings
+
+newtype ExplorerSettings = ExplorerSettings
+  { limitOffset :: Natural
+  } deriving (Generic)
+
+instance FromDhall ExplorerSettings
+
 data AppSettings = AppSettings
-  { getExplorerSettings :: ExplorerSettings
-  , getExplorerConfig :: ExplorerConfig
-  , getBlockRequestSettings :: BlockRequestSettings
-  , poolsProducerConfig :: KafkaProducerConfig
-  , poolsTopicName :: Text
-  , ordersProducerConfig :: KafkaProducerConfig
-  , ordersTopicName :: Text
+  { explorerConfig           :: ExplorerConfig
+  , blockRequestSettings     :: BlockRequestSettings
+  , poolsProducerConfig      :: KafkaProducerConfig
+  , poolsTopicName           :: Text
+  , ordersProducerConfig     :: KafkaProducerConfig
+  , ordersTopicName          :: Text
   , explorerProgrammSettings :: ExplorerProgrammSettings
+  , redisConfig              :: RedisSettings
+  , explorerSettings         :: ExplorerSettings
   } deriving (Generic)
 
 instance FromDhall AppSettings
