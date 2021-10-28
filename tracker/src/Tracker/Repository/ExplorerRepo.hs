@@ -37,7 +37,6 @@ mkConnectionPool RedisSettings{..} =
   lift $ liftIO $ checkedConnect
     defaultConnectInfo 
       { connectHost = redisHost
-      , connectPort = UnixSocket redisPort
       }
 
 putMinIndex'

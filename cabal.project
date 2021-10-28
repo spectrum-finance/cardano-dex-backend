@@ -41,13 +41,9 @@ benchmarks: true
 test-show-details: streaming
 
 allow-newer:
+           -- Pins to an old version of Template Haskell, unclear if/when it will be updated
            size-based:template-haskell
-           , ouroboros-consensus-byron:formatting
-           , beam-core:aeson
-           , beam-sqlite:aeson
-           , beam-sqlite:dlist
-           , beam-migrate:aeson
-
+           
 constraints:
   singletons < 3.0
   , dependent-sum > 0.6.2.0
@@ -200,7 +196,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 24dabd5388fd1913a8d122d4077d72286ff5e80e
+  tag: cb36689f77bea357555897cfb49110f7c9c54937
   subdir:
     cardano-tx
     dex-core
