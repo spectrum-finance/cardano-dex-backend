@@ -1,22 +1,26 @@
 module Tracker.Programs.TrackerProgram where
 
-import qualified Streamly.Prelude as S
-import RIO 
+import Core.Streaming
+
+import Streaming.Producer
+import Streaming.Types
+
 import Tracker.Services.TrackerService
+import Tracker.Models.AppConfig
 import Tracker.Utils
+
 import ErgoDex.Class
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
 import ErgoDex.State
-import GHC.Natural as Natural
-import Core.Streaming
-import Tracker.Models.AppSettings 
-import Streaming.Producer
+import Cardano.Models     as Sdk
+import Explorer.Models    as Explorer
 import Explorer.Types
-import Cardano.Models as Sdk
-import Explorer.Models as Explorer
-import Streaming.Types
-import Control.Monad.Catch
+
+import qualified Streamly.Prelude as S
+import           RIO 
+import           GHC.Natural as Natural
+import           Control.Monad.Catch
 
 data TrackerProgram f = TrackerProgram 
   { run :: f () 
@@ -24,7 +28,7 @@ data TrackerProgram f = TrackerProgram
 
 mkTrackerProgram 
   :: (S.MonadAsync f, MonadCatch f) 
-  => ExplorerProgrammSettings
+  => TrackerProgrammConfig
   -> TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent 
   -> Producer f PoolId ConfirmedPoolEvent 
@@ -34,12 +38,12 @@ mkTrackerProgram settings explorer orderProd poolProd =
 
 run' 
   :: (S.MonadAsync f, MonadCatch f) 
-  => ExplorerProgrammSettings
+  => TrackerProgrammConfig
   -> TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent
   -> f ()
-run' ExplorerProgrammSettings{..} explorer orderProd poolProd =
+run' TrackerProgrammConfig{..} explorer orderProd poolProd =
     S.repeatM (process explorer orderProd poolProd)
   & S.delay (fromIntegral $ Natural.naturalToInt pollTime)
   & S.handle (\ProducerExecption -> S.fromPure ()) -- log.info here

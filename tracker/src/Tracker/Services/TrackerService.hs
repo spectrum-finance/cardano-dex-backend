@@ -3,13 +3,15 @@ module Tracker.Services.TrackerService
   , mkTrackerService
   ) where 
 
-import Prelude
-import Tracker.Models.AppSettings
-import GHC.Natural as Natural
+import Tracker.Models.AppConfig
+import Tracker.Repository.ExplorerRepo
+
 import Explorer.Models
 import Explorer.Service
-import Tracker.Repository.ExplorerRepo
 import Explorer.Types
+
+import Prelude
+import GHC.Natural as Natural
 
 data TrackerService f = TrackerService
  { getOutputs :: f [FullTxOut] 
@@ -17,7 +19,7 @@ data TrackerService f = TrackerService
 
 mkTrackerService 
   :: Monad f 
-  => ExplorerSettings 
+  => TrackerServiceConfig 
   -> ExplorerRepo f 
   -> Explorer f 
   -> TrackerService f
@@ -25,11 +27,11 @@ mkTrackerService settings repo client = TrackerService $ getOutputs' settings re
 
 getOutputs'
   :: Monad f 
-  => ExplorerSettings
+  => TrackerServiceConfig
   -> ExplorerRepo f 
   -> Explorer f 
   -> f [FullTxOut]
-getOutputs' ExplorerSettings{..} ExplorerRepo{..} Explorer{..} = do
+getOutputs' TrackerServiceConfig{..} ExplorerRepo{..} Explorer{..} = do
   minIndex <- getMinIndex
   outputs  <- getUspentOutputs minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset)
   _        <- putMinIndex $ Gix $ unGix minIndex + toInteger (length $ items outputs)

@@ -1,19 +1,17 @@
 module Tracker.Repository.ExplorerRepo where
 
-import Prelude
 import Explorer.Types
-import Database.Redis as Redis
-import Tracker.Models.AppSettings
-import GHC.Natural as Natural
-import Control.Monad.IO.Unlift
 
+import Tracker.Models.AppConfig
+
+import Prelude
+import Database.Redis               as Redis
+import Data.ByteString.UTF8         as BSU 
+import Data.ByteString              as BS
 import Control.Monad.Trans.Resource
+import Control.Monad.IO.Unlift
 import Control.Monad.Trans.Class
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Trans.Resource as Resource
 import RIO
-import Data.ByteString.UTF8 as BSU 
-import Data.ByteString as BS
 
 data ExplorerRepo f = ExplorerRepo
   { putMinIndex :: Gix -> f ()
@@ -21,7 +19,7 @@ data ExplorerRepo f = ExplorerRepo
   }
 
 mkExplorerRepo
-  :: (Monad f, MonadIO f) 
+  :: (MonadIO f) 
   => RedisSettings
   -> ResourceT f (ExplorerRepo f)
 mkExplorerRepo settings =
@@ -32,7 +30,7 @@ mkExplorerRepo settings =
 
 
 mkConnectionPool
-  :: (Monad f, MonadIO f) 
+  :: (MonadIO f) 
   => RedisSettings
   -> ResourceT f Connection
 mkConnectionPool RedisSettings{..} =
@@ -59,6 +57,7 @@ getMinIndex' conn = liftIO $ do
   res <- runRedis conn $ Redis.get "min_index"
   pure $ getOrElse res (Gix 0)
 
+-- todo log err
 getOrElse :: Either c (Maybe BS.ByteString) -> Gix -> Gix
 getOrElse input defaultInput =
   case input of

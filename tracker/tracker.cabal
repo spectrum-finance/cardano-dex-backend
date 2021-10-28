@@ -74,9 +74,9 @@ library
     exposed-modules: Tracker.App
                      Tracker.Programs.TrackerProgram
                      Tracker.Services.TrackerService 
-                     Tracker.Services.SettingsReader
+                     Tracker.Services.ConfigReader
                      Tracker.Repository.ExplorerRepo
-                     Tracker.Models.AppSettings
+                     Tracker.Models.AppConfig
                      Tracker.Utils
 
     build-depends:
