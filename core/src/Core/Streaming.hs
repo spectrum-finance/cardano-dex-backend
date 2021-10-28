@@ -18,9 +18,9 @@ import Explorer.Types
 import qualified Data.ByteString.Lazy as BS
 
 data ConfirmedOrderEvent = ConfirmedOrderEvent
-  { unAnyOrder :: AnyOrder
-  , unTxOut    :: FullTxOut
-  , unGix      :: Gix
+  { anyOrder :: AnyOrder
+  , txOut    :: FullTxOut
+  , gix      :: Gix
   } deriving (Generic, FromJSON, ToJSON)
 
 instance ToKafka PoolId ConfirmedOrderEvent where
@@ -31,9 +31,9 @@ instance ToKafka PoolId ConfirmedOrderEvent where
       encodedKey   = (Just . BS.toStrict . encode) k
 
 data ConfirmedPoolEvent = ConfirmedPoolEvent
-  { unPool  :: Pool
-  , unTxOut :: FullTxOut
-  , unGix   :: Gix
+  { pool  :: Pool
+  , txOut :: FullTxOut
+  , gix   :: Gix
   } deriving (Generic, FromJSON, ToJSON)
 
 instance ToKafka PoolId ConfirmedPoolEvent where
