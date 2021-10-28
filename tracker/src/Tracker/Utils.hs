@@ -3,22 +3,23 @@ module Tracker.Utils
     , toFullTxOut
     ) where
 
-import RIO
-import Plutus.V1.Ledger.Address 
-import Plutus.V1.Ledger.TxId 
-import Plutus.V1.Ledger.Credential
-import Plutus.V1.Ledger.Scripts
-import Data.ByteString.Char8 as DataC
-import qualified PlutusTx.AssocMap as AssocMap
-import RIO.List as List
-import RIO.Map as Map
-import Plutus.V1.Ledger.Value
-import Prelude as Prelude
-import Cardano.Models as Sdk
-import Ledger.Tx
-import PlutusTx.Builtins.Internal
-
+import Cardano.Models  as Sdk
 import Explorer.Models as Explorer
+import Explorer.Types
+
+import           Plutus.V1.Ledger.Address 
+import           Plutus.V1.Ledger.TxId 
+import           Plutus.V1.Ledger.Scripts
+import qualified PlutusTx.AssocMap          as AssocMap
+import           Plutus.V1.Ledger.Value
+import           PlutusTx.Builtins.Internal
+import           Ledger.Tx
+
+import RIO
+import Prelude
+import Data.ByteString.Char8 as DataC
+import RIO.List              as List
+
 
 unsafeFromEither :: Either String a -> a
 unsafeFromEither (Left err)    = Prelude.error err
@@ -26,16 +27,26 @@ unsafeFromEither (Right value) = value
 
 toFullTxOut :: Explorer.FullTxOut -> Sdk.FullTxOut
 toFullTxOut Explorer.FullTxOut{..} =
-  let 
-    value = Value $ AssocMap.fromList $ List.map (\OutputAsset{..} -> (CurrencySymbol $ BuiltinByteString $ DataC.pack policy, AssocMap.singleton (TokenName $ BuiltinByteString $ DataC.pack name) quantity)) assets
-    (refId', refIdxRaw) = List.span (/= ':') ref
-    refIdx' = List.drop 1 refIdxRaw
-    res = FullTxOut 
-        { fullTxOutGix     = Gix index
-        , fullTxOutRef     = TxOutRef (TxId $ BuiltinByteString $ DataC.pack refId') (read refIdx' :: Integer)
-        , fullTxOutAddress = scriptHashAddress (ValidatorHash $ BuiltinByteString $ DataC.pack addr)
-        , fullTxOutValue   = value
-        , fullTxOutDatum   = data'
-        }
-  in
-    res
+    Sdk.FullTxOut 
+      { fullTxOutRef       = TxOutRef (TxId $ BuiltinByteString $ DataC.pack $ unTxHash txHash) (toInteger index)
+      , fullTxOutAddress   = scriptHashAddress (ValidatorHash $ BuiltinByteString $ DataC.pack $ unAddr addr)
+      , fullTxOutValue     = fullTxOutValue'
+      , fullTxOutDatumHash = datumHash
+      , fullTxOutDatum     = data'
+      }
+  where 
+    fullTxOutValue' = Value $ AssocMap.fromList $ mkValueList value
+    datumHash = fmap mkDatumHash dataHash
+    
+
+mkCurrencySymbol :: PolicyId -> CurrencySymbol
+mkCurrencySymbol PolicyId{..} = CurrencySymbol . BuiltinByteString . DataC.pack $ unPolicyId
+
+mkTokenName :: AssetName -> TokenName
+mkTokenName AssetName{..} = TokenName . BuiltinByteString . DataC.pack $ unAssetName
+
+mkValueList :: [OutAsset] -> [(CurrencySymbol, AssocMap.Map TokenName Integer)]
+mkValueList = List.map (\OutAsset{..} -> (mkCurrencySymbol policy, AssocMap.singleton (mkTokenName name) quantity))
+
+mkDatumHash :: Hash32 -> DatumHash
+mkDatumHash Hash32{..} = DatumHash . BuiltinByteString . DataC.pack $ unHash32
