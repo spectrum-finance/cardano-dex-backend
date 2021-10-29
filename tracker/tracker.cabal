@@ -73,45 +73,40 @@ library
     
     exposed-modules: Tracker.App
                      Tracker.Programs.TrackerProgram
-                     Tracker.Services.ExplorerService
-                     Tracker.Services.KafkaService 
-                     Tracker.Services.SettingsReader
-                     Tracker.Clients.ExplorerClient
-                     Tracker.Models.AppSettings
-                     Tracker.Models.ExplorerModels
+                     Tracker.Services.TrackerService 
+                     Tracker.Services.ConfigReader
+                     Tracker.Services.Logger
+                     Tracker.Caches.TrackerCache
+                     Tracker.Models.AppConfig
                      Tracker.Utils
-                     Tracker.Models.KafkaModel
 
-    build-depends: 
-        bytestring,
-        aeson,
-        rio,
-        text,
-        bytestring,
-        parallel-io,
-        loop,
-        stm,
-        streamly,
-        req,
-        conduit,
-        data-default-class,
-        req-conduit,
-        conduit-extra,
-        modern-uri,
-        plutus-ledger-api -any,
-        hw-kafka-client,
-        sdk,
-        dhall,
-        http-conduit,
-        yaml,
-        plutus-tx,
-        plutus-ledger
+    build-depends:  hashable        == 1.3.0.0
+                  , streaming-kafka == 0.1.0.0
+                  , core            == 0.1.0.0
+                  , cardano-tx      == 0.1.0.0
+                  , dex-core        == 0.1.0.0
+                  , quickblue       == 0.1.0.0
+                  , exceptions      == 0.10.4
+                  , resourcet       == 1.2.4.3
+                  , unliftio-core   == 0.2.0.1
+                  , transformers    == 0.5.6.2
+                  , hedis           == 0.14.4
+                  , utf8-string     == 1.0.2
+                  , bytestring
+                  , rio
+                  , text
+                  , bytestring
+                  , streamly
+                  , plutus-ledger-api -any
+                  , hw-kafka-client
+                  , dhall
+                  , plutus-tx
+                  , plutus-ledger
 
 executable tracker-app
     main-is: Main.hs
-    build-depends: 
-        base >= 4.9 && < 5,
-        tracker,
-        rio
+    build-depends:  base >= 4.9 && < 5
+                  , tracker
+                  , rio
     hs-source-dirs:   app
     default-language: Haskell2010

@@ -1,18 +1,28 @@
-{ getExplorerSettings =
-    { limitOffset = 1
+{ explorerConfig =
+    { explorerHost = ./explorer.dhall
+    , explorerPort = 80
     },
-  getClientSettings =
-    { getExplorerHost = "127.0.0.1"
-    , getExplorerPort = 8083
+  blockRequestConfig =
+    { period = 1
     },
-  getKafkaProducerSettings =
-    { getBrokersList = ["127.0.0.1:9092"]
-    , getAmmTopic = "amm-topic"
-    , getProxyTopic = "proxy-topic"
-    , getProxyMsgKey = "default-proxy-key"
-    , getAmmMsgKey = "default-amm-key" 
+  poolsProducerConfig =
+    { producerBrokers = ["127.0.0.1:9092"]
+    , producerTimeout = 1000
     },
-  getBlockRequestSettings =
-    { getPeriod = 0
+  poolsTopicName = "amm-topic",
+  ordersProducerConfig =
+    { producerBrokers = ["127.0.0.1:9092"]
+    , producerTimeout = 1000
+    },
+  ordersTopicName = "proxy-topic",
+  trackerProgrammConfig =
+    { pollTime = 1000
+    },
+  redisConfig =
+    { redisHost = "0.0.0.0"
+    , redisPort = "6379"
+    },
+  trackerServiceConfig =
+    { limitOffset = 50
     }
 }

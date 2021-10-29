@@ -1,11 +1,15 @@
 module Streaming.Config where
 
-import RIO
+import GHC.Natural
+import GHC.Generics
+import Dhall
 
 data KafkaProducerConfig = KafkaProducerConfig
   { producerBrokers :: [Text]
-  , producerTimeout :: Int
-  }
+  , producerTimeout :: Natural
+  } deriving (Generic)
+
+instance FromDhall KafkaProducerConfig
 
 data KafkaConsumerConfig = KafkaConsumerConfig
   { consumerBrokers   :: [Text]
@@ -13,4 +17,6 @@ data KafkaConsumerConfig = KafkaConsumerConfig
   , consumerPollRate  :: Natural
   , consumerBatchSize :: Natural
   , consumerTimeout   :: Natural
-  }
+  } deriving (Generic)
+
+instance FromDhall KafkaConsumerConfig

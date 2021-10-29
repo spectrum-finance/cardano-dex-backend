@@ -93,7 +93,7 @@ library
         plutus-ledger-api -any,
         plutus-ledger,
         hw-kafka-client,
-        sdk,
+        dex-core == 0.1.0.0,
         cardano-dex,
         dhall,
         containers,

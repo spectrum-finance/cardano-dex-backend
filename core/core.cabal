@@ -1,9 +1,9 @@
 cabal-version:      2.4
-name:               streaming-kafka
+name:               core
 version:            0.1.0.0
 
 author:             ErgoLabs
-maintainer:
+maintainer:         
 
 extra-source-files: CHANGELOG.md
 
@@ -55,6 +55,7 @@ common project-config
                         TypeFamilies
                         TypeSynonymInstances
                         ViewPatterns
+                        DuplicateRecordFields
 
   ghc-options:          -Wall
                         -Wcompat
@@ -70,14 +71,15 @@ library
     import: base, project-config
 
     hs-source-dirs: src
+    
+    exposed-modules: Core.Streaming
 
-    exposed-modules: Streaming.Producer
-                     Streaming.Consumer
-                     Streaming.Config
-                     Streaming.Class
-                     Streaming.Types
-
-    build-depends:
+    build-depends: 
+        streaming-kafka == 0.1.0.0,
+        dex-core == 0.1.0.0,
+        cardano-tx == 0.1.0.0,
+        quickblue == 0.1.0.0,
+        utf8-string == 1.0.2,
         bytestring,
         aeson,
         rio,
@@ -92,11 +94,11 @@ library
         data-default-class,
         req-conduit,
         conduit-extra,
+        modern-uri,
+        plutus-ledger-api -any,
         hw-kafka-client,
+        dhall,
         http-conduit,
-        resourcet,
         yaml,
-        either,
-        mtl,
-        dhall==1.38.1,
-        transformers==0.5.6.2,
+        plutus-tx,
+        plutus-ledger
