@@ -23,10 +23,9 @@ mkTrackerCache
   => RedisSettings
   -> ResourceT f (TrackerCache f)
 mkTrackerCache settings =
-    trackerCacheR 
+    fmap (\c -> TrackerCache (putMinIndex' c) (getMinIndex' c)) poolR 
   where
-    poolR         = mkConnectionPool settings
-    trackerCacheR = fmap (\c -> TrackerCache (putMinIndex' c) (getMinIndex' c)) poolR
+    poolR = mkConnectionPool settings
 
 
 mkConnectionPool
