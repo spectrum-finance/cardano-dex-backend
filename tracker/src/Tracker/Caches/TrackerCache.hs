@@ -1,4 +1,4 @@
-module Tracker.Repository.ExplorerRepo where
+module Tracker.Caches.TrackerCache where
 
 import Explorer.Types
 
@@ -13,20 +13,20 @@ import Control.Monad.IO.Unlift
 import Control.Monad.Trans.Class
 import RIO
 
-data ExplorerRepo f = ExplorerRepo
+data TrackerCache f = TrackerCache
   { putMinIndex :: Gix -> f ()
   , getMinIndex :: f Gix
   }
 
-mkExplorerRepo
+mkTrackerCache
   :: (MonadIO f) 
   => RedisSettings
-  -> ResourceT f (ExplorerRepo f)
-mkExplorerRepo settings =
-    explorerRepoR 
+  -> ResourceT f (TrackerCache f)
+mkTrackerCache settings =
+    trackerCacheR 
   where
     poolR         = mkConnectionPool settings
-    explorerRepoR = fmap (\c -> ExplorerRepo (putMinIndex' c) (getMinIndex' c)) poolR
+    trackerCacheR = fmap (\c -> TrackerCache (putMinIndex' c) (getMinIndex' c)) poolR
 
 
 mkConnectionPool

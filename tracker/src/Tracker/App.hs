@@ -11,7 +11,7 @@ import Tracker.Programs.TrackerProgram
 import Tracker.Models.AppConfig
 import Tracker.Services.ConfigReader
 import Tracker.Services.TrackerService
-import Tracker.Repository.ExplorerRepo
+import Tracker.Caches.TrackerCache
 import Tracker.Services.Logger as Log
 
 import           RIO
@@ -35,10 +35,10 @@ wire = runResourceT $ do
   poolsProducer    <- mkKafkaProducer poolsProducerConfig (TopicName poolsTopicName)
   ordersProducer   <- mkKafkaProducer ordersProducerConfig (TopicName ordersTopicName)
   _                <- lift $ Log.log "Both producers started successfully"
-  exporerRepo      <- mkExplorerRepo redisConfig
-  _                <- lift $ Log.log "exporerRepo started successfully"
+  trackerCache     <- mkTrackerCache redisConfig
+  _                <- lift $ Log.log "trackerCache started successfully"
   let 
     explorer        = mkExplorer explorerConfig
-    trackerService  = mkTrackerService trackerServiceConfig exporerRepo explorer
+    trackerService  = mkTrackerService trackerServiceConfig trackerCache explorer
     trackerProgramm = mkTrackerProgram trackerProgrammConfig trackerService ordersProducer poolsProducer
   lift $ run trackerProgramm

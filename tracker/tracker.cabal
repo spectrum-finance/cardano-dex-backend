@@ -76,7 +76,7 @@ library
                      Tracker.Services.TrackerService 
                      Tracker.Services.ConfigReader
                      Tracker.Services.Logger
-                     Tracker.Repository.ExplorerRepo
+                     Tracker.Caches.TrackerCache
                      Tracker.Models.AppConfig
                      Tracker.Utils
 

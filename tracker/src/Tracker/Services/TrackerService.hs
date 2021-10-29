@@ -4,7 +4,7 @@ module Tracker.Services.TrackerService
   ) where 
 
 import Tracker.Models.AppConfig
-import Tracker.Repository.ExplorerRepo
+import Tracker.Caches.TrackerCache
 import Tracker.Services.Logger as Log
 
 import Explorer.Models
@@ -22,18 +22,18 @@ data TrackerService f = TrackerService
 mkTrackerService 
   :: (Monad f, MonadIO f)
   => TrackerServiceConfig 
-  -> ExplorerRepo f 
+  -> TrackerCache f 
   -> Explorer f 
   -> TrackerService f
-mkTrackerService settings repo client = TrackerService $ getOutputs' settings repo client
+mkTrackerService settings cache client = TrackerService $ getOutputs' settings cache client
 
 getOutputs'
   :: (Monad f, MonadIO f)
   => TrackerServiceConfig
-  -> ExplorerRepo f 
+  -> TrackerCache f 
   -> Explorer f 
   -> f [FullTxOut]
-getOutputs' TrackerServiceConfig{..} ExplorerRepo{..} Explorer{..} = do
+getOutputs' TrackerServiceConfig{..} TrackerCache{..} Explorer{..} = do
   _ <- Log.log "Going to fetch min index"
   minIndex <- getMinIndex
   _ <- Log.log $ "Min index is " ++ show minIndex
