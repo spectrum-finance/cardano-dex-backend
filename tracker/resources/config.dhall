@@ -1,6 +1,6 @@
 { explorerConfig =
-    { explorerHost = "quickblue.io"
-    , explorerPort = 9000
+    { explorerHost = ./explorer.dhall
+    , explorerPort = 80
     },
   blockRequestConfig =
     { period = 1
@@ -19,7 +19,7 @@
     { pollTime = 1000
     },
   redisConfig =
-    { redisHost = "127.0.0.1"
+    { redisHost = "0.0.0.0"
     , redisPort = "6379"
     },
   trackerServiceConfig =
