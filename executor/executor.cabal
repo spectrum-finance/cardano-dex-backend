@@ -72,14 +72,13 @@ library
     hs-source-dirs: src
     
     exposed-modules: Executor.Models.Settings
-                     Executor.Services.KafkaService
                      Executor.Services.Processor
                      Executor.Utils
                      Executor.Services.SettingsReader
                      Executor.Wirings.WiringApp
-                     Executor.Services.BashService
-                     Executor.Clients.PoolsResolverClient
+                     Executor.Services.PoolsResolver
                      Executor.Models.KafkaModel
+                     Executor.Models.Errors
                      
     build-depends: 
         bytestring,

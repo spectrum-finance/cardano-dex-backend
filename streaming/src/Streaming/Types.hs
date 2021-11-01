@@ -17,7 +17,3 @@ data ProducerExecption = ProducerExecption
 instance Exception ProducerExecption
 
 instance Err.Error ProducerExecption
-
--- instance (Monad f) => Err.MonadError ProducerExecption (IdentityT f)
-
-instance (Monad f) => Err.MonadError KafkaError (IdentityT f)
