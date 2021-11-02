@@ -8,6 +8,7 @@ import GHC.Generics
 import Prelude 
 import Kafka.Producer
 import Kafka.Consumer
+import RIO
 
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
@@ -31,6 +32,13 @@ instance ToKafka PoolId ConfirmedOrderEvent where
       encodedValue = asKey v
       encodedKey   = asKey k
 
+instance FromKafka PoolId ConfirmedOrderEvent where
+  fromKafka consumerRecord =
+      keyMaybe >>= (\key -> valueMaybe <&> (key,))
+    where
+      keyMaybe   = (fromKey $ crKey consumerRecord) :: Maybe PoolId
+      valueMaybe = (fromKey $ crValue consumerRecord) :: Maybe ConfirmedOrderEvent
+
 data ConfirmedPoolEvent = ConfirmedPoolEvent
   { pool  :: Pool
   , txOut :: FullTxOut
@@ -46,3 +54,7 @@ instance ToKafka PoolId ConfirmedPoolEvent where
 
 asKey :: (ToJSON a) => a -> Maybe ByteString.ByteString
 asKey = Just . BS.toStrict . encode
+
+fromKey :: (FromJSON a) => Maybe ByteString.ByteString -> Maybe a
+fromKey (Just bs) = (decode . BS.fromStrict) bs
+fromKey _         = Nothing

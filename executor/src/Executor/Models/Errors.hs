@@ -2,7 +2,7 @@ module Executor.Models.Errors where
 
 import RIO
 
-data MaybeExecption = MaybeExecption
+data MaybeErr = MaybeErr
   deriving Show
 
-instance Exception MaybeExecption
+instance Exception MaybeErr

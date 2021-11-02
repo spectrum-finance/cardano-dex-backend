@@ -72,15 +72,16 @@ library
     hs-source-dirs: src
     
     exposed-modules: Executor.Models.Settings
-                     Executor.Services.Processor
-                     Executor.Utils
-                     Executor.Services.SettingsReader
+                     Executor.Services.OrdersExecutor
+                     Executor.Services.ConfigReader
                      Executor.Wirings.WiringApp
                      Executor.Services.PoolsResolver
-                     Executor.Models.KafkaModel
                      Executor.Models.Errors
+                     Executor.Programs.Processor
                      
-    build-depends: 
+    build-depends: cardano-tx,
+        streaming-kafka,
+        core,
         bytestring,
         aeson,
         rio,
@@ -101,7 +102,9 @@ library
         cardano-api,
         plutus-tx,
         http-conduit,
-        http-client
+        http-client,
+        resourcet,
+        exceptions
 
 executable executor-app
     main-is: Main.hs

@@ -2,14 +2,14 @@ module Streaming.Types where
 
 import Data.String
 import Control.Exception.Base
-import Prelude (Show)
 import qualified Control.Monad.Error as Err
-import Kafka.Producer
 import Prelude
-import Control.Monad.Trans.Identity as Identity
+import Dhall
 
 newtype TopicId = TopicId { unTopicId :: String }
-  deriving (IsString)
+  deriving (Generic, IsString)
+
+instance FromDhall TopicId
 
 data ProducerExecption = ProducerExecption
   deriving Show
@@ -17,3 +17,10 @@ data ProducerExecption = ProducerExecption
 instance Exception ProducerExecption
 
 instance Err.Error ProducerExecption
+
+data ConsumerException = ConsumerException
+  deriving Show
+
+instance Exception ConsumerException
+
+instance Err.Error ConsumerException

@@ -1,30 +1,23 @@
 module Executor.Models.Settings 
-    ( KafkaConsumerSettings(..)
-    , PoolsResolverConfig(..)
-    , AppSettings(..)
-    , PaymentSettings(..)
+    ( PoolsResolverConfig(..)
+    , PaymentConfig(..)
+    , AppConfig(..)
     ) where
 
 import RIO
 import Dhall
 
-data AppSettings = AppSettings
-  { getKafkaSettings :: KafkaConsumerSettings
-  , poolsResolverConfig  :: PoolsResolverConfig
-  , paymentSettings  :: PaymentSettings
+import Streaming.Config
+import Streaming.Types
+
+data AppConfig = AppConfig
+  { kafkaConfig         :: KafkaConsumerConfig
+  , topicId             :: TopicId
+  , poolsResolverConfig :: PoolsResolverConfig
+  , paymentConfig       :: PaymentConfig
   } deriving (Generic)
 
-instance FromDhall AppSettings
-
-data KafkaConsumerSettings = KafkaConsumerSettings
-  { getBrokerList :: [Text]
-  , getGroupId    :: Text
-  , getTopicsList :: [Text]
-  , getPollRate   :: Natural
-  , getBatchSize  :: Natural
-  } deriving (Generic)
-
-instance FromDhall KafkaConsumerSettings
+instance FromDhall AppConfig
 
 data PoolsResolverConfig = PoolsResolverConfig
   { getHost :: String
@@ -33,9 +26,9 @@ data PoolsResolverConfig = PoolsResolverConfig
 
 instance FromDhall PoolsResolverConfig
 
-data PaymentSettings = PaymentSettings
+data PaymentConfig = PaymentConfig
   { pubKeyHash :: Text
   , feeAddr    :: Text
   } deriving (Generic, Show)
 
-instance FromDhall PaymentSettings
+instance FromDhall PaymentConfig

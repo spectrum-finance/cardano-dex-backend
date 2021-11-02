@@ -1,14 +1,12 @@
-module Executor.Services.Processor
-    ( Processor(..)
-    , mkProcessor
+module Executor.Services.OrdersExecutor
+    ( OrdersExecutor(..)
+    , mkOrdersExecutor
     ) where
 
-import Executor.Utils
 import Executor.Models.Errors
 import Executor.Services.PoolsResolver
 
 import RIO
-import Prelude (print)
 
 import ErgoDex.State 
 import ErgoDex.Amm.Pool
@@ -16,32 +14,36 @@ import ErgoDex.Amm.Orders
 import ErgoDex.Amm.PoolActions
 import Cardano.Models
 
-data Processor f = Processor
+data OrdersExecutor f = OrdersExecutor
   { process :: Confirmed AnyOrder -> f () 
   }
 
-mkProcessor :: PoolActions -> PoolsResolver -> Processor
-mkProcessor pa pr = Processor $ process' pa pr
+mkOrdersExecutor 
+  :: (MonadThrow f) 
+  => PoolActions 
+  -> PoolsResolver f 
+  -> OrdersExecutor f
+mkOrdersExecutor pa pr = OrdersExecutor $ process' pa pr
 
 process' 
-  :: (Monad f, MonadThrow f)
+  :: (MonadThrow f)
   => PoolActions 
-  -> PoolsResolver 
+  -> PoolsResolver f
   -> Confirmed AnyOrder
   -> f ()
-process' poolActions PoolsResolver{..} confirmedOrder@(Confirmed (AnyOrder poolId _)) = do
+process' poolActions PoolsResolver{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
   maybePool <- resolvePool poolId
-
-  let
-    maybeTx = fmap (\(Confirmed _ pool) -> runOrder pool confirmedOrder poolActions) maybePool
+  pool      <- throwMaybe maybePool
+  let 
+    maybeTx = runOrder pool confirmedOrder poolActions
   
-  (txCandidate, pool) <- throwMaybe . throwEither maybeTx
+  (txCandidate, pool) <- throwEither maybeTx
 
   sendPredicted pool
   -- submit txCandidate
 
 runOrder
-  :: Pool
+  :: Confirmed Pool
   -> Confirmed AnyOrder 
   -> PoolActions 
   -> Either OrderExecErr (TxCandidate, Predicted Pool)
@@ -57,4 +59,4 @@ throwEither (Right value) = pure value
 
 throwMaybe :: (MonadThrow f) => Maybe a -> f a
 throwMaybe (Just value) = pure value
-throwMaybe _ = throwM const MaybeExecption
+throwMaybe _ = throwM MaybeErr

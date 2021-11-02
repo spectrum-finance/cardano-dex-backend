@@ -1,15 +1,18 @@
-{ getKafkaSettings = 
-    { getBrokerList = ["127.0.0.1:9092"]
-    , getGroupId = "executor_group_id_1"
-    , getTopicsList = ["proxy-topic"]
-    , getPollRate = 1000
-    , getBatchSize = 1
+{ kafkaConfig = 
+    { consumerBrokers = ["127.0.0.1:9092"]
+    , consumerGroupId = "executor_group_id_1"
+    , consumerPollRate = 1000
+    , consumerBatchSize = 1
+    , consumerTimeout = 1000
     },
-  getHttpSettings = 
+  topicId = 
+    { unTopicId = "proxy-topic"
+    },
+  poolsResolverConfig = 
     { getHost = "0.0.0.0"
     , getPort = 8088
     },
-  paymentSettings =
+  paymentConfig =
     { pubKeyHash = ""
     , feeAddr = ""
     }
