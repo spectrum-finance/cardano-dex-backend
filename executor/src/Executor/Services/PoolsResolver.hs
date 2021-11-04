@@ -3,7 +3,7 @@ module Executor.Services.PoolsResolver
   , mkPoolsResolver
   ) where
 
-import Executor.Models.Settings 
+import Executor.Models.Config 
           
 import ErgoDex.State
 import ErgoDex.Amm.Pool

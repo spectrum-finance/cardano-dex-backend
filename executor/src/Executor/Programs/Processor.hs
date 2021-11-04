@@ -2,7 +2,7 @@ module Executor.Programs.Processor where
 
 import Executor.Services.OrdersExecutor
 import Streaming.Consumer
-import Core.Streaming
+import Streaming.Events
 import Streaming.Types
 
 import ErgoDex.Amm.Pool ( PoolId )

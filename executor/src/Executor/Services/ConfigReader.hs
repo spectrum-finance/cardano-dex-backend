@@ -1,10 +1,10 @@
 module Executor.Services.ConfigReader
-    ( ConfigReader(..)
-    , mkConfigReader
-    ) where
+  ( ConfigReader(..)
+  , mkConfigReader
+  ) where
 
 import RIO
-import Executor.Models.Settings
+import Executor.Models.Config
 import Dhall
 
 data ConfigReader f = ConfigReader

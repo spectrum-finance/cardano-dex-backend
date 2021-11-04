@@ -1,4 +1,4 @@
-module Core.Streaming
+module Streaming.Events
   ( ConfirmedOrderEvent(..)
   , ConfirmedPoolEvent(..)
   ) where

@@ -12,6 +12,8 @@ import Streaming.Config
 import Streaming.Class
 import Streaming.Types
 
+import Core.Utils
+
 data Consumer f k v = Consumer
   { upstream :: S.SerialT f (k, v)
   }
@@ -53,10 +55,6 @@ upstream' consumer timeout batchSize =
       & S.map (Either.first (const ConsumerException))
       & S.mapM throwEither
       & S.map fromKafka
-
-throwEither :: (MonadThrow f, Exception e) => Either e r -> f r
-throwEither (Left err)    = throwM err
-throwEither (Right value) = pure value
 
 mkConsumerProps :: KafkaConsumerConfig -> ConsumerProperties
 mkConsumerProps KafkaConsumerConfig{..} =

@@ -72,33 +72,6 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Core.Streaming
+    exposed-modules: Core.Utils
 
-    build-depends: 
-        streaming-kafka == 0.1.0.0,
-        dex-core == 0.1.0.0,
-        cardano-tx == 0.1.0.0,
-        quickblue == 0.1.0.0,
-        utf8-string == 1.0.2,
-        bytestring,
-        aeson,
-        rio,
-        text,
-        bytestring,
-        parallel-io,
-        loop,
-        stm,
-        streamly,
-        req,
-        conduit,
-        data-default-class,
-        req-conduit,
-        conduit-extra,
-        modern-uri,
-        plutus-ledger-api -any,
-        hw-kafka-client,
-        dhall,
-        http-conduit,
-        yaml,
-        plutus-tx,
-        plutus-ledger
+    build-depends: rio

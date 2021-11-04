@@ -55,6 +55,7 @@ common project-config
                         TypeFamilies
                         TypeSynonymInstances
                         ViewPatterns
+                        DuplicateRecordFields
 
   ghc-options:          -Wall
                         -Wcompat
@@ -76,28 +77,22 @@ library
                      Streaming.Config
                      Streaming.Class
                      Streaming.Types
+                     Streaming.Events
 
-    build-depends:
-        bytestring,
-        aeson,
-        rio,
-        text,
-        bytestring,
-        parallel-io,
-        loop,
-        stm,
-        streamly,
-        req,
-        conduit,
-        data-default-class,
-        req-conduit,
-        conduit-extra,
-        hw-kafka-client,
-        http-conduit,
-        resourcet,
-        yaml,
-        either,
-        mtl,
-        dhall==1.38.1,
-        transformers==0.5.6.2,
-        dhall
+    build-depends:  bytestring
+                  , aeson
+                  , rio
+                  , text
+                  , bytestring
+                  , streamly
+                  , hw-kafka-client
+                  , resourcet
+                  , either
+                  , mtl
+                  , dhall==1.38.1
+                  , transformers==0.5.6.2
+                  , dhall
+                  , core
+                  , quickblue
+                  , cardano-tx
+                  , dex-core

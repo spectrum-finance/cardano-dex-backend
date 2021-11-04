@@ -1,9 +1,9 @@
 module Executor.Services.OrdersExecutor
-    ( OrdersExecutor(..)
-    , mkOrdersExecutor
-    ) where
+  ( OrdersExecutor(..)
+  , mkOrdersExecutor
+  ) where
 
-import Executor.Models.Errors
+import Core.Utils
 import Executor.Services.PoolsResolver
 
 import RIO
@@ -52,11 +52,3 @@ runOrder pool (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
     DepositAction deposit -> runDeposit (Confirmed txOut deposit) pool
     RedeemAction redeem   -> runRedeem (Confirmed txOut redeem) pool
     SwapAction swap       -> runSwap (Confirmed txOut swap) pool
-
-throwEither :: (MonadThrow f, Exception e) => Either e r -> f r
-throwEither (Left err)    = throwM err
-throwEither (Right value) = pure value
-
-throwMaybe :: (MonadThrow f) => Maybe a -> f a
-throwMaybe (Just value) = pure value
-throwMaybe _ = throwM MaybeErr
