@@ -72,6 +72,6 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Core.Utils
+    exposed-modules: Core.Throw.Combinators
 
     build-depends: rio

@@ -3,8 +3,9 @@ module Executor.Services.OrdersExecutor
   , mkOrdersExecutor
   ) where
 
-import Core.Utils
+import Core.Throw.Combinators
 import Executor.Services.PoolsResolver
+import Executor.Models.Errors
 
 import RIO
 
@@ -33,7 +34,7 @@ process'
   -> f ()
 process' poolActions PoolsResolver{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
   maybePool <- resolvePool poolId
-  pool      <- throwMaybe maybePool
+  pool      <- throwMaybe EmptyPoolErr maybePool
   let 
     maybeTx = runOrder pool confirmedOrder poolActions
   

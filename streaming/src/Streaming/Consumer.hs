@@ -12,7 +12,7 @@ import Streaming.Config
 import Streaming.Class
 import Streaming.Types
 
-import Core.Utils
+import Core.Throw.Combinators
 
 data Consumer f k v = Consumer
   { upstream :: S.SerialT f (k, v)
