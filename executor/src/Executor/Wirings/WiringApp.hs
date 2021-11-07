@@ -1,30 +1,27 @@
 module Executor.Wirings.WiringApp
-    ( runApp
-    ) where
+  ( wire
+  ) where
 
-import Executor.Clients.PoolsResolverClient
-import Executor.Services.SettingsReader
-import Executor.Services.Processor
-import Executor.Services.KafkaService
-import Executor.Services.BashService
-import Executor.Models.Settings 
+import Executor.Services.ConfigReader
+import Executor.Models.Config 
+import Executor.Programs.Processor
+import Executor.Services.OrdersExecutor
+import Executor.Services.PoolsResolver
+
+import Streaming.Consumer
 
 import RIO
-import Data.Text.Encoding as Data
+import Control.Monad.Trans.Resource
 
 import ErgoDex.Amm.PoolActions
 
-import PlutusTx.Builtins.Internal
-import Plutus.V1.Ledger.Crypto
-
-runApp :: IO ()
-runApp = do
-    let settingsReader = mkSettingsReader
-    appSettings <- read settingsReader
-    runRIO appSettings $ do
-        let httpClient = mkPoolsResolverClient (getHttpSettings appSettings)
-            bashService = mkBashService $ paymentSettings appSettings
-            poolAction = mkPoolActions (PubKeyHash $ BuiltinByteString $ Data.encodeUtf8 $ pubKeyHash $ paymentSettings appSettings)
-            processor = mkProcessor poolAction bashService httpClient
-            kafkaClient = mkKafkaService processor
-        runKafka kafkaClient
+wire :: IO ()
+wire = runResourceT $ do
+  AppConfig {..} <- lift $ read mkConfigReader
+  consumer       <- mkKafkaConsumer kafkaConfig [topicId]
+  let
+    poolsResolver  = mkPoolsResolver poolsResolverConfig
+    poolAction     = mkPoolActions (mkPubKeyHash $ pubKeyHash paymentConfig)
+    ordersExecutor = mkOrdersExecutor poolAction poolsResolver
+    processor      = mkProcessor ordersExecutor consumer
+  lift $ run processor

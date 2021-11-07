@@ -1,7 +1,6 @@
 module Tracker.Programs.TrackerProgram where
 
-import Core.Streaming
-
+import Streaming.Events
 import Streaming.Producer
 import Streaming.Types
 

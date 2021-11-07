@@ -1,27 +1,29 @@
 module Streaming.Consumer where
 
 import           RIO
-import           Data.Either.Combinators
-import           Control.Monad.Except
 import           Control.Monad.Trans.Resource
 import qualified Streamly.Prelude             as S
 import           Kafka.Consumer
 import           Data.Text
+import           Data.Bifunctor               as Either
+import           GHC.Natural                  as Natural
 
 import Streaming.Config
 import Streaming.Class
 import Streaming.Types
+
+import Core.Throw.Combinators
 
 data Consumer f k v = Consumer
   { upstream :: S.SerialT f (k, v)
   }
 
 mkKafkaConsumer
-  :: (MonadError KafkaError f, S.MonadAsync f, FromKafka k v)
+  :: (MonadThrow f, S.MonadAsync f, FromKafka k v)
   => KafkaConsumerConfig
   -> [TopicId]
   -> ResourceT f (Consumer f k v)
-mkKafkaConsumer conf subs = do
+mkKafkaConsumer conf@KafkaConsumerConfig{..} subs = do
   let
     props   = mkConsumerProps conf
     subConf =
@@ -33,12 +35,12 @@ mkKafkaConsumer conf subs = do
     close (Left err) = pure $ Left err
 
   (_, crTry) <- allocate spawn (void . close)
-  cr         <- eitherToError crTry
+  cr         <- throwEither crTry
 
-  pure $ Consumer (upstream' cr undefined undefined)
+  pure $ Consumer (upstream' cr (Timeout $ Natural.naturalToInt consumerTimeout) (BatchSize $ Natural.naturalToInt consumerBatchSize))
 
 upstream'
-  :: (MonadError KafkaError f, S.MonadAsync f, FromKafka k v)
+  :: (MonadThrow f, S.MonadAsync f, FromKafka k v)
   => KafkaConsumer
   -> Timeout
   -> BatchSize
@@ -50,7 +52,8 @@ upstream' consumer timeout batchSize =
     readUpstream =
         S.repeatM (pollMessageBatch consumer timeout batchSize)
       & S.fromAsync >>= S.fromList
-      & S.mapM eitherToError
+      & S.map (Either.first (const ConsumerException))
+      & S.mapM throwEither
       & S.map fromKafka
 
 mkConsumerProps :: KafkaConsumerConfig -> ConsumerProperties
