@@ -1,0 +1,98 @@
+cabal-version:      2.4
+name:               streaming-kafka
+version:            0.1.0.0
+
+author:             ErgoLabs
+maintainer:
+
+extra-source-files: CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/ergolabs/cardano-dex-backend
+
+common base
+  build-depends: base >= 4.9 && < 5
+
+common project-config
+  default-language:     Haskell2010
+
+  default-extensions:   OverloadedStrings
+                        DeriveAnyClass
+                        BangPatterns
+                        BinaryLiterals
+                        ConstraintKinds
+                        DataKinds
+                        DefaultSignatures
+                        DeriveDataTypeable
+                        DeriveFoldable
+                        DeriveFunctor
+                        DeriveGeneric
+                        DeriveTraversable
+                        DoAndIfThenElse
+                        EmptyDataDecls
+                        ExistentialQuantification
+                        FlexibleContexts
+                        FlexibleInstances
+                        FunctionalDependencies
+                        GADTs
+                        GeneralizedNewtypeDeriving
+                        InstanceSigs
+                        KindSignatures
+                        LambdaCase
+                        MultiParamTypeClasses
+                        MultiWayIf
+                        NamedFieldPuns
+                        NoImplicitPrelude
+                        PartialTypeSignatures
+                        PatternGuards
+                        PolyKinds
+                        RankNTypes
+                        RecordWildCards
+                        ScopedTypeVariables
+                        StandaloneDeriving
+                        TupleSections
+                        TypeFamilies
+                        TypeSynonymInstances
+                        ViewPatterns
+                        DuplicateRecordFields
+
+  ghc-options:          -Wall
+                        -Wcompat
+                        -Wincomplete-record-updates
+                        -Wincomplete-uni-patterns
+                        -Wpartial-fields
+                        -Wredundant-constraints
+                        -Wunused-packages
+                        -Widentities
+                        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+
+library
+    import: base, project-config
+
+    hs-source-dirs: src
+
+    exposed-modules: Streaming.Producer
+                     Streaming.Consumer
+                     Streaming.Config
+                     Streaming.Class
+                     Streaming.Types
+                     Streaming.Events
+
+    build-depends:  bytestring
+                  , aeson
+                  , rio
+                  , text
+                  , bytestring
+                  , streamly
+                  , hw-kafka-client
+                  , resourcet
+                  , either
+                  , mtl
+                  , dhall==1.38.1
+                  , transformers==0.5.6.2
+                  , dhall
+                  , core
+                  , quickblue
+                  , cardano-tx
+                  , dex-core

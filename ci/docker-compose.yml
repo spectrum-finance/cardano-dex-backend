@@ -1,0 +1,68 @@
+version: '2.2'
+
+services:
+  redis:
+    image: 'docker.io/bitnami/redis:6.0-debian-10'
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 6379:6379
+    network_mode: "host"
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.0.1
+    hostname: zookeeper
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    network_mode: "host"
+  kafka:
+    image: confluentinc/cp-enterprise-kafka:5.0.1
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9092"]
+      timeout: 10s
+      interval: 15s
+      retries: 10
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: '127.0.0.1:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://127.0.0.1:29092,PLAINTEXT://127.0.0.1:9092
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: 127.0.0.1:9092
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: 127.0.0.1:2181
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METICS_ENABLE: 'true'
+      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+    ports:
+      - 9092:9092
+    network_mode: "host"
+  executor:
+    image: executor:latest
+    restart: always
+    volumes: 
+      - ./../executor/resources/config.dhall:/cardano-dex-backend/executor/resources/config.dhall:ro
+    network_mode: "host"
+  tracker:
+    image: tracker:latest
+    network_mode: "host"
+    restart: always 
+    volumes: 
+      - ./../tracker/resources/config.dhall:/cardano-dex-backend/tracker/resources/config.dhall:ro
+  resolver:
+    image: resolver:latest
+    restart: always
+    volumes: 
+      - ./../pools-resolver/resources/config.dhall:/cardano-dex-backend/pools-resolver/resources/config.dhall:ro
+    network_mode: "host"
