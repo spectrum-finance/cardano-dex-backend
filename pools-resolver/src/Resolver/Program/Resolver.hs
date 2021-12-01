@@ -7,7 +7,7 @@ import RIO
 import Control.Monad.Catch
 
 import ErgoDex.Amm.Pool
-import Resolver.Models.Types
+import Core.Types
 import Resolver.Repositories.PoolRepository
 
 import qualified Streamly.Prelude as S
@@ -33,7 +33,7 @@ run'
   -> f ()
 run' PoolRepository{..} Consumer{..} =
     upstream
-  & S.map (\(_, ConfirmedPoolEvent{..}) -> (OnChainIndexedEntity pool txOut gix))
+  & S.map (\(_, ConfirmedPoolEvent{..}) -> OnChainIndexedEntity pool txOut gix)
   & S.mapM putConfirmed
   & S.handle (\ConsumerException -> S.fromPure ())
   & S.drain

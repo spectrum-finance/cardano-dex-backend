@@ -4,9 +4,9 @@
 {-# LANGUAGE TypeApplications   #-}
 
 module Resolver.Repositories.PoolRepository
-    ( PoolRepository(..)
-    , mkPoolRepository
-    ) where
+  ( PoolRepository(..)
+  , mkPoolRepository
+  ) where
 
 import RIO
 import Plutus.V1.Ledger.TxId
@@ -21,7 +21,7 @@ import Resolver.Utils
 import ErgoDex.Amm.Pool
 import ErgoDex.State
 import Cardano.Models
-import Resolver.Models.Types
+import Core.Types
 import Plutus.V1.Ledger.Tx
 
 data PoolRepository f = PoolRepository
@@ -33,7 +33,7 @@ data PoolRepository f = PoolRepository
   }
 
 mkPoolRepository :: (MonadIO f) => RedisSettings -> f (PoolRepository f)
-mkPoolRepository redis =  do
+mkPoolRepository redis = do
     conn <- liftIO (checkedConnect $ defaultConnectInfo { connectHost = getRedisHost redis } )
     -- _ <- print "Redis connection established..." // todo: log info
     pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)

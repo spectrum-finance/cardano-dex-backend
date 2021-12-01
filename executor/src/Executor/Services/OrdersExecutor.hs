@@ -14,6 +14,7 @@ import ErgoDex.Amm.Pool
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.PoolActions
 import Cardano.Models
+import Core.Types
 
 data OrdersExecutor f = OrdersExecutor
   { process :: Confirmed AnyOrder -> f () 
@@ -38,18 +39,23 @@ process' poolActions PoolsResolver{..} confirmedOrder@(Confirmed _ (AnyOrder poo
   let 
     maybeTx = runOrder pool confirmedOrder poolActions
   
-  (txCandidate, pool) <- throwEither maybeTx
+  (_, Predicted _ ppool) <- throwEither maybeTx
 
-  sendPredicted pool
+  -- todo: mk FullTxOut (in submit api), then mk OnChainIndexedEntity, then submit to pools-resolver
+  -- let
+    -- predictedPool = OnChainIndexedEntity ppool 
+
+  -- sendPredicted predictedPool
   -- submit txCandidate
+  pure ()
 
 runOrder
-  :: Confirmed Pool
+  :: ConfirmedPool
   -> Confirmed AnyOrder 
   -> PoolActions 
   -> Either OrderExecErr (TxCandidate, Predicted Pool)
-runOrder pool (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
+runOrder (OnChainIndexedEntity pool fullTxOut _) (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
   case order of
-    DepositAction deposit -> runDeposit (Confirmed txOut deposit) pool
-    RedeemAction redeem   -> runRedeem (Confirmed txOut redeem) pool
-    SwapAction swap       -> runSwap (Confirmed txOut swap) pool
+    DepositAction deposit -> runDeposit (Confirmed txOut deposit) (Confirmed fullTxOut pool)
+    RedeemAction redeem   -> runRedeem (Confirmed txOut redeem) (Confirmed fullTxOut pool)
+    SwapAction swap       -> runSwap (Confirmed txOut swap) (Confirmed fullTxOut pool)

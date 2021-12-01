@@ -11,7 +11,7 @@ import ErgoDex.State
 import Cardano.Models
 import Explorer.Types
 import Plutus.V1.Ledger.Tx
-import Resolver.Models.Types
+import Core.Types
 
 data PoolResolver f = PoolResolver
   { resolve :: PoolId -> f (Maybe ConfirmedPool)
