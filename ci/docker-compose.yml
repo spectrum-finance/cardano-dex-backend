@@ -10,59 +10,110 @@ services:
       retries: 30
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
-    ports:
-      - 6379:6379
-    network_mode: "host"
-  zookeeper:
-    image: confluentinc/cp-zookeeper:5.0.1
-    hostname: zookeeper
-    container_name: zookeeper
+    logging:
+      driver: none
+  zoo1:
+    image: zookeeper:3.4.9
+    hostname: zoo1
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    network_mode: "host"
+      ZOO_MY_ID: 1
+      ZOO_PORT: 2181
+      ZOO_SERVERS: server.1=zoo1:2888:3888
+    logging:
+      driver: none
   kafka:
-    image: confluentinc/cp-enterprise-kafka:5.0.1
+    image: confluentinc/cp-kafka:6.0.1
     hostname: kafka
     container_name: kafka
-    depends_on:
-      - zookeeper
+    links:
+      - zoo1
+    environment:
+      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
+      KAFKA_BROKER_ID: 1
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,CONNECTIONS_FROM_HOST://localhost:19091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     healthcheck:
-      test: ["CMD", "nc", "-vz", "127.0.0.1", "9092"]
+      test: [ "CMD", "nc", "-vz", "kafka", "9092" ]
       timeout: 10s
       interval: 15s
       retries: 10
+    logging:
+      driver: none
+  kafka2:
+    image: confluentinc/cp-kafka:6.0.1
+    hostname: kafka2
+    container_name: kafka2
+    links:
+      - zoo1
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: '127.0.0.1:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://127.0.0.1:29092,PLAINTEXT://127.0.0.1:9092
-      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092,CONNECTIONS_FROM_HOST://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: 127.0.0.1:9092
-      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: 127.0.0.1:2181
-      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
-      CONFLUENT_METICS_ENABLE: 'true'
-      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
-    ports:
-      - 9092:9092
-    network_mode: "host"
+    healthcheck:
+      test: [ "CMD", "nc", "-vz", "kafka2", "9092" ]
+      timeout: 10s
+      interval: 15s
+      retries: 10
+    logging:
+      driver: none
+  kafka3:
+    image: confluentinc/cp-kafka:6.0.1
+    hostname: kafka3
+    container_name: kafka3
+    links:
+      - zoo1
+    environment:
+      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_BROKER_ID: 3
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092,CONNECTIONS_FROM_HOST://localhost:19093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test: [ "CMD", "nc", "-vz", "kafka3", "9092" ]
+      timeout: 10s
+      interval: 15s
+      retries: 10
+    logging:
+      driver: none
   executor:
     image: executor:latest
     restart: always
-    volumes: 
-      - ./../executor/resources/config.dhall:/cardano-dex-backend/executor/resources/config.dhall:ro
-    network_mode: "host"
+    depends_on:
+      - kafka
+      - kafka2
+      - kafka3
   tracker:
     image: tracker:latest
-    network_mode: "host"
     restart: always 
-    volumes: 
-      - ./../tracker/resources/config.dhall:/cardano-dex-backend/tracker/resources/config.dhall:ro
+    depends_on:
+      - kafka
+      - kafka2
+      - kafka3
   resolver:
     image: resolver:latest
     restart: always
-    volumes: 
-      - ./../pools-resolver/resources/config.dhall:/cardano-dex-backend/pools-resolver/resources/config.dhall:ro
-    network_mode: "host"
+    depends_on:
+      - kafka
+      - kafka2
+      - kafka3
+      - redis
