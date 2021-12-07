@@ -1,14 +1,20 @@
-module Resolver.Models.Types where
+module Core.Types
+  ( OnChainIndexedEntity(..)
+  , PredictedPool
+  , ConfirmedPool
+  , getPool
+  , getPoolId
+  ) where
 
 import ErgoDex.Amm.Pool
 import Cardano.Models
 import Explorer.Types
 import Data.Aeson        (FromJSON(..), ToJSON(..))
-import GHC.Generics      (Generic)
+import RIO
 
 data OnChainIndexedEntity a = OnChainIndexedEntity
-  { entity :: a
-  , txOut :: FullTxOut
+  { entity              :: a
+  , txOut               :: FullTxOut
   , lastConfirmedOutGix :: Gix
   } deriving (Show, Generic, FromJSON, ToJSON)
 

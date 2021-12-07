@@ -4,7 +4,6 @@ module Resolver.Utils
 
 import RIO
 import Streaming.Events
-import Resolver.Models.Types
 
 unsafeFromEither :: Either b a -> a
 unsafeFromEither (Left _)    = undefined

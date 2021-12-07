@@ -17,7 +17,7 @@ import GHC.Natural
 import ErgoDex.Amm.Pool
 import Cardano.Models
 import Explorer.Types
-import Resolver.Models.Types
+import Core.Types
 
 data HttpServer f = HttpServer
   { runHttpServer :: f ()

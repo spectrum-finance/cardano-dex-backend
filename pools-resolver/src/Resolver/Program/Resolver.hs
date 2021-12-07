@@ -7,7 +7,7 @@ import RIO
 import Control.Monad.Catch
 
 import ErgoDex.Amm.Pool
-import Resolver.Models.Types
+import Core.Types
 import Resolver.Repositories.PoolRepository
 
 import qualified Streamly.Prelude as S

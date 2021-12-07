@@ -72,7 +72,6 @@ library
     
     exposed-modules: Resolver.Endpoints.HttpServer
                      Resolver.Models.AppSettings
-                     Resolver.Models.Types
                      Resolver.Program.Resolver
                      Resolver.Repositories.PoolRepository
                      Resolver.Services.PoolResolver
@@ -106,6 +105,7 @@ library
                   , unliftio-core
                   , resourcet
                   , exceptions
+                  , core == 0.1.0.0
 
 executable pools-resolver-app
     main-is: Main.hs
