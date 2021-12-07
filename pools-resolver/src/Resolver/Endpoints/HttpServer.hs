@@ -37,10 +37,10 @@ type Api =
 apiProxy :: Proxy Api
 apiProxy = Proxy
 
-f2Handler :: (MonadIO f) => UnliftIO f -> f a -> Servant.Handler a
+f2Handler :: UnliftIO f -> f a -> Servant.Handler a
 f2Handler UnliftIO{..} = liftIO . unliftIO
 
-httpApp :: (MonadIO f) => PoolResolver f -> PoolRepository f -> UnliftIO f -> Application
+httpApp :: PoolResolver f -> PoolRepository f -> UnliftIO f -> Application
 httpApp r p un = serve apiProxy $ hoistServer apiProxy (f2Handler un) (server r p)
 
 server :: PoolResolver f -> PoolRepository f -> ServerT Api f

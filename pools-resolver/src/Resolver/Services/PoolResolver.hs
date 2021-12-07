@@ -36,12 +36,12 @@ process
   -> f (Maybe ConfirmedPool)
 process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
   case (confirmedMaybe, predictedMaybe) of
-    (Just confirmed, Just predicted) -> do
-      consistentChain  <- existsPredicted $ getPoolId confirmed
-      pessimisticPool  <- pessimistic consistentChain p confirmed predicted
+    (Just confirmed@(ConfirmedPool confEvent), Just predicted@(PredictedPool predEvent)) -> do
+      consistentChain  <- existsPredicted $ getPoolId confEvent
+      pessimisticPool  <- pessimistic consistentChain p predicted confirmed
       let
-        upToDate  = unGix (lastConfirmedOutGix confirmed) <= unGix (lastConfirmedOutGix predicted) -- add Ord to Gix
-        toReturn  = if upToDate then predicted else pessimisticPool
+        upToDate  = unGix (lastConfirmedOutGix confEvent) <= unGix (lastConfirmedOutGix predEvent) -- add Ord to Gix
+        toReturn  = if upToDate then (ConfirmedPool predEvent) else pessimisticPool
       pure $ Just toReturn
     (Just confirmed, _) -> do
       _ <- liftIO $ print "Just only confirmed. Predicted is empty." -- log.info here
@@ -57,14 +57,16 @@ pessimistic
   -> PredictedPool
   -> ConfirmedPool
   -> f ConfirmedPool
-pessimistic consistentChain p predictedPool confirmedPool =
+pessimistic consistentChain p predictedPool confirmedPool@(ConfirmedPool confEvent) =
   if consistentChain
-  then needToUpdate p predictedPool (lastConfirmedOutGix confirmedPool)
+  then needToUpdate p predictedPool (lastConfirmedOutGix confEvent)
   else pure $ confirmedPool
 
-needToUpdate :: (MonadIO f) => PoolRepository f -> PredictedPool -> Gix -> f PredictedPool
-needToUpdate PoolRepository{..} predicted newGix = do
-  let updatedPool = predicted {lastConfirmedOutGix = newGix}
+needToUpdate :: (MonadIO f) => PoolRepository f -> PredictedPool -> Gix -> f ConfirmedPool
+needToUpdate PoolRepository{..} predicted@(PredictedPool predEvent) newGix = do
+  let
+    event       = predEvent {lastConfirmedOutGix = newGix}
+    updatedPool = PredictedPool event
   _ <- putPredicted updatedPool
-  pure predicted
+  pure $ ConfirmedPool event
 

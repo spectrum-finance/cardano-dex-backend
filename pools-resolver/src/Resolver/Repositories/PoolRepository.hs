@@ -39,7 +39,7 @@ mkPoolRepository redis =  do
     pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 
 putPredicted' :: (MonadIO f) => Connection -> PredictedPool -> f ()
-putPredicted' conn r@(OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+putPredicted' conn r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
     res <- liftIO $ runRedis conn $ do
         let predictedNext = mkPredicted poolId
             predictedLast = mkLastPredictedKey poolId
@@ -49,7 +49,7 @@ putPredicted' conn r@(OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..},
     liftIO $ print res
 
 putConfirmed' :: (MonadIO f) => Connection -> ConfirmedPool -> f ()
-putConfirmed' conn r@(OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+putConfirmed' conn r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
   res <- liftIO $ runRedis conn $ do
       let confirmed = mkLastConfirmedKey poolId
           encodedPool = (BS.toStrict . encode) r

@@ -12,9 +12,11 @@ data OnChainIndexedEntity a = OnChainIndexedEntity
   , lastConfirmedOutGix :: Gix
   } deriving (Show, Generic, FromJSON, ToJSON)
 
-type PredictedPool = OnChainIndexedEntity Pool
+newtype PredictedPool = PredictedPool (OnChainIndexedEntity Pool)
+  deriving (Show, Generic, FromJSON, ToJSON)
 
-type ConfirmedPool = OnChainIndexedEntity Pool
+newtype ConfirmedPool = ConfirmedPool (OnChainIndexedEntity Pool)
+  deriving (Show, Generic, FromJSON, ToJSON)
 
 getPool :: OnChainIndexedEntity Pool -> Pool
 getPool OnChainIndexedEntity{entity=pool, ..} = pool
