@@ -1,7 +1,7 @@
 module Core.Types
   ( OnChainIndexedEntity(..)
-  , PredictedPool
-  , ConfirmedPool
+  , PredictedPool(..)
+  , ConfirmedPool(..)
   , getPool
   , getPoolId
   ) where
