@@ -13,7 +13,8 @@ import ErgoDex.State
 import ErgoDex.Amm.Pool
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.PoolActions
-import Cardano.Models
+import CardanoTx.Models
+import SubmitAPI.Service
 import Core.Types
 
 data OrdersExecutor f = OrdersExecutor
@@ -23,39 +24,35 @@ data OrdersExecutor f = OrdersExecutor
 mkOrdersExecutor 
   :: (MonadThrow f)
   => PoolActions
-  -> PoolsResolver f 
+  -> PoolsResolver f
+  -> Transactions f
   -> OrdersExecutor f
-mkOrdersExecutor pa pr = OrdersExecutor $ process' pa pr
+mkOrdersExecutor pa pr submitService = OrdersExecutor $ process' pa pr submitService
 
 process' 
   :: (MonadThrow f)
   => PoolActions 
   -> PoolsResolver f
+  -> Transactions f
   -> Confirmed AnyOrder
   -> f ()
-process' poolActions PoolsResolver{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
+process' poolActions PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
   maybePool <- resolvePool poolId
   pool      <- throwMaybe EmptyPoolErr maybePool
-  let 
+  let
     maybeTx = runOrder pool confirmedOrder poolActions
-  
-  (_, Predicted _ ppool) <- throwEither maybeTx
-
-  -- todo: mk FullTxOut (in submit api), then mk OnChainIndexedEntity, then submit to pools-resolver
-  -- let
-    -- predictedPool = OnChainIndexedEntity ppool 
-
-  -- sendPredicted predictedPool
-  -- submit txCandidate
-  pure ()
+  (txCandidate, predictedPool) <- throwEither maybeTx
+  _                            <- sendPredicted predictedPool
+  finalTx                      <- finalizeTx txCandidate
+  submitTx finalTx
 
 runOrder
   :: ConfirmedPool
   -> Confirmed AnyOrder 
   -> PoolActions 
   -> Either OrderExecErr (TxCandidate, Predicted Pool)
-runOrder (OnChainIndexedEntity pool fullTxOut _) (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
+runOrder (ConfirmedPool (OnChainIndexedEntity pool fullTxOut _)) (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
   case order of
-    DepositAction deposit -> runDeposit (Confirmed txOut deposit) (Confirmed fullTxOut pool)
-    RedeemAction redeem   -> runRedeem (Confirmed txOut redeem) (Confirmed fullTxOut pool)
-    SwapAction swap       -> runSwap (Confirmed txOut swap) (Confirmed fullTxOut pool)
+    DepositAction deposit -> runDeposit (Confirmed txOut deposit) (fullTxOut, pool)
+    RedeemAction redeem   -> runRedeem (Confirmed txOut redeem) (fullTxOut, pool)
+    SwapAction swap       -> runSwap (Confirmed txOut swap) (fullTxOut, pool)

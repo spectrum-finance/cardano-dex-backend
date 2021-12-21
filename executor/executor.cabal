@@ -79,7 +79,17 @@ library
                      Executor.Programs.Processor
                      Executor.Models.Errors
                      
-    build-depends:  cardano-tx
+    build-depends: hashable        == 1.3.0.0
+                  , streaming-kafka == 0.1.0.0
+                  , cardano-tx      == 0.1.0.0
+                  , dex-core        == 0.1.0.0
+                  , quickblue       == 0.1.0.0
+                  , exceptions      == 0.10.4
+                  , resourcet       == 1.2.4.3
+                  , unliftio-core   == 0.2.0.1
+                  , transformers    == 0.5.6.2
+                  , hedis           == 0.14.4
+                  , utf8-string     == 1.0.2
                   , streaming-kafka
                   , core
                   , bytestring
@@ -87,14 +97,14 @@ library
                   , text
                   , bytestring
                   , streamly
-                  , plutus-ledger-api -any
-                  , dex-core == 0.1.0.0
+                  , plutus-ledger-api
                   , dhall
                   , plutus-tx
                   , http-conduit
                   , http-client
-                  , resourcet
-                  , exceptions
+                  , wallet-api
+                  , submit-api
+                  , network-api
 
 executable executor-app
     main-is: Main.hs

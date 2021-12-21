@@ -37,7 +37,7 @@ getOutputs' TrackerServiceConfig{..} TrackerCache{..} Explorer{..} = do
   _        <- Log.log "Going to fetch min index"
   minIndex <- getMinIndex
   _        <- Log.log $ "Min index is " ++ show minIndex
-  outputs  <- getUspentOutputs minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset)
+  outputs  <- getUnspentOutputs minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset)
   _        <- Log.log $ "Min index is " ++ show minIndex
   _        <- putMinIndex $ Gix $ unGix minIndex + toInteger (length $ items outputs)
   pure $ items outputs

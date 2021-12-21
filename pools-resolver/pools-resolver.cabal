@@ -100,7 +100,6 @@ library
                   , cardano-tx
                   , quickblue
                   , dhall
-                  , playground-common
                   , transformers
                   , unliftio-core
                   , resourcet

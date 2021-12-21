@@ -76,7 +76,7 @@ library
                      Core.Types
 
     build-depends:  rio
-                  , aeson == 1.5.6.0
-                  , quickblue == 0.1.0.0
+                  , aeson      == 1.5.6.0
+                  , quickblue  == 0.1.0.0
                   , cardano-tx == 0.1.0.0
-                  , dex-core == 0.1.0.0
+                  , dex-core   == 0.1.0.0

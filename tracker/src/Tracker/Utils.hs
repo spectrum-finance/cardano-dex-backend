@@ -1,10 +1,12 @@
-module Tracker.Utils 
+{-# LANGUAGE OverloadedStrings #-}
+
+module Tracker.Utils
     ( unsafeFromEither
     , toFullTxOut
     ) where
 
-import Cardano.Models  as Sdk
-import Explorer.Models as Explorer
+import CardanoTx.Models  as Sdk
+import Explorer.Models   as Explorer
 import Explorer.Types
 
 import           Plutus.V1.Ledger.Address 
@@ -19,6 +21,7 @@ import RIO
 import Prelude
 import Data.ByteString.Char8 as DataC
 import RIO.List              as List
+import Data.Text             as DataT
 
 
 unsafeFromEither :: Either String a -> a
@@ -28,25 +31,25 @@ unsafeFromEither (Right value) = value
 toFullTxOut :: Explorer.FullTxOut -> Sdk.FullTxOut
 toFullTxOut Explorer.FullTxOut{..} =
     Sdk.FullTxOut 
-      { fullTxOutRef       = TxOutRef (TxId $ BuiltinByteString $ DataC.pack $ unTxHash txHash) (toInteger index)
-      , fullTxOutAddress   = scriptHashAddress (ValidatorHash $ BuiltinByteString $ DataC.pack $ unAddr addr)
+      { fullTxOutRef       = TxOutRef (TxId $ BuiltinByteString $ DataC.pack txHashS) (toInteger index)
+      , fullTxOutAddress   = scriptHashAddress (ValidatorHash $ BuiltinByteString $ DataC.pack addrS)
       , fullTxOutValue     = fullTxOutValue'
-      , fullTxOutDatumHash = datumHash
+      , fullTxOutDatumHash = dataHash
       , fullTxOutDatum     = data'
       }
-  where 
+  where
+    txHashS         = DataT.unpack $ unTxHash txHash
+    addrS           = DataT.unpack $ unAddr addr
     fullTxOutValue' = Value $ AssocMap.fromList $ mkValueList value
-    datumHash = fmap mkDatumHash dataHash
-    
 
 mkCurrencySymbol :: PolicyId -> CurrencySymbol
-mkCurrencySymbol PolicyId{..} = CurrencySymbol . BuiltinByteString . DataC.pack $ unPolicyId
+mkCurrencySymbol PolicyId{..} = CurrencySymbol . BuiltinByteString . DataC.pack $ (DataT.unpack unPolicyId)
 
 mkTokenName :: AssetName -> TokenName
-mkTokenName AssetName{..} = TokenName . BuiltinByteString . DataC.pack $ unAssetName
+mkTokenName AssetName{..} = TokenName . BuiltinByteString . DataC.pack $ DataT.unpack unAssetName
 
 mkValueList :: [OutAsset] -> [(CurrencySymbol, AssocMap.Map TokenName Integer)]
 mkValueList = List.map (\OutAsset{..} -> (mkCurrencySymbol policy, AssocMap.singleton (mkTokenName name) quantity))
 
 mkDatumHash :: Hash32 -> DatumHash
-mkDatumHash Hash32{..} = DatumHash . BuiltinByteString . DataC.pack $ unHash32
+mkDatumHash Hash32{..} = DatumHash . BuiltinByteString . DataC.pack $ DataT.unpack unHash32
