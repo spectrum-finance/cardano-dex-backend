@@ -17,7 +17,7 @@ import Streaming.Types
 data Producer f k v = Producer
   { produce :: S.SerialT f (k, v) -> f ()
   }
-
+ 
 mkKafkaProducer
   :: (MonadThrow f, S.MonadAsync f, ToKafka k v)
   => KafkaProducerConfig

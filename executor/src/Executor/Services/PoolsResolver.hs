@@ -7,6 +7,7 @@ import Executor.Models.Config
           
 import ErgoDex.State
 import ErgoDex.Amm.Pool
+import Core.Types
 
 import RIO
 import Network.HTTP.Simple
@@ -14,8 +15,8 @@ import Data.ByteString.Char8
 import GHC.Natural           
 
 data PoolsResolver f = PoolsResolver
-  { resolvePool   :: PoolId         -> f (Maybe (Confirmed Pool))
-  , sendPredicted :: Predicted Pool -> f ()
+  { resolvePool   :: PoolId        -> f (Maybe ConfirmedPool)
+  , sendPredicted :: PredictedPool -> f ()
   }
 
 mkPoolsResolver 
@@ -29,7 +30,7 @@ resolvePool'
   :: (MonadIO f)
   => PoolsResolverConfig 
   -> PoolId 
-  -> f (Maybe (Confirmed Pool))
+  -> f (Maybe ConfirmedPool)
 resolvePool' PoolsResolverConfig{..} poolId = do
   let 
     request = defaultRequest
@@ -46,7 +47,7 @@ resolvePool' PoolsResolverConfig{..} poolId = do
 sendPredicted'
   :: (MonadIO f)
   => PoolsResolverConfig 
-  -> Predicted Pool 
+  -> PredictedPool 
   -> f ()
 sendPredicted' PoolsResolverConfig{..} predicted = do
   let 

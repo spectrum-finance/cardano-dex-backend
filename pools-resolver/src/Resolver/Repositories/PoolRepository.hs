@@ -1,79 +1,78 @@
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DeriveAnyClass     #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TypeApplications   #-}
+
 module Resolver.Repositories.PoolRepository
-    ( PoolRepository(..)
-    , mkPoolRepository
-    ) where
+  ( PoolRepository(..)
+  , mkPoolRepository
+  ) where
 
 import RIO
 import Plutus.V1.Ledger.TxId
-import RIO.ByteString.Lazy as BS
-import Data.Aeson as Json
-import Database.Redis as Redis
-import Prelude (print)
-import Data.ByteString.UTF8 as BSU
-import RIO.ByteString.Lazy as LBS
-import Resolver.Utils
+import Prelude                     (print)
+import RIO.ByteString.Lazy         as BS
+import Data.Aeson                  as Json
+import Database.Redis              as Redis
+import Data.ByteString.UTF8        as BSU
+import RIO.ByteString.Lazy         as LBS
 import Resolver.Models.AppSettings (RedisSettings(..))
+import Resolver.Utils
 import ErgoDex.Amm.Pool
 import ErgoDex.State
-import Cardano.Types
 import Cardano.Models
+import Core.Types
 import Plutus.V1.Ledger.Tx
 
-data PoolRepository = PoolRepository
-    { putPredicted     :: Predicted Pool -> IO ()
-    , putConfirmed     :: Confirmed Pool -> IO ()
-    , getLastPredicted :: PoolId         -> IO (Maybe (Predicted Pool))
-    , getLastConfirmed :: PoolId         -> IO (Maybe (Confirmed Pool))
-    , existsPredicted  :: PoolId         -> IO Bool
-    }
+data PoolRepository f = PoolRepository
+  { putPredicted     :: PredictedPool  -> f ()
+  , putConfirmed     :: ConfirmedPool  -> f ()
+  , getLastPredicted :: PoolId         -> f (Maybe PredictedPool)
+  , getLastConfirmed :: PoolId         -> f (Maybe ConfirmedPool)
+  , existsPredicted  :: PoolId         -> f Bool
+  }
 
-mkPoolRepository :: RedisSettings -> IO PoolRepository
+mkPoolRepository :: (MonadIO f) => RedisSettings -> f (PoolRepository f)
 mkPoolRepository redis = do
-    conn <- checkedConnect $ defaultConnectInfo { connectHost = getRedisHost redis }
-    _ <- print "Redis connection established..."
+    conn <- liftIO (checkedConnect $ defaultConnectInfo { connectHost = getRedisHost redis } )
+    -- _ <- print "Redis connection established..." // todo: log info
     pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 
-putPredicted' :: Connection -> Predicted Pool -> IO ()
-putPredicted' conn r@(Predicted TxOutCandidate{..} pool@Pool{..}) = do 
-    res <- runRedis conn $ do
+putPredicted' :: (MonadIO f) => Connection -> PredictedPool -> f ()
+putPredicted' conn r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+    res <- liftIO $ runRedis conn $ do
         let predictedNext = mkPredicted poolId
             predictedLast = mkLastPredictedKey poolId
             encodedPool = (BS.toStrict . encode) r
         Redis.set predictedNext encodedPool
         Redis.set predictedLast encodedPool
-    print res
+    liftIO $ print res
 
-putConfirmed' :: Connection -> Confirmed Pool -> IO ()
-putConfirmed' conn r@(Confirmed _ pool@Pool{..}) = do
-    res <- runRedis conn $ do
-        let confirmed = mkLastConfirmedKey poolId
-            encodedPool = (BS.toStrict . encode) r
-        Redis.set confirmed encodedPool
-    print res
+putConfirmed' :: (MonadIO f) => Connection -> ConfirmedPool -> f ()
+putConfirmed' conn r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+  res <- liftIO $ runRedis conn $ do
+      let confirmed = mkLastConfirmedKey poolId
+          encodedPool = (BS.toStrict . encode) r
+          t = 1
+      Redis.set confirmed encodedPool
+  liftIO $ print res
 
-getLastPredicted' :: Connection -> PoolId -> IO (Maybe (Predicted Pool))
-getLastPredicted' conn pIdLast = do
-    res <- runRedis conn $ do
-        Redis.get $ mkLastPredictedKey pIdLast
-    _ <- print res
-    let resParsed = (unsafeFromEither res) >>= (\s -> (Json.decode $ LBS.fromStrict s) :: Maybe (Predicted Pool))
-    pure resParsed
+getLastPredicted' :: (MonadIO f) =>  Connection -> PoolId -> f (Maybe PredictedPool)
+getLastPredicted' conn id = liftIO $ getFromRedis conn (mkLastPredictedKey id)
 
-getLastConfirmed' :: Connection -> PoolId -> IO (Maybe (Confirmed Pool))
-getLastConfirmed' conn pIdConfirmed = do
-    res <- runRedis conn $ do
-        Redis.get $ mkLastConfirmedKey pIdConfirmed
-    _ <- print res
-    let resParsed = (unsafeFromEither res) >>= (\s -> (Json.decode $ LBS.fromStrict s) :: Maybe (Confirmed Pool))
-    pure resParsed
+getLastConfirmed' :: (MonadIO f) => Connection -> PoolId -> f (Maybe ConfirmedPool)
+getLastConfirmed' conn id = liftIO $ getFromRedis conn (mkLastConfirmedKey id)
 
-existsPredicted' :: Connection -> PoolId -> IO Bool
+getFromRedis :: (MonadIO f, FromJSON a) => Connection -> BSU.ByteString -> f (Maybe a)
+getFromRedis conn key = do
+  maybeRes <- liftIO $ runRedis conn (Redis.get key)
+  let resParsed = (unsafeFromEither maybeRes) >>= (Json.decode . LBS.fromStrict)
+  pure resParsed
+
+existsPredicted' :: (MonadIO f) => Connection -> PoolId -> f Bool
 existsPredicted' conn pId = do
-    res <- runRedis conn $ do
-        Redis.exists $ mkPredicted pId
-    pure $ unsafeFromEither res
-
--------------------------------------------------------------------------------------
+  res <- liftIO $ runRedis conn (Redis.exists $ mkPredicted pId)
+  pure $ unsafeFromEither res
 
 mkLastPredictedKey :: PoolId -> BSU.ByteString
 mkLastPredictedKey (PoolId poolId) = BSU.fromString $ "predicted:last:" ++ show poolId

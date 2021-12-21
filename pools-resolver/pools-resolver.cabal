@@ -43,7 +43,6 @@ common project-config
                         MultiParamTypeClasses
                         MultiWayIf
                         NamedFieldPuns
-                        NoImplicitPrelude
                         PartialTypeSignatures
                         PatternGuards
                         PolyKinds
@@ -55,7 +54,6 @@ common project-config
                         TypeFamilies
                         TypeSynonymInstances
                         ViewPatterns
-                        TypeOperators
 
   ghc-options:          -Wall
                         -Wcompat
@@ -72,39 +70,47 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Resolver.Services.KafkaService
+    exposed-modules: Resolver.Endpoints.HttpServer
                      Resolver.Models.AppSettings
+                     Resolver.Program.Resolver
                      Resolver.Repositories.PoolRepository
-                     Resolver.Services.PoolsResolver
-                     Resolver.Endpoints.HttpServer
-                     Resolver.Utils
-                     Resolver.Services.SettingsReader
+                     Resolver.Services.PoolResolver
+                     Resolver.Services.ConfigReader
                      Resolver.Wirings.WiringApp
+                     Resolver.Utils
 
-    build-depends: 
-        bytestring,
-        aeson,
-        rio,
-        bytestring,
-        streamly == 0.8.0,
-        plutus-ledger-api -any,
-        plutus-tx -any,
-        hw-kafka-client,
-        dex-core == 0.1.0.0,
-        servant,
-        servant-server,
-        wai,
-        warp,
-        hedis,
-        utf8-string,
-        cardano-dex,
-        dhall
+    build-depends:  streaming-kafka
+                  , bytestring
+                  , aeson
+                  , rio
+                  , bytestring
+                  , streamly == 0.8.0
+                  , plutus-ledger-api -any
+                  , plutus-tx -any
+                  , hw-kafka-client
+                  , dex-core == 0.1.0.0
+                  , hashable == 1.3.0.0
+                  , servant
+                  , servant-server
+                  , wai
+                  , warp
+                  , hedis
+                  , utf8-string
+                  , cardano-dex
+                  , cardano-tx
+                  , quickblue
+                  , dhall
+                  , playground-common
+                  , transformers
+                  , unliftio-core
+                  , resourcet
+                  , exceptions
+                  , core == 0.1.0.0
 
 executable pools-resolver-app
     main-is: Main.hs
-    build-depends: 
-        base >= 4.9 && < 5,
-        pools-resolver,
-        rio
+    build-depends:  base >= 4.9 && < 5
+                  , pools-resolver
+                  , rio
     hs-source-dirs:   app
     default-language: Haskell2010

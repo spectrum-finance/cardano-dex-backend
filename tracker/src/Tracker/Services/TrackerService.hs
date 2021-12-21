@@ -1,7 +1,7 @@
-module Tracker.Services.TrackerService 
+module Tracker.Services.TrackerService
   ( TrackerService(..)
   , mkTrackerService
-  ) where 
+  ) where
 
 import Tracker.Models.AppConfig
 import Tracker.Caches.TrackerCache
@@ -16,22 +16,22 @@ import GHC.Natural as Natural ( naturalToInt )
 import RIO
 
 data TrackerService f = TrackerService
- { getOutputs :: f [FullTxOut] 
+ { getOutputs :: f [FullTxOut]
  }
 
-mkTrackerService 
+mkTrackerService
   :: (Monad f, MonadIO f)
-  => TrackerServiceConfig 
-  -> TrackerCache f 
-  -> Explorer f 
+  => TrackerServiceConfig
+  -> TrackerCache f
+  -> Explorer f
   -> TrackerService f
 mkTrackerService settings cache client = TrackerService $ getOutputs' settings cache client
 
 getOutputs'
   :: (Monad f, MonadIO f)
   => TrackerServiceConfig
-  -> TrackerCache f 
-  -> Explorer f 
+  -> TrackerCache f
+  -> Explorer f
   -> f [FullTxOut]
 getOutputs' TrackerServiceConfig{..} TrackerCache{..} Explorer{..} = do
   _        <- Log.log "Going to fetch min index"

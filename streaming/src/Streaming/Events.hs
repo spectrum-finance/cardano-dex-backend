@@ -52,6 +52,13 @@ instance ToKafka PoolId ConfirmedPoolEvent where
       encodedValue = asKey v
       encodedKey   = asKey k
 
+instance FromKafka PoolId ConfirmedPoolEvent where
+  fromKafka consumerRecord =
+      keyMaybe >>= (\key -> valueMaybe <&> (key,))
+    where
+      keyMaybe   = (fromKey $ crKey consumerRecord) :: Maybe PoolId
+      valueMaybe = (fromKey $ crValue consumerRecord) :: Maybe ConfirmedPoolEvent
+
 asKey :: (ToJSON a) => a -> Maybe ByteString.ByteString
 asKey = Just . BS.toStrict . encode
 

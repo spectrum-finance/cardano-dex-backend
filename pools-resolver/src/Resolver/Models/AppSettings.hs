@@ -1,34 +1,23 @@
 module Resolver.Models.AppSettings
-  ( KafkaConsumerSettings(..)
-  , HasKafkaConsumerSettings(..)
-  , HttpServerSettings(..)
-  , HasHttpServerSettings(..)
+  ( HttpServerSettings(..)
   , AppSettings(..)
-  , HasAppSettings(..)
   , RedisSettings(..)
   ) where
 
 import RIO
 import Kafka.Consumer
+import Streaming.Config
+import Streaming.Types
 import Dhall
 
 data AppSettings = AppSettings
-    { getKafkaSettings :: KafkaConsumerSettings
-    , getHttpSettings :: HttpServerSettings
-    , redisSettings :: RedisSettings
-    } deriving (Generic)
-
-instance FromDhall AppSettings
-
-data KafkaConsumerSettings = KafkaConsumerSettings
-  { getBrokerList :: [Text]
-  , getGroupId :: Text
-  , getTopicsList :: [Text]
-  , getPollRate :: Natural
-  , getBatchSize :: Natural
+  { kafkaConfig      :: KafkaConsumerConfig
+  , topicId          :: TopicId
+  , httpSettings     :: HttpServerSettings
+  , redisSettings    :: RedisSettings
   } deriving (Generic)
 
-instance FromDhall KafkaConsumerSettings
+instance FromDhall AppSettings
 
 data HttpServerSettings = HttpServerSettings
   { getPort :: Natural
@@ -42,22 +31,3 @@ data RedisSettings = RedisSettings
   } deriving (Generic)
 
 instance FromDhall RedisSettings
-
-class HasKafkaConsumerSettings env where
-  kafkaSettingsL :: Lens' env KafkaConsumerSettings
-instance HasKafkaConsumerSettings KafkaConsumerSettings where
-  kafkaSettingsL = id
-instance HasKafkaConsumerSettings AppSettings where
-  kafkaSettingsL = lens getKafkaSettings (\x y -> x { getKafkaSettings = y })
-
-class HasHttpServerSettings env where
-  httpSettingsL :: Lens' env HttpServerSettings
-instance HasHttpServerSettings HttpServerSettings where
-  httpSettingsL = id
-instance HasHttpServerSettings AppSettings where
-  httpSettingsL = lens getHttpSettings (\x y -> x { getHttpSettings = y })
-
-class HasAppSettings env where
-  appSettingsL :: Lens' env AppSettings
-instance HasAppSettings AppSettings where
-  appSettingsL = id
