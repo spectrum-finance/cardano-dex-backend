@@ -4,6 +4,7 @@ module Core.Types
   , ConfirmedPool(..)
   , getPool
   , getPoolId
+  , getGix
   ) where
 
 import ErgoDex.Amm.Pool
@@ -25,7 +26,10 @@ newtype ConfirmedPool = ConfirmedPool (OnChainIndexedEntity Pool)
   deriving (Show, Generic, FromJSON, ToJSON)
 
 getPool :: OnChainIndexedEntity Pool -> Pool
-getPool OnChainIndexedEntity{entity=pool, ..} = pool
+getPool OnChainIndexedEntity{entity=pool} = pool
 
 getPoolId :: OnChainIndexedEntity Pool -> PoolId
-getPoolId OnChainIndexedEntity{entity=Pool{..}, ..} = poolId
+getPoolId OnChainIndexedEntity{entity=Pool{..}} = poolId
+
+getGix :: OnChainIndexedEntity Pool -> Gix
+getGix OnChainIndexedEntity{lastConfirmedOutGix=gix} = gix

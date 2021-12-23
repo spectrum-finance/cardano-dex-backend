@@ -4,6 +4,8 @@ module Executor.Services.OrdersExecutor
   ) where
 
 import Core.Throw.Combinators
+import Core.Extractor.AlonzoTxExtractors
+import Core.Extractor.Class
 import Executor.Services.PoolsResolver
 import Executor.Models.Errors
 
@@ -37,19 +39,24 @@ process'
   -> Confirmed AnyOrder
   -> f ()
 process' poolActions PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
-  maybePool <- resolvePool poolId
-  pool      <- throwMaybe EmptyPoolErr maybePool
+  maybePool                      <- resolvePool poolId
+  pool@(ConfirmedPool confPool)  <- throwMaybe EmptyPoolErr maybePool
   let
     maybeTx = runOrder pool confirmedOrder poolActions
-  (txCandidate, predictedPool) <- throwEither maybeTx
-  _                            <- sendPredicted predictedPool
-  finalTx                      <- finalizeTx txCandidate
+  (txCandidate, predictedPool)   <- throwEither maybeTx
+  finalTx                        <- finalizeTx txCandidate
+  let
+    mPool = extract finalTx :: Maybe (FullTxOut, Pool)
+  (out, pp)                      <- throwMaybe EmptyPoolErr mPool
+  let
+    predictedPool = PredictedPool $ OnChainIndexedEntity pp out (getGix confPool)
+  _                              <- sendPredicted predictedPool
   submitTx finalTx
 
 runOrder
   :: ConfirmedPool
   -> Confirmed AnyOrder 
-  -> PoolActions 
+  -> PoolActions
   -> Either OrderExecErr (TxCandidate, Predicted Pool)
 runOrder (ConfirmedPool (OnChainIndexedEntity pool fullTxOut _)) (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
   case order of
