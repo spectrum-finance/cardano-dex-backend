@@ -96,7 +96,7 @@ library
                   , warp
                   , hedis
                   , utf8-string
-                  , cardano-dex
+                  , cardano-dex-contracts
                   , cardano-tx
                   , quickblue
                   , dhall
