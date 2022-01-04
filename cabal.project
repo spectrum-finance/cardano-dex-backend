@@ -3,6 +3,9 @@ index-state: 2021-08-14T00:00:00Z
 packages:
   core
   streaming-kafka
+  tracker
+  executor
+  pools-resolver
 
 -- You never, ever, want this.
 write-ghc-environment-files: never
