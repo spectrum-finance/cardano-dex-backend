@@ -5,6 +5,7 @@ import Streaming.Producer
 import Streaming.Types
 
 import Tracker.Services.TrackerService
+import Tracker.Services.Logger as Log
 import Tracker.Models.AppConfig
 import Tracker.Utils
 
@@ -49,7 +50,7 @@ run' TrackerProgrammConfig{..} explorer orderProd poolProd =
   & S.drain 
   
 process 
-  :: (Monad f)
+  :: (MonadIO f)
   => TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent 
@@ -71,6 +72,8 @@ process TrackerService{..} orderProd poolProd = do
       where
         confirmedPools = parseAmm unspent :: [(Confirmed Pool, Gix)]
 
+  _ <- liftIO $ Log.log $ "outs: " ++ (show $ fulltxOuts)
+  _ <- liftIO $ Log.log $ "size: " ++ (show $ length confirmedPoolEvents)
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedOrderEvents) (produce poolProd (S.fromList confirmedPoolEvents))
 
