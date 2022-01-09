@@ -37,7 +37,7 @@ getOutputs' TrackerServiceConfig{..} TrackerCache{..} Explorer{..} = do
   _        <- Log.log "Going to fetch min index"
   testIndex@(Gix res) <- getMinIndex
   let minIndex = if (res < 8092461) then Gix 8092461 else testIndex
-      cred = PaymentCred "addr_test1wr22y9ksk3ar5fcx7d0ac8laktzy0zegx96zt2cg3ehsrccyp6we9"
+      cred = PaymentCred "addr_test1wr7tmuxs8lkql7x3pj70zzsx9a9svgdm669z4j9kq79trngs5cyyt"
       paging = Paging 0 10
   _        <- Log.log $ "Min index is " ++ show minIndex
   outputs  <- getUnspentOutputsByPCred cred paging

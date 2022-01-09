@@ -15,11 +15,17 @@ import Streaming.Consumer
 runApp :: IO ()
 runApp = runResourceT $ do
   AppSettings {..} <- lift $ CR.read CR.mkConfigReader
+  _ <- lift $ print "test"
   poolRepository   <- lift $ mkPoolRepository redisSettings
+  _ <- lift $ print "test1"
   consumer         <- mkKafkaConsumer kafkaConfig [topicId]
-  let
-    resolver      = mkResolver poolRepository consumer
-    poolResolver  = mkPoolResolver poolRepository
-    httpServer    = mkHttpServer httpSettings poolResolver poolRepository (UnliftIO id)
+  _ <- lift $ print "test2"
+  let resolver      = mkResolver poolRepository consumer
+  _ <- lift $ print "test3"
+  let poolResolver  = mkPoolResolver poolRepository
+  _ <- lift $ print "test4"
+  let httpServer    = mkHttpServer httpSettings poolResolver poolRepository (UnliftIO id)
+  _ <- lift $ print "test5"
   _ <- lift $ runHttpServer httpServer
+  _ <- lift $ print "test6"
   lift $ run resolver

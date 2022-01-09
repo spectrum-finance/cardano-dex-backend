@@ -58,9 +58,10 @@ process
 process TrackerService{..} orderProd poolProd = do
   fulltxOuts <- getOutputs
   let
-    unspent = map toFullTxOut fulltxOuts `zip` fulltxOuts
-
-    confirmedOrderEvents = 
+    unspent = fmap toFullTxOut fulltxOuts `zip` fulltxOuts
+  _ <- Log.log $ "unspent" ++ show unspent
+  let
+    confirmedOrderEvents =
          swapEvents ++ depositEvents ++ redeemEvents
       where
         swapEvents    = mkSwapEvents (parseAmm unspent :: [(Confirmed Swap, Gix)]) 
@@ -75,7 +76,7 @@ process TrackerService{..} orderProd poolProd = do
   _ <- liftIO $ Log.log $ "outs: " ++ (show $ fulltxOuts)
   _ <- liftIO $ Log.log $ "size: " ++ (show $ length confirmedPoolEvents)
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
-  unless (null confirmedOrderEvents) (produce poolProd (S.fromList confirmedPoolEvents))
+  unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))
 
 mkSwapEvents
   :: [(Confirmed Swap, Gix)]

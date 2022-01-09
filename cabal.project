@@ -7,6 +7,9 @@ packages:
   executor
   pools-resolver
 
+package cardano-crypto-praos
+  flags: -external-libsodium-vrf
+
 -- You never, ever, want this.
 write-ghc-environment-files: never
 
@@ -255,12 +258,12 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-contracts
-  tag: 530271bbdf1ccae8e866d8546a4bde43d347c15d
+  tag: 6eb8b64914ec016ec68b7f609b38d667b8ff3af5
 
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 7b9361816ad48c84f6a36252289c07a162d24bd9
+  tag: d689244c7312d265e427c6166dc6b6371a63a197
   subdir:
     cardano-tx
     dex-core

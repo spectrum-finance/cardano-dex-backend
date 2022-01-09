@@ -20,17 +20,17 @@ import Explorer.Types
 import Core.Types
 
 data HttpServer f = HttpServer
-  { runHttpServer :: f ()
+  { runHttpServer :: IO ()
   }
 
 mkHttpServer :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRepository f -> UnliftIO f -> HttpServer f
 mkHttpServer set resolver repo uIO = HttpServer $ runHttpServer' set resolver repo uIO
 
-runHttpServer' :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRepository f -> UnliftIO f -> f ()
+runHttpServer' :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRepository f -> UnliftIO f -> IO ()
 runHttpServer' HttpServerSettings{..} resolver repo uIO =
-  liftIO $ (Warp.run (fromIntegral getPort) (httpApp resolver repo uIO))
+  (Warp.run (fromIntegral getPort) (httpApp resolver repo uIO))
 
-type Api =
+type Api =""
   "resolve" :> ReqBody '[JSON] PoolId         :> Post '[JSON] (Maybe ConfirmedPool) :<|>
   "update"  :> ReqBody '[JSON] PredictedPool  :> Post '[JSON] ()
 
