@@ -30,7 +30,7 @@ runHttpServer' :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRep
 runHttpServer' HttpServerSettings{..} resolver repo uIO =
   (Warp.run (fromIntegral getPort) (httpApp resolver repo uIO))
 
-type Api =""
+type Api =
   "resolve" :> ReqBody '[JSON] PoolId         :> Post '[JSON] (Maybe ConfirmedPool) :<|>
   "update"  :> ReqBody '[JSON] PredictedPool  :> Post '[JSON] ()
 

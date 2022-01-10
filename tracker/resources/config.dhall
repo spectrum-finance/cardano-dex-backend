@@ -1,17 +1,17 @@
 { explorerConfig =
-    { explorerHost = ./explorer.dhall
+    { explorerHost = "136.243.21.170"
     , explorerPort = 80
     },
   blockRequestConfig =
     { period = 1
     },
   poolsProducerConfig =
-    { producerBrokers = ["127.0.0.1:9092"]
+    { producerBrokers = ["localhost:9092"]
     , producerTimeout = 1000
     },
   poolsTopicName = "amm-topic",
   ordersProducerConfig =
-    { producerBrokers = ["127.0.0.1:9092"]
+    { producerBrokers = ["localhost:9092"]
     , producerTimeout = 1000
     },
   ordersTopicName = "proxy-topic",

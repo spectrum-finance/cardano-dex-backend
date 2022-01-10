@@ -105,6 +105,8 @@ library
                   , resourcet
                   , exceptions
                   , core == 0.1.0.0
+                  , async
+                  , tracker
 
 executable pools-resolver-app
     main-is: Main.hs

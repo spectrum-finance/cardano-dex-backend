@@ -40,7 +40,7 @@ mkKafkaConsumer conf@KafkaConsumerConfig{..} subs = do
   pure $ Consumer (upstream' cr (Timeout $ Natural.naturalToInt consumerTimeout) (BatchSize $ Natural.naturalToInt consumerBatchSize))
 
 upstream'
-  :: (MonadThrow f, S.MonadAsync f, FromKafka k v)
+  :: (MonadIO f, MonadThrow f, S.MonadAsync f, FromKafka k v)
   => KafkaConsumer
   -> Timeout
   -> BatchSize

@@ -26,6 +26,5 @@ runApp = runResourceT $ do
   _ <- lift $ print "test4"
   let httpServer    = mkHttpServer httpSettings poolResolver poolRepository (UnliftIO id)
   _ <- lift $ print "test5"
-  _ <- lift $ runHttpServer httpServer
   _ <- lift $ print "test6"
-  lift $ run resolver
+  lift $ concurrently_ (runHttpServer httpServer) (run resolver)

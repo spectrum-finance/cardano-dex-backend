@@ -17,6 +17,7 @@ import Database.Redis              as Redis
 import Data.ByteString.UTF8        as BSU
 import RIO.ByteString.Lazy         as LBS
 import Resolver.Models.AppSettings (RedisSettings(..))
+import Tracker.Services.Logger     as Log
 import Resolver.Utils
 import ErgoDex.Amm.Pool
 import ErgoDex.State
@@ -50,12 +51,13 @@ putPredicted' conn r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}, txOut=
 
 putConfirmed' :: (MonadIO f) => Connection -> ConfirmedPool -> f ()
 putConfirmed' conn r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+  _   <- Log.log $ "Going to put confirmed pool with gix: " ++ (show gix)
   res <- liftIO $ runRedis conn $ do
       let confirmed = mkLastConfirmedKey poolId
           encodedPool = (BS.toStrict . encode) r
           t = 1
       Redis.set confirmed encodedPool
-  liftIO $ print res
+  Log.log $ "Result of put: " ++ (show res)
 
 getLastPredicted' :: (MonadIO f) =>  Connection -> PoolId -> f (Maybe PredictedPool)
 getLastPredicted' conn id = liftIO $ getFromRedis conn (mkLastPredictedKey id)
