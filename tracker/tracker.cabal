@@ -101,6 +101,7 @@ library
                   , dhall
                   , plutus-tx
                   , plutus-ledger
+                  , retry
 
 executable tracker-app
     main-is: Main.hs

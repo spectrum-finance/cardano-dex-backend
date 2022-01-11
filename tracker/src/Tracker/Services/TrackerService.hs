@@ -13,6 +13,8 @@ import Explorer.Types
 
 import Prelude
 import GHC.Natural as Natural ( naturalToInt )
+import Control.Monad.Catch
+import Control.Retry
 import RIO
 
 data TrackerService f = TrackerService
@@ -20,7 +22,7 @@ data TrackerService f = TrackerService
  }
 
 mkTrackerService
-  :: (Monad f, MonadIO f)
+  :: (Monad f, MonadIO f, MonadMask f)
   => TrackerServiceConfig
   -> TrackerCache f
   -> Explorer f
@@ -28,19 +30,30 @@ mkTrackerService
 mkTrackerService settings cache client = TrackerService $ getOutputs' settings cache client
 
 getOutputs'
-  :: (Monad f, MonadIO f)
+  :: (Monad f, MonadIO f, MonadMask f)
   => TrackerServiceConfig
   -> TrackerCache f
   -> Explorer f
   -> f [FullTxOut]
-getOutputs' TrackerServiceConfig{..} TrackerCache{..} Explorer{..} = do
+getOutputs' TrackerServiceConfig{..} TrackerCache{..} explorer = do
   _        <- Log.log "Going to fetch min index"
   testIndex@(Gix res) <- getMinIndex
   let minIndex = if (res < 8092461) then Gix 8092461 else testIndex
       cred = PaymentCred "addr_test1wr7tmuxs8lkql7x3pj70zzsx9a9svgdm669z4j9kq79trngs5cyyt"
       paging = Paging 0 10
   _        <- Log.log $ "Min index is " ++ show minIndex
-  outputs  <- getUnspentOutputsByPCred cred paging
+  outputs  <- getOutputsWithRetry explorer cred paging
   _        <- Log.log $ "Min index is " ++ show minIndex
   _        <- putMinIndex $ Gix $ unGix minIndex + toInteger (length $ items outputs)
   pure $ items outputs
+
+getOutputsWithRetry
+  :: (Monad f, MonadIO f, MonadMask f)
+  => Explorer f
+  -> PaymentCred
+  -> Paging
+  -> f (Items FullTxOut)
+getOutputsWithRetry Explorer{..} cred paging =
+  recoverAll (constantDelay 10000000) toRet
+    where
+      toRet _ = getUnspentOutputsByPCred cred paging

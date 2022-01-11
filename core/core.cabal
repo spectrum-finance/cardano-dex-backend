@@ -72,8 +72,7 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Core.Throw.Combinators
-                     Core.Types
+    exposed-modules: Core.Types
                      Core.Extractor.Class
                      Core.Extractor.AlonzoTxExtractors
 

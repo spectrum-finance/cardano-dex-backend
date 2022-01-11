@@ -104,6 +104,7 @@ library
                   , wallet-api
                   , submit-api
                   , network-api
+                  , sdk-core
 
 executable executor-app
     main-is: Main.hs

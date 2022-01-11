@@ -3,7 +3,7 @@ module Executor.Services.OrdersExecutor
   , mkOrdersExecutor
   ) where
 
-import Core.Throw.Combinators
+import SdkCore.Throw.Combinators
 import Core.Extractor.AlonzoTxExtractors
 import Core.Extractor.Class
 import Executor.Services.PoolsResolver
