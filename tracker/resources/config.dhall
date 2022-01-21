@@ -1,5 +1,5 @@
 { explorerConfig =
-    { explorerHost = "136.243.21.170"
+    { explorerHost = "http://136.243.21.170"
     , explorerPort = 80
     },
   blockRequestConfig =

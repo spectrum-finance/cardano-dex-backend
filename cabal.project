@@ -258,12 +258,12 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-contracts
-  tag: 6eb8b64914ec016ec68b7f609b38d667b8ff3af5
+  tag: b9204cd690bc8962bc17019c8fd2612ba5a7d55d
 
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 11a9eb68f69706e94847491c93baf458b9ed4f70
+  tag: e375cacab4def2bd320f1ad3a3e189c4b449ee6d
   subdir:
     cardano-tx
     sdk-core

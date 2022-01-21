@@ -30,7 +30,7 @@ wire = runResourceT $ do
     trustStore     = (mkTrustStore secretFile) :: TrustStore IO
   vault          <- lift $ mkVault explorer trustStore keyPass
   let
-    network        = (mkNetwork nodeConfig) :: Network IO
+    network        = (mkNetwork nodeConfig explorer) :: Network IO
     submitService  = mkSubmitService network vault txAssemblyConfig
     poolAction     = mkPoolActions (mkPubKeyHash $ pubKeyHash paymentConfig)
     ordersExecutor = mkOrdersExecutor poolAction poolsResolver submitService

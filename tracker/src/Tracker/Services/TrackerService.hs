@@ -39,13 +39,19 @@ getOutputs' TrackerServiceConfig{..} TrackerCache{..} explorer = do
   _        <- Log.log "Going to fetch min index"
   testIndex@(Gix res) <- getMinIndex
   let minIndex = if (res < 8092461) then Gix 8092461 else testIndex
-      cred = PaymentCred "addr_test1wr7tmuxs8lkql7x3pj70zzsx9a9svgdm669z4j9kq79trngs5cyyt"
+      --todo: only for debug
+      poolCred    = PaymentCred "addr_test1wpl3evs3lr2z8dlmtr247090lpp5v7sy6kkkr5wgkvzhw0gneur3h"
+      depositCred = PaymentCred "addr_test1wp6lpvw9wayyc4dpzp3g0fj2j2mn8rtyt3gtlcttqu3wkcg6crfnh"
       paging = Paging 0 10
   _        <- Log.log $ "Min index is " ++ show minIndex
-  outputs  <- getOutputsWithRetry explorer cred paging
+  -- todo: only for debug
+  poolOutputs    <- getOutputsWithRetry explorer poolCred paging
+  depositOutputs <- getOutputsWithRetry explorer depositCred paging
+  let common = Items (items poolOutputs ++ items depositOutputs) (total poolOutputs + total depositOutputs)
   _        <- Log.log $ "Min index is " ++ show minIndex
-  _        <- putMinIndex $ Gix $ unGix minIndex + toInteger (length $ items outputs)
-  pure $ items outputs
+  _        <- Log.log $ "value:" ++ show (total common)
+  _        <- putMinIndex $ Gix $ unGix minIndex + toInteger (length $ items common)
+  pure $ items common
 
 getOutputsWithRetry
   :: (Monad f, MonadIO f, MonadMask f)
@@ -53,7 +59,8 @@ getOutputsWithRetry
   -> PaymentCred
   -> Paging
   -> f (Items FullTxOut)
-getOutputsWithRetry Explorer{..} cred paging =
-  recoverAll (constantDelay 10000000) toRet
-    where
-      toRet _ = getUnspentOutputsByPCred cred paging
+getOutputsWithRetry Explorer{..} cred paging = getUnspentOutputsByPCred cred paging
+
+--  recoverAll (constantDelay 10000000) toRet
+--    where
+--      toRet status = Log.log ("Going to get data from explorer. Current retry status: " ++ (show status)) >> getUnspentOutputsByPCred cred paging

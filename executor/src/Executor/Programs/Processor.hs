@@ -38,4 +38,3 @@ run' OrdersExecutor{..} Consumer{..} =
 
 mkConfirmedOrder :: (PoolId, ConfirmedOrderEvent) -> Confirmed AnyOrder
 mkConfirmedOrder (_, ConfirmedOrderEvent{..}) = Confirmed txOut anyOrder
-    

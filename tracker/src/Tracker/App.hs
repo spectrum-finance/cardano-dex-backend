@@ -31,7 +31,7 @@ wire
   :: (MonadUnliftIO f, MonadMask f, S.MonadAsync f)
   => f()
 wire = runResourceT $ do
-  AppConfig {..} <- lift $ read mkConfigReader
+  AppConfig {..}   <- lift $ read mkConfigReader
   poolsProducer    <- mkKafkaProducer poolsProducerConfig (TopicName poolsTopicName)
   ordersProducer   <- mkKafkaProducer ordersProducerConfig (TopicName ordersTopicName)
   _                <- lift $ Log.log "Both producers started successfully"
