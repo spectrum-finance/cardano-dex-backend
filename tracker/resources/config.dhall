@@ -1,6 +1,6 @@
 { explorerConfig =
-    { explorerHost = "http://136.243.21.170"
-    , explorerPort = 80
+    { explorerHost = "http://127.0.0.1"
+    , explorerPort = 8084
     },
   blockRequestConfig =
     { period = 1

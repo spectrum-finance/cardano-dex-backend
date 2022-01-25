@@ -21,9 +21,11 @@ import CardanoTx.Models
 import SubmitAPI.Service
 import Core.Types
 
-throwEither :: (MonadThrow f, Exception e) => Either e r -> f r
-throwEither (Left err)    = throwM (Exception ())
-throwEither (Right value) = pure value
+throwEither1 :: (MonadThrow f, Exception e, Show r, MonadIO f) => Either e r -> f r
+throwEither1 (Left err)    = throwM err
+throwEither1 (Right value) = do
+  _ <- Log.log (show value)
+  pure value
 
 data OrdersExecutor f = OrdersExecutor
   { process :: Confirmed AnyOrder -> f () 
@@ -53,9 +55,8 @@ process' poolActions PoolsResolver{..} Transactions{..} confirmedOrder@(Confirme
   let
     maybeTx = runOrder pool confirmedOrder poolActions
   _ <- Log.log "process4"
-  (txCandidate, predictedPool) <- throwEither maybeTx
-  _ <- Log.log ("pool: " ++ (show predictedPool))
---  _ <- Log.log ("predictedPool: " ++ (show predictedPool))
+  (txCandidate, predictedPool) <- throwEither1 maybeTx
+  _ <- Log.log ("txCandidate: " ++ (show predictedPool))
   _ <- Log.log "process5"
   finalTx                        <- finalizeTx txCandidate
   _ <- Log.log "process6"
