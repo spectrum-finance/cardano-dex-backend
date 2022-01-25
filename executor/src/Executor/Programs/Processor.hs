@@ -31,6 +31,7 @@ run'
   -> f ()
 run' OrdersExecutor{..} Consumer{..} =
     upstream
+
   & S.map mkConfirmedOrder
   & S.mapM process
   & S.handle (\ConsumerException -> S.fromPure ()) -- log.info here

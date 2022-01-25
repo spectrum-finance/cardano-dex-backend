@@ -105,6 +105,7 @@ library
                   , submit-api
                   , network-api
                   , sdk-core
+                  , tracker
 
 executable executor-app
     main-is: Main.hs

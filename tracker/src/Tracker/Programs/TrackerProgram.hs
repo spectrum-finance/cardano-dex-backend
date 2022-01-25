@@ -57,6 +57,7 @@ process
   -> f ()
 process TrackerService{..} orderProd poolProd = do
   fulltxOuts <- getOutputs
+  _ <- Log.log $ "fulltxOuts" ++ show fulltxOuts
   let
     unspent = fmap toFullTxOut fulltxOuts `zip` fulltxOuts
   _ <- Log.log $ "unspent" ++ show unspent

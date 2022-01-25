@@ -102,6 +102,9 @@ library
                   , plutus-tx
                   , plutus-ledger
                   , retry
+                  , base16-bytestring
+                  , cardano-addresses
+                  , cardano-api    == 1.30.0
 
 executable tracker-app
     main-is: Main.hs
