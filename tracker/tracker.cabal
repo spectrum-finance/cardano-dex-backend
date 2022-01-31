@@ -105,6 +105,8 @@ library
                   , base16-bytestring
                   , cardano-addresses
                   , cardano-api    == 1.30.0
+                  , cardano-dex-contracts
+                  , containers
 
 executable tracker-app
     main-is: Main.hs

@@ -40,7 +40,7 @@ getOutputs' TrackerServiceConfig{..} TrackerCache{..} explorer = do
   testIndex@(Gix res) <- getMinIndex
   let minIndex = if (res < 8092461) then Gix 8092461 else testIndex
       --todo: only for debug
-      actionCred    = PaymentCred "c"
+      actionCred    = PaymentCred "addr_test1wqhzjndj0j8wky2jastjugg6tadnnj4nqfvprzfwttt2hks8rc0mk"
       poolCred = PaymentCred "addr_test1wrtv0h7pwymjuy7d74ec0x6akthw7vz77mjav5yzvuxuysg23aw9a"
       paging = Paging 0 10
   _        <- Log.log $ "Min index is " ++ show minIndex

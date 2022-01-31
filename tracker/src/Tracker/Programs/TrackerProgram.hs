@@ -3,16 +3,22 @@ module Tracker.Programs.TrackerProgram where
 import Streaming.Events
 import Streaming.Producer
 import Streaming.Types
+import Ledger.Value                    (assetClassValue, assetClassValueOf)
 
 import Tracker.Services.TrackerService
 import Tracker.Services.Logger as Log
 import Tracker.Models.AppConfig
 import Tracker.Utils
+import qualified PlutusTx.AssocMap        as Map
+import Plutus.V1.Ledger.Value (Value(..), AssetClass(..), CurrencySymbol(..), TokenName(..))
+import qualified Data.Map as HMap
 
 import ErgoDex.Class
+import ErgoDex.Contracts.Types (Coin(..))
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
 import ErgoDex.State
+import Explorer.Class
 import CardanoTx.Models    as Sdk
 import Explorer.Models     as Explorer
 import Explorer.Types
@@ -59,7 +65,7 @@ process TrackerService{..} orderProd poolProd = do
   fulltxOuts <- getOutputs
   _ <- Log.log $ "fulltxOuts" ++ show fulltxOuts
   let
-    unspent = fmap toFullTxOut fulltxOuts `zip` fulltxOuts
+    unspent = fmap toCardanoTx fulltxOuts `zip` fulltxOuts
   _ <- Log.log $ "unspent" ++ show unspent
   let
     confirmedOrderEvents =
@@ -73,12 +79,23 @@ process TrackerService{..} orderProd poolProd = do
         mkPoolEvents confirmedPools
       where
         confirmedPools = parseAmm unspent :: [(Confirmed Pool, Gix)]
-
+  let
+    (pools) = map (\(a,b) -> a) ((parseAmm unspent) :: [(Confirmed Pool, Gix)])
+    valueWithPoolY = fmap (\a@(Confirmed Sdk.FullTxOut{..} pool@Pool{..}) -> (Map.toList $ getValue $ fullTxOutValue, poolCoinX, poolCoinY, assetClassValueOf fullTxOutValue (unCoin poolCoinY), findValue fullTxOutValue (unCoin poolCoinY))) pools
+  _ <- liftIO $ Log.log $ "valueWithPoolY: " ++ (show $ valueWithPoolY)
   _ <- liftIO $ Log.log $ "outs: " ++ (show $ fulltxOuts)
   _ <- liftIO $ Log.log $ "pools: " ++ (show $ confirmedPoolEvents)
   _ <- liftIO $ Log.log $ "size: " ++ (show $ length confirmedPoolEvents)
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))
+
+findValue :: Value -> AssetClass -> Integer
+findValue v a = do
+  let
+    all2list = (fmap (\(a, b) -> (a, Map.toList b)) (Map.toList $ getValue v)) :: [(CurrencySymbol, [(TokenName, Integer)])]
+    commonMap = HMap.fromListWith (++) all2list
+    hMap = Value $ Map.fromList $ fmap (\(a, b) -> (a, Map.fromList b)) (HMap.toList commonMap)
+  assetClassValueOf hMap a
 
 mkSwapEvents
   :: [(Confirmed Swap, Gix)]
