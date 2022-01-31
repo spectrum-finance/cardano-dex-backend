@@ -75,6 +75,7 @@ process TrackerService{..} orderProd poolProd = do
         confirmedPools = parseAmm unspent :: [(Confirmed Pool, Gix)]
 
   _ <- liftIO $ Log.log $ "outs: " ++ (show $ fulltxOuts)
+  _ <- liftIO $ Log.log $ "pools: " ++ (show $ confirmedPoolEvents)
   _ <- liftIO $ Log.log $ "size: " ++ (show $ length confirmedPoolEvents)
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))

@@ -3,7 +3,9 @@ name:               executor
 version:            0.1.0.0
 
 author:             ErgoLabs
-maintainer:         
+maintainer:
+
+debug-info: True
 
 extra-source-files: CHANGELOG.md
 
@@ -106,6 +108,8 @@ library
                   , network-api
                   , sdk-core
                   , tracker
+                  , unliftio
+                  , either
 
 executable executor-app
     main-is: Main.hs
