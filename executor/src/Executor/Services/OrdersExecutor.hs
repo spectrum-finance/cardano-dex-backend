@@ -29,10 +29,8 @@ import Core.Types
 
 throwEither1 :: (MonadThrow f, Exception e, Show r, MonadIO f, Show e) => Either e r -> f r
 throwEither1 (Left err)    = do
-  _ <- Log.log ( "err:" ++ (show err))
   throwM err
 throwEither1 (Right value) = do
-  _ <- Log.log ( "right:" ++ (show value))
   pure value
 
 data OrdersExecutor f = OrdersExecutor
@@ -71,9 +69,12 @@ process' poolActions PoolsResolver{..} Transactions{..} confirmedOrder@(Confirme
 --  _    <- case test of
 --            Right rig -> Log.log ("a." ++ (show (snd rig)))
 --            Left  c -> Log.log ("b." ++ (show (c)))
-  _ <- Log.log ("test." ++ (show (maybeTx)))
+  -- _ <- Log.log ("test." ++ (show (maybeTx)))
   (txCandidate, predictedPool) <- throwEither1 maybeTx
+  _ <- Log.log ("======================================")
   _ <- Log.log ("txCandidate: " ++ (show txCandidate))
+  _ <- Log.log ("======================================")
+  _ <- Log.log ("predictedPool: " ++ (show predictedPool))
   _ <- Log.log "process5"
   finalTx                        <- finalizeTx txCandidate
   _ <- Log.log "process6"

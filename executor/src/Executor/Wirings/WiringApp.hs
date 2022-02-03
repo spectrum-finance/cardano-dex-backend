@@ -30,7 +30,7 @@ wire = runResourceT $ do
   let
     poolsResolver  = mkPoolsResolver poolsResolverConfig
     explorer       = mkExplorer explorerConfig
-    trustStore     = (mkTrustStore secretFile) :: TrustStore IO
+    trustStore     = (mkTrustStore $ SecretFile "/Users/aleksandr/IdeaProjects/cardano-dex-backend/executor/resources/keys.txt") :: TrustStore IO
   _ <- lift $ Log.log "test3"
   vault          <- lift $ mkVault explorer trustStore keyPass
   _ <- lift $ Log.log "test4"

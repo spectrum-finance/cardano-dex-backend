@@ -110,6 +110,7 @@ library
                   , tracker
                   , unliftio
                   , either
+                  , base16-bytestring
 
 executable executor-app
     main-is: Main.hs
