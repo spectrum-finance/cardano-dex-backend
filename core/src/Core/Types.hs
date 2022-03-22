@@ -7,7 +7,7 @@ module Core.Types
   ) where
 
 import ErgoDex.Amm.Pool
-import Cardano.Models
+import CardanoTx.Models
 import Explorer.Types
 import Data.Aeson        (FromJSON(..), ToJSON(..))
 import RIO

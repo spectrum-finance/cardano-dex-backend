@@ -13,7 +13,7 @@ import ErgoDex.State
 import ErgoDex.Amm.Pool
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.PoolActions
-import Cardano.Models
+import CardanoTx.Models
 import Core.Types
 
 data OrdersExecutor f = OrdersExecutor

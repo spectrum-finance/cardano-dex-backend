@@ -279,7 +279,7 @@ source-repository-package
   tag: 71b6f652f9dba332b48bd969717f3696d55205a2
   subdir:
     cardano-tx
-    sdk-core
+    common
     dex-core
     quickblue
     submit-api
