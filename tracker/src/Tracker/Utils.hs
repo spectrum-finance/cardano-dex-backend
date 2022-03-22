@@ -3,7 +3,7 @@ module Tracker.Utils
     , toFullTxOut
     ) where
 
-import Cardano.Models  as Sdk
+import CardanoTx.Models  as Sdk
 import Explorer.Models as Explorer
 import Explorer.Types
 

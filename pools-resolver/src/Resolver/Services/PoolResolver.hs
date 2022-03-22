@@ -8,7 +8,7 @@ import Resolver.Repositories.PoolRepository
 import Prelude                               (print)
 import ErgoDex.Amm.Pool
 import ErgoDex.State
-import Cardano.Models
+import CardanoTx.Models
 import Explorer.Types
 import Plutus.V1.Ledger.Tx
 import Core.Types

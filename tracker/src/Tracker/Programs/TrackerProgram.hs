@@ -12,7 +12,7 @@ import ErgoDex.Class
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
 import ErgoDex.State
-import Cardano.Models     as Sdk
+import CardanoTx.Models     as Sdk
 import Explorer.Models    as Explorer
 import Explorer.Types
 

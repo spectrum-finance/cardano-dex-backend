@@ -15,7 +15,7 @@ import Servant
 import Network.Wai.Handler.Warp as Warp
 import GHC.Natural
 import ErgoDex.Amm.Pool
-import Cardano.Models
+import CardanoTx.Models
 import Explorer.Types
 import Core.Types
 
