@@ -15,47 +15,55 @@ import ErgoDex.Amm.Orders
 import ErgoDex.Amm.PoolActions
 import CardanoTx.Models
 import Core.Types
+import SubmitAPI.Service
+
+import qualified Cardano.Api       as С
+import qualified CardanoTx.Interop as Interop
+import qualified CardanoTx.Interop as Interop
+import qualified Ledger            as P
 
 data OrdersExecutor f = OrdersExecutor
-  { process :: Confirmed AnyOrder -> f () 
+  { process :: Confirmed AnyOrder -> f ()
   }
 
-mkOrdersExecutor 
-  :: (MonadThrow f)
+mkOrdersExecutor
+  :: MonadThrow f
   => PoolActions
   -> PoolsResolver f 
   -> OrdersExecutor f
-mkOrdersExecutor pa pr = OrdersExecutor $ process' pa pr
+mkOrdersExecutor actions resolver txs = OrdersExecutor $ process' actions resolver txs
 
-process' 
-  :: (MonadThrow f)
+process'
+  :: MonadThrow f
   => PoolActions 
   -> PoolsResolver f
+  -> Transactions f era
   -> Confirmed AnyOrder
   -> f ()
-process' poolActions PoolsResolver{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
+process' poolActions PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
   maybePool <- resolvePool poolId
-  pool      <- throwMaybe EmptyPoolErr maybePool
-  let 
-    maybeTx = runOrder pool confirmedOrder poolActions
-  
-  (_, Predicted _ ppool) <- throwEither maybeTx
 
-  -- todo: mk FullTxOut (in submit api), then mk OnChainIndexedEntity, then submit to pools-resolver
-  -- let
-    -- predictedPool = OnChainIndexedEntity ppool 
+  pool@(ConfirmedPool confirmedPool) <- throwMaybe EmptyPoolErr maybePool
+  (txCandidate, Predicted cout pool) <- throwEither $ runOrder pool confirmedOrder poolActions
 
-  -- sendPredicted predictedPool
-  -- submit txCandidate
-  pure ()
+  tx <- finalizeTx txCandidate
+  let
+    fout = mkFullTxOut poolOutRef cout
+      where
+        txId       = Interop.extractCardanoTxId tx
+        poolOutRef = P.TxOutRef txId 0 -- todo: magic num
+    ppool = PredictedPool $ OnChainIndexedEntity pool fout (lastConfirmedOutGix confirmedPool)
+
+  _ <- sendPredicted ppool
+  submitTx tx
 
 runOrder
   :: ConfirmedPool
   -> Confirmed AnyOrder 
-  -> PoolActions 
+  -> PoolActions
   -> Either OrderExecErr (TxCandidate, Predicted Pool)
-runOrder (OnChainIndexedEntity pool fullTxOut _) (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
+runOrder (ConfirmedPool (OnChainIndexedEntity pool fullTxOut _)) (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
   case order of
-    DepositAction deposit -> runDeposit (Confirmed txOut deposit) (Confirmed fullTxOut pool)
-    RedeemAction redeem   -> runRedeem (Confirmed txOut redeem) (Confirmed fullTxOut pool)
-    SwapAction swap       -> runSwap (Confirmed txOut swap) (Confirmed fullTxOut pool)
+    DepositAction deposit -> runDeposit (Confirmed txOut deposit) (fullTxOut, pool)
+    RedeemAction redeem   -> runRedeem (Confirmed txOut redeem) (fullTxOut, pool)
+    SwapAction swap       -> runSwap (Confirmed txOut swap) (fullTxOut, pool)

@@ -88,7 +88,9 @@ library
                   , bytestring
                   , streamly
                   , plutus-ledger-api -any
-                  , dex-core == 0.1.0.0
+                  , dex-core==0.1.0.0
+                  , submit-api==0.1.0.0
+                  , cardano-api==1.32.1
                   , dhall
                   , plutus-tx
                   , http-conduit

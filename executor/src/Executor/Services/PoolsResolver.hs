@@ -5,7 +5,6 @@ module Executor.Services.PoolsResolver
 
 import Executor.Models.Config 
           
-import ErgoDex.State
 import ErgoDex.Amm.Pool
 import Core.Types
 
