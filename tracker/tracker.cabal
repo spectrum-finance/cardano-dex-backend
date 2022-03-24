@@ -54,6 +54,7 @@ common project-config
                         TupleSections
                         TypeFamilies
                         TypeSynonymInstances
+                        TypeApplications
                         ViewPatterns
 
   ghc-options:          -Wall

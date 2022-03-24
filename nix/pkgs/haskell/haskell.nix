@@ -38,7 +38,7 @@ let
       "https://github.com/input-output-hk/hedgehog-extras"."edf6945007177a638fbeb8802397f3a6f4e47c14" = "0wc7qzkc7j4ns2rz562h6qrx2f8xyq7yjcb7zidnj7f6j0pcd0i9";
       "https://github.com/input-output-hk/plutus"."184f27c67dc696f4dfd558e0ccdfef0f054b519b" = "1anjaqivyx0g0r2f2xi57mzs32k6mlwbrzv453xn2c0pxmqk0516";
       "https://github.com/ergolabs/cardano-dex-contracts"."e11589a6bc9294fec363d83e89acac8700227f8e" = "0sd4j5nrbxkyp9g4m0s38mllmqqlpnzn23263rx2y0vnm6580625";
-      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."e1ee1ada2e05e50aee57a20c1f061b93e38dc97b" = "0g1i72wz5d48w70sm0d8dg0nm014wgs80rdqyd3mq6r17cknb574";
+      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."34329cd7e59d9c11623df3d3d454ec0fad9bee13" = "0ym7kqv6s4zjd1y39ds9nkljfkff2mlmxp38h1p3xmljdgnks3wl";
       "https://github.com/Plutonomicon/plutarch"."473424c89b4457e58e009e65d411ace1efc3ea9e" = "1q7vk7l97zk4rsvvg40qgg33frjli7bdvspcaw0nrccsddzrrxwk";
     };
 

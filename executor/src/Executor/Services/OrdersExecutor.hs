@@ -17,8 +17,6 @@ import CardanoTx.Models
 import Core.Types
 import SubmitAPI.Service
 
-import qualified Cardano.Api       as С
-import qualified CardanoTx.Interop as Interop
 import qualified CardanoTx.Interop as Interop
 import qualified Ledger            as P
 
@@ -30,6 +28,7 @@ mkOrdersExecutor
   :: MonadThrow f
   => PoolActions
   -> PoolsResolver f 
+  -> Transactions f era
   -> OrdersExecutor f
 mkOrdersExecutor actions resolver txs = OrdersExecutor $ process' actions resolver txs
 
