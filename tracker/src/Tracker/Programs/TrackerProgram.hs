@@ -11,8 +11,8 @@ import ErgoDex.Class
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
 import ErgoDex.State
-import CardanoTx.Models     as Sdk
-import Explorer.Models    as Explorer
+
+import Explorer.Models as Explorer
 import Explorer.Types
 
 import qualified Streamly.Prelude as S
