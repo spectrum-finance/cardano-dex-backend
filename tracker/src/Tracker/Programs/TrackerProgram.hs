@@ -94,7 +94,7 @@ mkPoolEvents =
   fmap (\(OnChain fullTxOut pool@Pool{..}, gix) -> (poolId, ConfirmedPoolEvent pool fullTxOut gix))
 
 parseOnChainEntity
-  :: (FromLedger amm)
+  :: FromLedger amm
   => [Explorer.FullTxOut]
   -> [(OnChain amm, Gix)]
 parseOnChainEntity =

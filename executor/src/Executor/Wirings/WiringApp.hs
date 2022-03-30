@@ -38,7 +38,7 @@ wire = runResourceT $ do
   let
     network        = mkNetwork nodeConfig explorer
     transactions   = mkTransactions network walletOutputs vault txAssemblyConfig
-    poolAction     = mkPoolActions (PaymentPubKeyHash $ mkPubKeyHash $ pubKeyHash paymentConfig) Nothing
+    poolAction     = mkPoolActions (PaymentPubKeyHash $ mkPubKeyHash $ pubKeyHash paymentConfig)
     ordersExecutor = mkOrdersExecutor poolAction poolsResolver transactions
     processor      = mkProcessor ordersExecutor consumer
   lift $ run processor

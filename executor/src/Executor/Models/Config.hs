@@ -16,11 +16,9 @@ import Plutus.V1.Ledger.Crypto
 import PlutusTx.Builtins.Internal
 
 import WalletAPI.TrustStore
-import Plutus.V1.Ledger.Crypto
 import Explorer.Config
 import NetworkAPI.Config.NodeConfig
 import SubmitAPI.Config
-import PlutusTx.Builtins.Internal
 
 data AppConfig = AppConfig
   { kafkaConfig         :: KafkaConsumerConfig
