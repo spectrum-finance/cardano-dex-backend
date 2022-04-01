@@ -11,7 +11,7 @@ let
   haskell-nix = pkgs.haskell-nix;
 
   cardano-dex-backend = import ./pkgs {
-    inherit pkgs haskell-nix sources plutus;
+    inherit pkgs haskell-nix sources plutus ;
   };
 
 in

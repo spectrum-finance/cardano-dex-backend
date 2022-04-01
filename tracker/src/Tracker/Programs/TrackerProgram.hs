@@ -3,6 +3,7 @@ module Tracker.Programs.TrackerProgram where
 import Streaming.Events
 import Streaming.Producer
 import Streaming.Types
+import Debug.Trace
 
 import Tracker.Services.TrackerService
 import Tracker.Models.AppConfig
@@ -56,6 +57,7 @@ process
   -> f ()
 process TrackerService{..} orderProd poolProd = do
   utxos <- getOutputs
+  _ <- Debug.Trace.traceM ("utxos: " ++ (show utxos))
   let
     confirmedOrderEvents =
         swapEvents ++ depositEvents ++ redeemEvents
@@ -65,9 +67,9 @@ process TrackerService{..} orderProd poolProd = do
         redeemEvents  = mkRedeemEvents $ parseOnChainEntity utxos
 
     confirmedPoolEvents = mkPoolEvents $ parseOnChainEntity utxos
-
+  _ <- Debug.Trace.traceM ("confirmedPoolEvents: " ++ (show (length confirmedPoolEvents)))
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
-  unless (null confirmedOrderEvents) (produce poolProd (S.fromList confirmedPoolEvents))
+  unless (null confirmedPoolEvents)  (produce poolProd (S.fromList confirmedPoolEvents))
 
 mkSwapEvents
   :: [(OnChain Swap, Gix)]

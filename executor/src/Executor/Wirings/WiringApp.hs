@@ -23,6 +23,8 @@ import WalletAPI.TrustStore
 import WalletAPI.Vault
 import WalletAPI.Utxos
 import NetworkAPI.Service
+import NetworkAPI.Types
+import NetworkAPI.Node.Service
 import Explorer.Service
 import SubmitAPI.Service
 
@@ -33,8 +35,8 @@ wire = runResourceT $ do
   let
     poolsResolver  = mkPoolsResolver poolsResolverConfig
     explorer       = mkExplorer explorerConfig
-    trustStore     = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey src
-      where src = SecretFile "executor/resources/keys.txt"
+    trustStore     = mkTrustStore C.AsPaymentKey src
+      where src = SecretFile "/Users/aleksandr/test123/cardano-dex-sdk-haskell/test/ts.json"
     vault = mkVault trustStore keyPass
   walletOutputs <- lift $ mkWalletOutputs' explorer vault
   let

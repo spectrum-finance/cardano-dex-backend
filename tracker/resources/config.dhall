@@ -17,13 +17,13 @@
   ordersTopicName = "proxy-topic",
   trackerProgrammConfig =
     { pollTime = 1000
-    , minIndex = 10015370
+    , minIndex = 10015371
     },
   redisConfig =
     { redisHost = "0.0.0.0"
     , redisPort = "6379"
     },
   trackerServiceConfig =
-    { limitOffset = 50
+    { limitOffset = 1
     }
 }

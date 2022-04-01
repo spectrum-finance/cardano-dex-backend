@@ -6,6 +6,7 @@ import Tracker.Models.AppConfig
 
 import GHC.Natural
 import Prelude
+import GHC.Natural
 import Database.Redis               as Redis
 import Data.ByteString.UTF8         as BSU 
 import Data.ByteString              as BS
