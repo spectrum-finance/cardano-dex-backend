@@ -54,6 +54,7 @@ common project-config
                         TupleSections
                         TypeFamilies
                         TypeSynonymInstances
+                        TypeApplications
                         ViewPatterns
 
   ghc-options:          -Wall
@@ -78,7 +79,6 @@ library
                      Tracker.Services.Logger
                      Tracker.Caches.TrackerCache
                      Tracker.Models.AppConfig
-                     Tracker.Utils
 
     build-depends:  hashable        == 1.3.0.0
                   , streaming-kafka == 0.1.0.0

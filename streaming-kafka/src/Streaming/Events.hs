@@ -12,7 +12,7 @@ import RIO
 
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
-import Cardano.Models 
+import CardanoTx.Models 
 import Streaming.Class
 import Explorer.Types
 

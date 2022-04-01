@@ -1,0 +1,12 @@
+cradle:
+  cabal:
+    - path: "./core/src"
+      component: "core:lib:core"
+    - path: "./executor/src"
+      component: "executor:lib:executor"
+    - path: "./pools-resolver/src"
+      component: "pools-resolver:lib:pools-resolver"
+    - path: "./streaming-kafka/src"
+      component: "streaming-kafka:lib:streaming-kafka"
+    - path: "./tracker/src"
+      component: "tracker:lib:tracker"

@@ -15,11 +15,21 @@ import Streaming.Types
 import Plutus.V1.Ledger.Crypto
 import PlutusTx.Builtins.Internal
 
+import WalletAPI.TrustStore
+import Explorer.Config
+import NetworkAPI.Config.NodeConfig
+import SubmitAPI.Config
+
 data AppConfig = AppConfig
   { kafkaConfig         :: KafkaConsumerConfig
   , topicId             :: TopicId
   , poolsResolverConfig :: PoolsResolverConfig
   , paymentConfig       :: PaymentConfig
+  , explorerConfig      :: ExplorerConfig
+  , secretFile          :: SecretFile
+  , keyPass             :: KeyPass
+  , nodeConfig          :: NodeConfig
+  , txAssemblyConfig    :: TxAssemblyConfig
   } deriving (Generic)
 
 instance FromDhall AppConfig

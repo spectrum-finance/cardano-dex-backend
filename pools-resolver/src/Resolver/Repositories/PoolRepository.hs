@@ -20,7 +20,7 @@ import Resolver.Models.AppSettings (RedisSettings(..))
 import Resolver.Utils
 import ErgoDex.Amm.Pool
 import ErgoDex.State
-import Cardano.Models
+import CardanoTx.Models
 import Core.Types
 import Plutus.V1.Ledger.Tx
 
