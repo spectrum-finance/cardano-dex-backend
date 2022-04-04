@@ -4,6 +4,7 @@ import Explorer.Types
 
 import Tracker.Models.AppConfig
 
+import GHC.Natural
 import Prelude
 import Database.Redis               as Redis
 import Data.ByteString.UTF8         as BSU 
@@ -21,12 +22,12 @@ data TrackerCache f = TrackerCache
 mkTrackerCache
   :: (MonadIO f) 
   => RedisSettings
+  -> TrackerProgrammConfig
   -> ResourceT f (TrackerCache f)
-mkTrackerCache settings =
-    fmap (\c -> TrackerCache (putMinIndex' c) (getMinIndex' c)) poolR 
+mkTrackerCache settings tConfig =
+    fmap (\c -> TrackerCache (putMinIndex' c) (getMinIndex' c tConfig)) poolR
   where
     poolR = mkConnectionPool settings
-
 
 mkConnectionPool
   :: (MonadIO f) 
@@ -50,10 +51,11 @@ putMinIndex' conn index =
 getMinIndex'
   :: (MonadIO f)
   => Connection
+  -> TrackerProgrammConfig
   -> f Gix
-getMinIndex' conn = liftIO $ do
+getMinIndex' conn TrackerProgrammConfig{..} = liftIO $ do
   res <- runRedis conn $ Redis.get "min_index"
-  pure $ getOrElse res (Gix 0)
+  pure $ getOrElse res (Gix . naturalToInteger $ minIndex)
 
 -- todo log err
 getOrElse :: Either c (Maybe BS.ByteString) -> Gix -> Gix
