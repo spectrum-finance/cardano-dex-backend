@@ -9,6 +9,7 @@ module Resolver.Repositories.PoolRepository
   ) where
 
 import RIO
+import Debug.Trace
 import Plutus.V1.Ledger.TxId
 import Prelude                     (print)
 import RIO.ByteString.Lazy         as BS
@@ -50,6 +51,7 @@ putPredicted' conn r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}, txOut=
 
 putConfirmed' :: (MonadIO f) => Connection -> ConfirmedPool -> f ()
 putConfirmed' conn r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+  _   <- Debug.Trace.traceM ("putConfirmed: " ++ (show gix))
   res <- liftIO $ runRedis conn $ do
       let confirmed = mkLastConfirmedKey poolId
           encodedPool = (BS.toStrict . encode) r

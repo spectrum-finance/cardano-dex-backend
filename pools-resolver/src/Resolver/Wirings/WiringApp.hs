@@ -21,5 +21,4 @@ runApp = runResourceT $ do
     resolver      = mkResolver poolRepository consumer
     poolResolver  = mkPoolResolver poolRepository
     httpServer    = mkHttpServer httpSettings poolResolver poolRepository (UnliftIO id)
-  _ <- lift $ runHttpServer httpServer
-  lift $ run resolver
+  lift $ concurrently_ (runHttpServer httpServer) (run resolver)

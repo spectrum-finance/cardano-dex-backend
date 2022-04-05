@@ -56,7 +56,7 @@ getMinIndex'
   -> f Gix
 getMinIndex' conn TrackerProgrammConfig{..} = liftIO $ do
   res <- runRedis conn $ Redis.get "min_index"
-  pure $ getOrElse res (Gix . naturalToInteger $ minIndex)
+  pure $ (Gix . naturalToInteger $ minIndex)
 
 -- todo log err
 getOrElse :: Either c (Maybe BS.ByteString) -> Gix -> Gix

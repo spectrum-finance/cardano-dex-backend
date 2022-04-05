@@ -43,7 +43,7 @@ data ConfirmedPoolEvent = ConfirmedPoolEvent
   { pool  :: Pool
   , txOut :: FullTxOut
   , gix   :: Gix
-  } deriving (Generic, FromJSON, ToJSON)
+  } deriving (Generic, FromJSON, ToJSON, Show)
 
 instance ToKafka PoolId ConfirmedPoolEvent where
   toKafka topic k v =
