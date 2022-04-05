@@ -14,7 +14,7 @@
     { producerBrokers = ["127.0.0.1:9092"]
     , producerTimeout = 1000
     },
-  ordersTopicName = "proxy-topic",
+  ordersTopicName = "amm-topic",
   trackerProgrammConfig =
     { pollTime = 1000
     , minIndex = 10015370

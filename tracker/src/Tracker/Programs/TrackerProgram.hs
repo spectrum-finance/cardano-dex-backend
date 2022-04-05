@@ -67,7 +67,7 @@ process TrackerService{..} orderProd poolProd = do
     confirmedPoolEvents = mkPoolEvents $ parseOnChainEntity utxos
 
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
-  unless (null confirmedOrderEvents) (produce poolProd (S.fromList confirmedPoolEvents))
+  unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))
 
 mkSwapEvents
   :: [(OnChain Swap, Gix)]
