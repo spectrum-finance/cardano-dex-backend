@@ -11,9 +11,10 @@ import Dhall
 import Explorer.Config
 import Streaming.Config
 
-newtype TrackerProgrammConfig = TrackerProgrammConfig
-  { pollTime :: Natural
-  } deriving (Generic)
+data TrackerProgrammConfig = TrackerProgrammConfig
+   { pollTime :: Natural
+   , minIndex :: Natural
+   } deriving (Generic)
 
 instance FromDhall TrackerProgrammConfig
 

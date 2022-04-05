@@ -1,6 +1,6 @@
 { explorerConfig =
-    { explorerHost = ./explorer.dhall
-    , explorerPort = 80
+    { explorerHost = "0.0.0.0"
+    , explorerPort = 8084
     },
   blockRequestConfig =
     { period = 1
@@ -17,6 +17,7 @@
   ordersTopicName = "proxy-topic",
   trackerProgrammConfig =
     { pollTime = 1000
+    , minIndex = 10015370
     },
   redisConfig =
     { redisHost = "0.0.0.0"

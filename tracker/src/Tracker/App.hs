@@ -35,7 +35,7 @@ wire = runResourceT $ do
   poolsProducer    <- mkKafkaProducer poolsProducerConfig (TopicName poolsTopicName)
   ordersProducer   <- mkKafkaProducer ordersProducerConfig (TopicName ordersTopicName)
   _                <- lift $ Log.log "Both producers started successfully"
-  trackerCache     <- mkTrackerCache redisConfig
+  trackerCache     <- mkTrackerCache redisConfig trackerProgrammConfig
   _                <- lift $ Log.log "trackerCache started successfully"
   let 
     explorer        = mkExplorer explorerConfig
