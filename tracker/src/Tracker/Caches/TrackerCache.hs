@@ -7,6 +7,7 @@ import Tracker.Models.AppConfig
 import GHC.Natural
 import Prelude
 import Database.Redis               as Redis
+import Debug.Trace                  as Debug
 import Data.ByteString.UTF8         as BSU 
 import Data.ByteString              as BS
 import Control.Monad.Trans.Resource
@@ -44,9 +45,9 @@ putMinIndex'
   => Connection
   -> Gix
   -> f ()
-putMinIndex' conn index =
+putMinIndex' conn newMinIndex =
   void $ liftIO $ runRedis conn $ do
-    Redis.set "min_index" (BSU.fromString $ show index)
+    Redis.set "min_index" (BSU.fromString $ show newMinIndex)
 
 getMinIndex'
   :: (MonadIO f)
@@ -55,19 +56,21 @@ getMinIndex'
   -> f Gix
 getMinIndex' conn TrackerProgrammConfig{..} = liftIO $ do
   res <- runRedis conn $ Redis.get "min_index"
-  pure $ getOrElse res (Gix . naturalToInteger $ minIndex)
+  _ <- Debug.traceM ("From res: " ++ (show (fmap (fmap BSU.toString) res)))
+  pure $ getCorrectIndex res (Gix . naturalToInteger $ minIndex)
 
 -- todo log err
-getOrElse :: Either c (Maybe BS.ByteString) -> Gix -> Gix
-getOrElse input defaultInput =
+getCorrectIndex :: forall c. Show c => Either c (Maybe BS.ByteString) -> Gix -> Gix
+getCorrectIndex input defaultInput@(Gix defaultInputValue) =
   case input of
-    Left err    -> defaultInput
+    Left err    ->
+      Debug.trace ("error for def input:" ++ (show err)) defaultInput
     Right value ->
       case value of
         Just v ->
           let
             str = BSU.toString v
-            int = read str :: Integer
+            minIndexInCache = read str :: Integer
           in
-            Gix int
+            if (minIndexInCache < defaultInputValue) then defaultInput else (Gix minIndexInCache)
         _ -> defaultInput

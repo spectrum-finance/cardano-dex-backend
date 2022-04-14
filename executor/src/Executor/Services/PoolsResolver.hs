@@ -3,7 +3,9 @@ module Executor.Services.PoolsResolver
   , mkPoolsResolver
   ) where
 
-import Executor.Models.Config 
+import Executor.Models.Config
+import Tracker.Services.Logger as Log
+import Debug.Trace
           
 import ErgoDex.Amm.Pool
 import Core.Types
@@ -31,7 +33,8 @@ resolvePool'
   -> PoolId 
   -> f (Maybe ConfirmedPool)
 resolvePool' PoolsResolverConfig{..} poolId = do
-  let 
+  _ <- Log.log ("Going to resolve pool with id:" ++ (show poolId))
+  let
     request = defaultRequest
       & setRequestPath (pack "resolve") 
       & setRequestHost (pack getHost) 
@@ -40,7 +43,6 @@ resolvePool' PoolsResolverConfig{..} poolId = do
       & setRequestBodyJSON poolId
 
   response <- httpJSON request
-
   pure $ getResponseBody response
 
 sendPredicted'

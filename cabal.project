@@ -10,6 +10,9 @@ packages:
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
+package plutarch
+  flags: +development
+
 -- You never, ever, want this.
 write-ghc-environment-files: never
 
@@ -276,7 +279,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 5e5ef6b039ea26ed47e6dbf568590ac9ed084d21
+  tag: 94d30ac616e0f1cff7b02f7218fa6195d0855e47
   subdir:
     cardano-tx
     ergo-hs-common
