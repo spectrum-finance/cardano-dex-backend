@@ -12,7 +12,7 @@ import Explorer.Service
 import Explorer.Types
 
 import Prelude
-import GHC.Natural as Natural ( naturalToInt )
+import GHC.Natural as Natural ( naturalToInt, naturalToInteger)
 import RIO
 
 data TrackerService f = TrackerService
@@ -39,5 +39,5 @@ getOutputs' TrackerServiceConfig{..} TrackerCache{..} Explorer{..} = do
   _        <- Log.log $ "Min index is " ++ show minIndex
   outputs  <- getUnspentOutputs minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset)
   _        <- Log.log $ "Min index is " ++ show minIndex
-  _        <- putMinIndex $ Gix $ unGix minIndex + toInteger (length $ items outputs)
+  _        <- putMinIndex $ Gix $ unGix minIndex + (naturalToInteger limitOffset)
   pure $ items outputs
