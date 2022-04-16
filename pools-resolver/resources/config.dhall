@@ -7,7 +7,7 @@
     , consumerBatchSize = 1
     },
   topicId =
-    { unTopicId = "proxy-topic"
+    { unTopicId = "pools-topic"
     },
   httpSettings =
     { getHost = "0.0.0.0"

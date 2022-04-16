@@ -102,6 +102,8 @@ library
                   , http-client
                   , resourcet
                   , exceptions
+                  , ergo-hs-common
+                  , tracker
 
 executable executor-app
     main-is: Main.hs

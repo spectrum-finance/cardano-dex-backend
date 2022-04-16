@@ -3,6 +3,7 @@ module Executor.Models.Config
   , PaymentConfig(..)
   , mkPubKeyHash
   , AppConfig(..)
+  , NodeSocketConfig(..)
   ) where
 
 import RIO
@@ -30,6 +31,7 @@ data AppConfig = AppConfig
   , keyPass             :: KeyPass
   , nodeConfig          :: NodeConfig
   , txAssemblyConfig    :: TxAssemblyConfig
+  , nodeSocketConfig    :: NodeSocketConfig
   } deriving (Generic)
 
 instance FromDhall AppConfig
@@ -40,6 +42,12 @@ data PoolsResolverConfig = PoolsResolverConfig
   } deriving (Generic, Show)
 
 instance FromDhall PoolsResolverConfig
+
+data NodeSocketConfig = NodeSocketConfig
+  { nodeSocketPath :: FilePath
+  } deriving (Generic, Show)
+
+instance FromDhall NodeSocketConfig
 
 data PaymentConfig = PaymentConfig
   { pubKeyHash :: Text

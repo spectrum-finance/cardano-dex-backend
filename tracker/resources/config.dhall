@@ -9,21 +9,21 @@
     { producerBrokers = ["127.0.0.1:9092"]
     , producerTimeout = 1000
     },
-  poolsTopicName = "amm-topic",
+  poolsTopicName = "pools-topic",
   ordersProducerConfig =
     { producerBrokers = ["127.0.0.1:9092"]
     , producerTimeout = 1000
     },
-  ordersTopicName = "amm-topic",
+  ordersTopicName = "orders-topic",
   trackerProgrammConfig =
-    { pollTime = 1000
-    , minIndex = 10015370
+    { pollTime = 10
+    , minIndex = 10190292
     },
   redisConfig =
     { redisHost = "0.0.0.0"
     , redisPort = "6379"
     },
   trackerServiceConfig =
-    { limitOffset = 50
+    { limitOffset = 10
     }
 }

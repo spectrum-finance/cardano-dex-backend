@@ -17,7 +17,6 @@ in
       pkgs.ghcid
       # HACK: This shouldn't need to be here.
       pkgs.lzma.dev
-      pkgs.darwin.apple_sdk.frameworks.Cocoa
     ];
 
     buildInputs = with cardano-dex-backend; [

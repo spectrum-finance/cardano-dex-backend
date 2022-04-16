@@ -3,6 +3,7 @@ module Tracker.Programs.TrackerProgram where
 import Streaming.Events
 import Streaming.Producer
 import Streaming.Types
+import Debug.Trace
 
 import Tracker.Services.TrackerService
 import Tracker.Models.AppConfig
@@ -10,6 +11,7 @@ import Tracker.Models.AppConfig
 import ErgoDex.Class
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
+import Debug.Trace as Trace
 import ErgoDex.State
 
 import Explorer.Models as Explorer
@@ -45,7 +47,7 @@ run'
 run' TrackerProgrammConfig{..} explorer orderProd poolProd =
     S.repeatM (process explorer orderProd poolProd)
   & S.delay (fromIntegral $ Natural.naturalToInt pollTime)
-  & S.handle (\ProducerExecption -> S.fromPure ()) -- log.info here
+  & S.handle (\(a :: SomeException) -> (liftIO $ Debug.Trace.traceM $ ("tracker stream error: " ++ (show a)))) -- log.info here
   & S.drain
 
 process
@@ -65,7 +67,9 @@ process TrackerService{..} orderProd poolProd = do
         redeemEvents  = mkRedeemEvents $ parseOnChainEntity utxos
 
     confirmedPoolEvents = mkPoolEvents $ parseOnChainEntity utxos
-
+  _ <- Debug.Trace.traceM ("utxos: "  ++ (show (utxos)))
+  _ <- Debug.Trace.traceM ("confirmedPoolEvents: "  ++ (show (length confirmedPoolEvents)))
+  _ <- Debug.Trace.traceM ("confirmedOrderEvents: " ++ (show (length confirmedOrderEvents)))
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))
 
