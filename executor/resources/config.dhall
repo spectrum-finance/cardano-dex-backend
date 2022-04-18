@@ -1,5 +1,9 @@
 let FeePolicy = < Strict | Balance >
 let CollateralPolicy = < Ignore | Cover >
+let LogLevel = < Info | Error | Warn | Debug >
+let format = "$time - $pid - $loggername - $prio - $msg" : Text
+let fileHandlers = \(path : Text) -> \(level : LogLevel) -> {_1 = path, _2 = level, _3 = format}
+let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = component, _2 = level}
 in
 { kafkaConfig =
     { consumerBrokers = ["127.0.0.1:9092"]
@@ -21,8 +25,8 @@ in
     { unSigningKeyFile = "/Users/aleksandr/test123/cardano-dex-sdk-haskell/test/ts.json",
     },
   explorerConfig =
-    { explorerHost = "0.0.0.0"
-    , explorerPort = 8084
+    { explorerHost = "testnet-api.quickblue.io"
+    , explorerPort = 443
     },
   keyPass =
     { unKeyPass = "secret"
@@ -37,5 +41,9 @@ in
   paymentConfig =
     { pubKeyHash = "d74d26c5029cf290094fce1a0670da7369b9026571dfb977c6fa234f,"
     , feeAddr = ""
+    },
+  loggingConfig =
+    { fileHandlers = [fileHandlers "Path" LogLevel.Info]
+    , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }

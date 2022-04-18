@@ -45,6 +45,7 @@ common project-config
                         NamedFieldPuns
                         NoImplicitPrelude
                         PartialTypeSignatures
+                        OverloadedStrings
                         PatternGuards
                         PolyKinds
                         RankNTypes
@@ -76,7 +77,6 @@ library
                      Tracker.Programs.TrackerProgram
                      Tracker.Services.TrackerService 
                      Tracker.Services.ConfigReader
-                     Tracker.Services.Logger
                      Tracker.Caches.TrackerCache
                      Tracker.Models.AppConfig
 
@@ -101,6 +101,7 @@ library
                   , dhall
                   , plutus-tx
                   , plutus-ledger
+                  , hlog
 
 executable tracker-app
     main-is: Main.hs

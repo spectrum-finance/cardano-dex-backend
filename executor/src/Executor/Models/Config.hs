@@ -8,6 +8,7 @@ module Executor.Models.Config
 
 import RIO
 import Dhall
+import System.Logging.Hlog
 import Data.Text.Encoding as Data
 
 import Streaming.Config
@@ -32,6 +33,7 @@ data AppConfig = AppConfig
   , nodeConfig          :: NodeConfig
   , txAssemblyConfig    :: TxAssemblyConfig
   , nodeSocketConfig    :: NodeSocketConfig
+  , loggingConfig       :: LoggingConfig
   } deriving (Generic)
 
 instance FromDhall AppConfig

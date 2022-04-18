@@ -6,6 +6,7 @@ module Resolver.Models.AppSettings
 
 import RIO
 import Kafka.Consumer
+import System.Logging.Hlog
 import Streaming.Config
 import Streaming.Types
 import Dhall
@@ -15,6 +16,7 @@ data AppSettings = AppSettings
   , topicId          :: TopicId
   , httpSettings     :: HttpServerSettings
   , redisSettings    :: RedisSettings
+  , loggingConfig    :: LoggingConfig
   } deriving (Generic)
 
 instance FromDhall AppSettings

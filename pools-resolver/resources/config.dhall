@@ -1,3 +1,8 @@
+let LogLevel = < Info | Error | Warn | Debug >
+let format = "$time - $pid - $loggername - $prio - $msg" : Text
+let fileHandlers = \(path : Text) -> \(level : LogLevel) -> {_1 = path, _2 = level, _3 = format}
+let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = component, _2 = level}
+in
 {
   kafkaConfig =
     { consumerBrokers = ["127.0.0.1:9092"]
@@ -15,5 +20,9 @@
     },
   redisSettings =
     { getRedisHost = "127.0.0.1"
+    },
+  loggingConfig =
+    { fileHandlers = [fileHandlers "Path" LogLevel.Info]
+    , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }

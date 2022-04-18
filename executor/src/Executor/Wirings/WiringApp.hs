@@ -28,13 +28,15 @@ import NetworkAPI.Service
 import Explorer.Service
 import SubmitAPI.Config
 import SubmitAPI.Service
+import System.Logging.Hlog
 
 wire :: IO ()
 wire = runResourceT $ do
   AppConfig {..} <- lift $ read mkConfigReader
   consumer       <- mkKafkaConsumer kafkaConfig [topicId]
+  loggingMaker   <- makeLogging @(ResourceT IO) @IO loggingConfig
+  poolsResolver  <- mkPoolsResolver poolsResolverConfig loggingMaker
   let
-    poolsResolver  = mkPoolsResolver poolsResolverConfig
     explorer       = mkExplorer explorerConfig
     trustStore     = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey secretFile
     vault          = mkVault trustStore keyPass
@@ -47,6 +49,6 @@ wire = runResourceT $ do
     network        = mkNetwork C.AlonzoEra epochSlots networkId sockPath
     transactions   = mkTransactions network networkId walletOutputs vault txAssemblyConfig
     poolAction     = mkPoolActions (PaymentPubKeyHash $ executorPkh)
-    ordersExecutor = mkOrdersExecutor poolAction poolsResolver transactions
-    processor      = mkProcessor ordersExecutor consumer
+  ordersExecutor <- mkOrdersExecutor poolAction loggingMaker poolsResolver transactions
+  processor      <- mkProcessor ordersExecutor loggingMaker consumer
   lift $ run processor

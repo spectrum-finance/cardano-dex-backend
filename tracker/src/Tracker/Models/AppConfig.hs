@@ -9,6 +9,7 @@ module Tracker.Models.AppConfig
 import RIO
 import Dhall
 import Explorer.Config
+import System.Logging.Hlog
 import Streaming.Config
 
 data TrackerProgrammConfig = TrackerProgrammConfig
@@ -47,6 +48,7 @@ data AppConfig = AppConfig
   , trackerProgrammConfig :: TrackerProgrammConfig
   , redisConfig           :: RedisSettings
   , trackerServiceConfig  :: TrackerServiceConfig
+  , loggingConfig       :: LoggingConfig
   } deriving (Generic)
 
 instance FromDhall AppConfig

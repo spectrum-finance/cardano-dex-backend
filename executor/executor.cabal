@@ -104,6 +104,7 @@ library
                   , exceptions
                   , ergo-hs-common
                   , tracker
+                  , hlog
 
 executable executor-app
     main-is: Main.hs
