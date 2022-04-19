@@ -1,13 +1,15 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Executor.Services.PoolsResolver
   ( PoolsResolver(..)
   , mkPoolsResolver
   ) where
 
 import Executor.Models.Config
-import Tracker.Services.Logger as Log
 import Debug.Trace
           
 import ErgoDex.Amm.Pool
+import System.Logging.Hlog
 import Core.Types
 
 import RIO
@@ -21,19 +23,22 @@ data PoolsResolver f = PoolsResolver
   }
 
 mkPoolsResolver 
-  :: MonadIO f 
-  => PoolsResolverConfig 
-  -> PoolsResolver f
-mkPoolsResolver settings = 
-  PoolsResolver (resolvePool' settings) (sendPredicted' settings)
+  :: (Monad i, MonadIO f)
+  => PoolsResolverConfig
+  -> MakeLogging i f
+  -> i (PoolsResolver f)
+mkPoolsResolver settings MakeLogging{..} = do
+  logger <- forComponent "poolsResolver"
+  pure $ PoolsResolver (resolvePool' settings logger) (sendPredicted' settings)
 
 resolvePool' 
   :: (MonadIO f)
-  => PoolsResolverConfig 
+  => PoolsResolverConfig
+  -> Logging f
   -> PoolId 
   -> f (Maybe ConfirmedPool)
-resolvePool' PoolsResolverConfig{..} poolId = do
-  _ <- Log.log ("Going to resolve pool with id:" ++ (show poolId))
+resolvePool' PoolsResolverConfig{..} Logging{..} poolId = do
+  _ <- infoM ("Going to resolve pool with id:" ++ (show poolId))
   let
     request = defaultRequest
       & setRequestPath (pack "resolve") 

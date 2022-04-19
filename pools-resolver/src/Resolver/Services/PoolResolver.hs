@@ -12,29 +12,33 @@ import CardanoTx.Models
 import Explorer.Types
 import Plutus.V1.Ledger.Tx
 import Core.Types
+import System.Logging.Hlog
 
 data PoolResolver f = PoolResolver
   { resolve :: PoolId -> f (Maybe ConfirmedPool)
   }
 
-mkPoolResolver :: (MonadIO f) => PoolRepository f -> PoolResolver f
-mkPoolResolver p = PoolResolver $ resolve' p
+mkPoolResolver :: (Monad i, MonadIO f) => PoolRepository f -> MakeLogging i f ->  i (PoolResolver f)
+mkPoolResolver p MakeLogging{..} = do
+  logger <- forComponent "poolsResolver"
+  pure $ PoolResolver $ resolve' p logger
 
-resolve' :: (MonadIO f) => PoolRepository f -> PoolId -> f (Maybe ConfirmedPool)
-resolve' p@PoolRepository{..} poolId = do
+resolve' :: (MonadIO f) => PoolRepository f -> Logging f -> PoolId -> f (Maybe ConfirmedPool)
+resolve' p@PoolRepository{..} logging@Logging{..} poolId = do
   lastConfirmed <- getLastConfirmed poolId
-  _             <- liftIO $ print lastConfirmed -- todo: add log.info
+  _             <- infoM ("lastConfirmed: " ++ (show lastConfirmed))
   lastPredicted <- getLastPredicted poolId
-  _             <- liftIO $ print lastPredicted -- todo: add log.info
-  process p lastConfirmed lastPredicted
+  _             <- infoM ("lastPredicted: " ++ (show lastPredicted))
+  process p logging lastConfirmed lastPredicted
 
 process
   :: (MonadIO f)
   => PoolRepository f
+  -> Logging f
   -> Maybe ConfirmedPool
   -> Maybe PredictedPool
   -> f (Maybe ConfirmedPool)
-process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
+process p@PoolRepository{..} Logging{..} confirmedMaybe predictedMaybe = do
   case (confirmedMaybe, predictedMaybe) of
     (Just confirmed@(ConfirmedPool confEvent), Just predicted@(PredictedPool predEvent)) -> do
       consistentChain  <- existsPredicted $ getPoolId confEvent
@@ -44,10 +48,10 @@ process p@PoolRepository{..} confirmedMaybe predictedMaybe = do
         toReturn  = if upToDate then (ConfirmedPool predEvent) else pessimisticPool
       pure $ Just toReturn
     (Just confirmed, _) -> do
-      _ <- liftIO $ print "Just only confirmed. Predicted is empty." -- log.info here
+      _ <- infoM @String ("Just only confirmed. Predicted is empty.")
       pure $ Just confirmed
     _ -> do
-      _ <- liftIO $ print "Both are nothing." -- log.info here
+      _ <- infoM @String ("Both are nothing.")
       pure Nothing
 
 pessimistic

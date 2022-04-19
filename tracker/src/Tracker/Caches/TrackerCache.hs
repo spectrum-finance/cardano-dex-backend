@@ -56,15 +56,13 @@ getMinIndex'
   -> f Gix
 getMinIndex' conn TrackerProgrammConfig{..} = liftIO $ do
   res <- runRedis conn $ Redis.get "min_index"
-  _ <- Debug.traceM ("From res: " ++ (show (fmap (fmap BSU.toString) res)))
   pure $ getCorrectIndex res (Gix . naturalToInteger $ minIndex)
 
 -- todo log err
 getCorrectIndex :: forall c. Show c => Either c (Maybe BS.ByteString) -> Gix -> Gix
 getCorrectIndex input defaultInput@(Gix defaultInputValue) =
   case input of
-    Left err    ->
-      Debug.trace ("error for def input:" ++ (show err)) defaultInput
+    Left err    -> defaultInput
     Right value ->
       case value of
         Just v ->

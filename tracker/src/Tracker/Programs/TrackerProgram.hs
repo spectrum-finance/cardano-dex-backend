@@ -9,6 +9,7 @@ import Tracker.Services.TrackerService
 import Tracker.Models.AppConfig
 
 import ErgoDex.Class
+import System.Logging.Hlog
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
 import Debug.Trace as Trace
@@ -28,35 +29,39 @@ data TrackerProgram f = TrackerProgram
   }
 
 mkTrackerProgram
-  :: (S.MonadAsync f, MonadCatch f)
+  :: (Monad i, S.MonadAsync f, MonadCatch f)
   => TrackerProgrammConfig
+  -> MakeLogging i f
   -> TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent
-  -> TrackerProgram f
-mkTrackerProgram settings explorer orderProd poolProd =
-  TrackerProgram $ run' settings explorer orderProd poolProd
+  -> i (TrackerProgram f)
+mkTrackerProgram settings MakeLogging{..} explorer orderProd poolProd = do
+  logger <- forComponent "trackerProgram"
+  pure $ TrackerProgram $ run' settings logger explorer orderProd poolProd
 
 run'
   :: (S.MonadAsync f, MonadCatch f)
   => TrackerProgrammConfig
+  -> Logging f
   -> TrackerService f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent
   -> f ()
-run' TrackerProgrammConfig{..} explorer orderProd poolProd =
-    S.repeatM (process explorer orderProd poolProd)
+run' TrackerProgrammConfig{..} logging@Logging{..} explorer orderProd poolProd =
+    S.repeatM (process explorer logging orderProd poolProd)
   & S.delay (fromIntegral $ Natural.naturalToInt pollTime)
-  & S.handle (\(a :: SomeException) -> (liftIO $ Debug.Trace.traceM $ ("tracker stream error: " ++ (show a)))) -- log.info here
+  & S.handle (\(a :: SomeException) -> (lift . errorM $ ("tracker stream error: " ++ (show a)))) -- log.info here
   & S.drain
 
 process
   :: (Monad f)
   => TrackerService f
+  -> Logging f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent
   -> f ()
-process TrackerService{..} orderProd poolProd = do
+process TrackerService{..} Logging{..} orderProd poolProd = do
   utxos <- getOutputs
   let
     confirmedOrderEvents =
@@ -67,9 +72,8 @@ process TrackerService{..} orderProd poolProd = do
         redeemEvents  = mkRedeemEvents $ parseOnChainEntity utxos
 
     confirmedPoolEvents = mkPoolEvents $ parseOnChainEntity utxos
-  _ <- Debug.Trace.traceM ("utxos: "  ++ (show (utxos)))
-  _ <- Debug.Trace.traceM ("confirmedPoolEvents: "  ++ (show (length confirmedPoolEvents)))
-  _ <- Debug.Trace.traceM ("confirmedOrderEvents: " ++ (show (length confirmedOrderEvents)))
+  _ <- infoM ("confirmedPoolEvents in batch: "  ++ (show (length confirmedPoolEvents)))
+  _ <- infoM ("confirmedOrderEvents in batch: " ++ (show (length confirmedOrderEvents)))
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))
 

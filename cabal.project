@@ -278,6 +278,11 @@ source-repository-package
 
 source-repository-package
   type: git
+  location: https://github.com/ergolabs/hlog
+  tag: b022e67a7bff2e3dff7753ed4d546b66a5ae620d
+
+source-repository-package
+  type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
   tag: 94d30ac616e0f1cff7b02f7218fa6195d0855e47
   subdir:

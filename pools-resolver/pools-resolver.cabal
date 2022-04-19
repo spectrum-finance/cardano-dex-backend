@@ -51,6 +51,7 @@ common project-config
                         ScopedTypeVariables
                         StandaloneDeriving
                         TupleSections
+                        TypeApplications
                         TypeFamilies
                         TypeSynonymInstances
                         ViewPatterns
@@ -105,6 +106,7 @@ library
                   , resourcet
                   , exceptions
                   , core == 0.1.0.0
+                  , hlog
 
 executable pools-resolver-app
     main-is: Main.hs
