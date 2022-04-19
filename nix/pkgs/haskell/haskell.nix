@@ -40,7 +40,7 @@ let
       "https://github.com/ergolabs/cardano-dex-contracts"."6ad2ae29e8c5d267b068baa886a817c814f3a640" = "TbsJfE6WSS6M+9QSrZToQ0UFyXIHRhiK6hM/Xk/kKyU=";
       "https://github.com/ergolabs/cardano-dex-sdk-haskell"."94d30ac616e0f1cff7b02f7218fa6195d0855e47" = "CSzCLXOS/+6qilIWCLZFbtDsxEW+p9KIIY76X/E4N4I=";
       "https://github.com/Plutonomicon/plutarch"."473424c89b4457e58e009e65d411ace1efc3ea9e" = "1q7vk7l97zk4rsvvg40qgg33frjli7bdvspcaw0nrccsddzrrxwk";
-      "https://github.com/ergolabs/hlog"."b022e67a7bff2e3dff7753ed4d546b66a5ae620d" = "iErUBU67cZOQWHV+WEf7HsLqGNcahmiKeCWhFCIbOWw=";
+      "https://github.com/ergolabs/hlog"."4c1f902a830f4b0fa5303be3991935b92849c22d" = "0b9ahygf9gymxdg2b8b1qhvwja5mbq05l88d9v9arrrrpbpc3f2c";
     };
 
     modules = [

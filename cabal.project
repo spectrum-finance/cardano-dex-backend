@@ -279,7 +279,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/hlog
-  tag: b022e67a7bff2e3dff7753ed4d546b66a5ae620d
+  tag: 4c1f902a830f4b0fa5303be3991935b92849c22d
 
 source-repository-package
   type: git

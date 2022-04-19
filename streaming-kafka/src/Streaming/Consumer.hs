@@ -55,6 +55,7 @@ upstream' consumer timeout batchSize =
       & S.map (Either.first (const ConsumerException))
       & S.mapM throwEither
       & S.map fromKafka
+      & S.mapM (commitAllOffsets OffsetCommit consumer $>)
 
 mkConsumerProps :: KafkaConsumerConfig -> ConsumerProperties
 mkConsumerProps KafkaConsumerConfig{..} =
