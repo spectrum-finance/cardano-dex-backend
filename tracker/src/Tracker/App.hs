@@ -28,7 +28,7 @@ mkApp :: IO App
 mkApp = return $ App wire
 
 wire
-  :: (MonadUnliftIO f, MonadCatch f, S.MonadAsync f)
+  :: (MonadUnliftIO f, MonadCatch f, S.MonadAsync f, MonadMask f)
   => f ()
 wire = runResourceT $ do
   AppConfig {..} <- lift $ read mkConfigReader

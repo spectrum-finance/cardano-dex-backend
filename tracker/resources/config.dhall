@@ -4,8 +4,9 @@ let fileHandlers = \(path : Text) -> \(level : LogLevel) -> {_1 = path, _2 = lev
 let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = component, _2 = level}
 in
 { explorerConfig =
-    { explorerHost = "testnet-api.quickblue.io"
-    , explorerPort = 443
+    { explorerUrl = "https://testnet-api.quickblue.io"
+    , exponentialBackoffDelay = 100
+    , maxRetries = 5
     },
   blockRequestConfig =
     { period = 1
@@ -22,14 +23,14 @@ in
   ordersTopicName = "orders-topic",
   trackerProgrammConfig =
     { pollTime = 10
-    , minIndex = 10190292
+    , minIndex = 10230564
     },
   redisConfig =
     { redisHost = "0.0.0.0"
     , redisPort = "6379"
     },
   trackerServiceConfig =
-    { limitOffset = 10
+    { limitOffset = 1000
     },
   loggingConfig =
     { fileHandlers = [fileHandlers "./logs/tracker.log" LogLevel.Info]

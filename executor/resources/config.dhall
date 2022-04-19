@@ -22,28 +22,32 @@ in
     , deafultChangeAddr = "addr_test1vr007v5nktnksje3gnm4aw4arwrkcl5rvvx4lwa3w8mtzxgf6c2nt"
     },
   secretFile =
-    { unSigningKeyFile = "/Users/aleksandr/test123/cardano-dex-sdk-haskell/test/ts.json",
+    { unSigningKeyFile = "/Users/aleksandr/IdeaProjects/cardano-dex-backend/executor/ts.json",
+    },
+  nodeSocketConfig =
+    { nodeSocketPath = "/tmp/another.socket"
     },
   explorerConfig =
-    { explorerHost = "testnet-api.quickblue.io"
-    , explorerPort = 443
+    { explorerUrl = "https://testnet-api.quickblue.io"
+    , exponentialBackoffDelay = 100
+    , maxRetries = 5
     },
   keyPass =
     { unKeyPass = "secret"
     },
-  topicId = 
+  topicId =
     { unTopicId = "orders-topic"
     },
-  poolsResolverConfig = 
+  poolsResolverConfig =
     { getHost = "0.0.0.0"
     , getPort = 8088
     },
   paymentConfig =
-    { pubKeyHash = "d74d26c5029cf290094fce1a0670da7369b9026571dfb977c6fa234f,"
+    { pubKeyHash = "deff3293b2e7684b3144f75ebabd1b876c7e83630d5fbbb171f6b119"
     , feeAddr = ""
     },
   loggingConfig =
-    { fileHandlers = [fileHandlers "Path" LogLevel.Info]
-    , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
+    { fileHandlers = [fileHandlers "./logs/executor.log" LogLevel.Info]
+    , levelOverrides = [] : List { _1 : Text, _2 : < Info | Error | Warn | Debug > }
     }
 }

@@ -22,7 +22,7 @@ in
     { getRedisHost = "127.0.0.1"
     },
   loggingConfig =
-    { fileHandlers = [fileHandlers "Path" LogLevel.Info]
+    { fileHandlers = [fileHandlers "./logs/resolver.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }

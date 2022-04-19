@@ -59,8 +59,8 @@ process''
   -> Transactions f era
   -> Confirmed AnyOrder
   -> f ()
-process'' poolActions Logging{..} PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
-  _ <- infoM ("Going to process order for pool: " ++ (show poolId))
+process'' poolActions Logging{..} PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed _ (AnyOrder poolId o)) = do
+  _ <- infoM ("Going to process order " ++ (show o) ++ " for pool: " ++ (show poolId))
   maybePool <- resolvePool poolId
   _ <- infoM ("Pool resolve result: " ++ (show $ not (isNothing maybePool)))
   pool@(ConfirmedPool confirmedPool) <- throwMaybe EmptyPoolErr maybePool
