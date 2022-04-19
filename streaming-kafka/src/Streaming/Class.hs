@@ -3,7 +3,6 @@ module Streaming.Class where
 import RIO
 import Kafka.Producer
 import Kafka.Consumer
-import Data.ByteString
 
 class ToKafka k v where
   toKafka :: TopicName -> k -> v -> ProducerRecord
