@@ -97,6 +97,8 @@ library
                   , quickblue==0.1.0.0
                   , plutus-ledger==0.1.0.0
                   , dhall
+                  , control-monad-exception
+                  , unliftio
                   , plutus-tx
                   , http-conduit
                   , http-client

@@ -1,4 +1,5 @@
 let FeePolicy = < Strict | Balance >
+let Uri = { unUri : Text }
 let CollateralPolicy = < Ignore | Cover >
 let LogLevel = < Info | Error | Warn | Debug >
 let format = "$time - $pid - $loggername - $prio - $msg" : Text
@@ -8,9 +9,9 @@ in
 { kafkaConfig =
     { consumerBrokers = ["127.0.0.1:9092"]
     , consumerGroupId = "executor_group_id_1"
-    , consumerPollRate = 1000
+    , consumerPollRate = 10
     , consumerBatchSize = 1
-    , consumerTimeout = 1000
+    , consumerTimeout = 10
     },
   nodeConfig =
     { host = "0.0.0.0"
@@ -28,9 +29,7 @@ in
     { nodeSocketPath = "/tmp/another.socket"
     },
   explorerConfig =
-    { explorerUrl = "https://testnet-api.quickblue.io"
-    , exponentialBackoffDelay = 100
-    , maxRetries = 5
+    { explorerUri = "http://testnet-api.quickblue.io"
     },
   keyPass =
     { unKeyPass = "secret"

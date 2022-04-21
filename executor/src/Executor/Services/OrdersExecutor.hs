@@ -3,10 +3,13 @@ module Executor.Services.OrdersExecutor
   , mkOrdersExecutor
   ) where
 
-import Core.Throw.Combinators
-import Executor.Services.PoolsResolver
-import SubmitAPI.Internal.Transaction
-import Executor.Models.Errors
+import           Core.Throw.Combinators
+import           Common.Exception.Catch           as Catch
+import qualified Control.Exception                as CE
+import qualified UnliftIO.Exception               as UE
+import           Executor.Services.PoolsResolver
+import           SubmitAPI.Internal.Transaction
+import           Executor.Models.Errors
 
 import RIO
 
@@ -47,8 +50,8 @@ process'
   -> Confirmed AnyOrder
   -> f ()
 process' poolActions logging@Logging{..} resolver tx confirmedOrder@(Confirmed _ (AnyOrder poolId _)) =
-  catch (process'' poolActions logging resolver tx confirmedOrder) (\(err :: SomeException) ->
-    infoM ("Ignore error during processing order for pool:" ++ (show poolId) ++ ". Err: " ++ (show err))
+  Catch.catch @CE.SomeException (process'' poolActions logging resolver tx confirmedOrder) (\err ->
+    infoM ("Ignore error during processing order for pool:" ++ (show poolId) ++ ". Err:" ++ (show err))
   )
 
 process''
@@ -59,8 +62,8 @@ process''
   -> Transactions f era
   -> Confirmed AnyOrder
   -> f ()
-process'' poolActions Logging{..} PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed _ (AnyOrder poolId o)) = do
-  _ <- infoM ("Going to process order " ++ (show o) ++ " for pool: " ++ (show poolId))
+process'' poolActions Logging{..} PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed txOut (AnyOrder poolId o)) = do
+  _ <- infoM ("Going to process order " ++ (show o) ++ " for pool: " ++ (show poolId) ++ ". TxOut:" ++ (show txOut) )
   maybePool <- resolvePool poolId
   _ <- infoM ("Pool resolve result: " ++ (show $ not (isNothing maybePool)))
   pool@(ConfirmedPool confirmedPool) <- throwMaybe EmptyPoolErr maybePool

@@ -14,6 +14,7 @@ import Prelude                     (print)
 import RIO.ByteString.Lazy         as BS
 import Data.Aeson                  as Json
 import Database.Redis              as Redis
+import qualified Debug.Trace as D
 import Data.ByteString.UTF8        as BSU
 import RIO.ByteString.Lazy         as LBS
 import Resolver.Models.AppSettings (RedisSettings(..))
@@ -49,7 +50,8 @@ putPredicted' conn r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}, txOut=
     liftIO $ print res
 
 putConfirmed' :: (MonadIO f) => Connection -> ConfirmedPool -> f ()
-putConfirmed' conn r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+putConfirmed' conn r@(ConfirmedPool e@OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
+  _ <- D.traceM ("Going to put pool: " ++ (show e))
   res <- liftIO $ runRedis conn $ do
       let confirmed = mkLastConfirmedKey poolId
           encodedPool = (BS.toStrict . encode) r
