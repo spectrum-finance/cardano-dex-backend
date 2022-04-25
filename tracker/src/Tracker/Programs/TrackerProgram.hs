@@ -64,14 +64,14 @@ process
 process TrackerService{..} Logging{..} orderProd poolProd = do
   utxos <- getOutputs
   let
-    confirmedOrderEvents =
-        swapEvents ++ depositEvents ++ redeemEvents
-      where
-        swapEvents    = mkSwapEvents $ parseOnChainEntity utxos
-        depositEvents = mkDepositEvents $ parseOnChainEntity utxos
-        redeemEvents  = mkRedeemEvents $ parseOnChainEntity utxos
-
+    swapEvents    = mkSwapEvents $ parseOnChainEntity utxos
+    depositEvents = mkDepositEvents $ parseOnChainEntity utxos
+    redeemEvents  = mkRedeemEvents $ parseOnChainEntity utxos
+    confirmedOrderEvents = swapEvents ++ depositEvents ++ redeemEvents
     confirmedPoolEvents = mkPoolEvents $ parseOnChainEntity utxos
+  _ <- infoM ("swapEvents in batch: "  ++ (show swapEvents))
+  _ <- infoM ("depositEvents in batch: "  ++ (show depositEvents))
+  _ <- infoM ("redeemEvents in batch: "  ++ (show redeemEvents))
   _ <- infoM ("confirmedPoolEvents in batch: "  ++ (show (length confirmedPoolEvents)))
   _ <- infoM ("confirmedOrderEvents in batch: " ++ (show (length confirmedOrderEvents)))
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
