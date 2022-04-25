@@ -21,7 +21,7 @@ in
   ordersTopicName = "orders-topic",
   trackerProgrammConfig =
     { pollTime = 10
-    , minIndex = 10245650
+    , minIndex = 10269090
     },
   redisConfig =
     { redisHost = "0.0.0.0"

@@ -48,7 +48,7 @@ data AppConfig = AppConfig
   , trackerProgrammConfig :: TrackerProgrammConfig
   , redisConfig           :: RedisSettings
   , trackerServiceConfig  :: TrackerServiceConfig
-  , loggingConfig       :: LoggingConfig
+  , loggingConfig         :: LoggingConfig
   } deriving (Generic)
 
 instance FromDhall AppConfig
