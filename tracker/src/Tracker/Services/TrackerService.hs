@@ -14,6 +14,7 @@ import Prelude
 import System.Logging.Hlog
 import GHC.Natural          as Natural ( naturalToInt, naturalToInteger)
 import RIO
+import           ErgoDex.Contracts.Pool  (maxLqCapAmount)
 
 data TrackerService f = TrackerService
  { getOutputs :: f [FullTxOut]
