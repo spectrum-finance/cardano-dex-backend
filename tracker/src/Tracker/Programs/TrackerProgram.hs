@@ -72,7 +72,7 @@ process TrackerService{..} Logging{..} orderProd poolProd = do
   _ <- infoM ("swapEvents in batch: "  ++ (show swapEvents))
   _ <- infoM ("depositEvents in batch: "  ++ (show depositEvents))
   _ <- infoM ("redeemEvents in batch: "  ++ (show redeemEvents))
-  _ <- infoM ("confirmedPoolEvents in batch: "  ++ (show (length confirmedPoolEvents)))
+  _ <- infoM ("confirmedPoolEvents in batch: "  ++ (show (confirmedPoolEvents)))
   _ <- infoM ("confirmedOrderEvents in batch: " ++ (show (length confirmedOrderEvents)))
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))
