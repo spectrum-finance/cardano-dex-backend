@@ -21,14 +21,14 @@ in
   ordersTopicName = "orders-topic",
   trackerProgrammConfig =
     { pollTime = 10
-    , minIndex = 10269090
+    , minIndex = 10329054
     },
   redisConfig =
     { redisHost = "0.0.0.0"
     , redisPort = "6379"
     },
   trackerServiceConfig =
-    { limitOffset = 1000
+    { limitOffset = 5
     },
   loggingConfig =
     { fileHandlers = [fileHandlers "./logs/tracker.log" LogLevel.Info]
