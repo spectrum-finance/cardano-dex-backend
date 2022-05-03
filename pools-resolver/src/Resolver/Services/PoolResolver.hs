@@ -26,9 +26,9 @@ mkPoolResolver p MakeLogging{..} = do
 resolve' :: (MonadIO f) => PoolRepository f -> Logging f -> PoolId -> f (Maybe ConfirmedPool)
 resolve' p@PoolRepository{..} logging@Logging{..} poolId = do
   lastConfirmed <- getLastConfirmed poolId
-  _             <- infoM ("lastConfirmed: " ++ (show lastConfirmed))
+  _             <- infoM ("lastConfirmed: " ++ (show lastConfirmed) ++ ". PoolId: " ++ (show poolId))
   lastPredicted <- getLastPredicted poolId
-  _             <- infoM ("lastPredicted: " ++ (show lastPredicted))
+  _             <- infoM ("lastPredicted: " ++ (show lastPredicted) ++ ". PoolId: " ++ (show poolId))
   process p logging lastConfirmed lastPredicted
 
 process
@@ -38,17 +38,21 @@ process
   -> Maybe ConfirmedPool
   -> Maybe PredictedPool
   -> f (Maybe ConfirmedPool)
-process p@PoolRepository{..} Logging{..} confirmedMaybe predictedMaybe = do
+process p@PoolRepository{..} logging@Logging{..} confirmedMaybe predictedMaybe = do
   case (confirmedMaybe, predictedMaybe) of
     (Just confirmed@(ConfirmedPool confEvent), Just predicted@(PredictedPool predEvent)) -> do
       consistentChain  <- existsPredicted $ getPoolId confEvent
-      pessimisticPool  <- pessimistic consistentChain p predicted confirmed
+      _ <- infoM @String ("consistentChain: " ++ (show consistentChain))
+      pessimisticPool  <- pessimistic consistentChain logging p predicted confirmed
+      _ <- infoM @String ("pessimisticPool: " ++ (show pessimisticPool))
       let
         upToDate  = unGix (lastConfirmedOutGix confEvent) <= unGix (lastConfirmedOutGix predEvent) -- add Ord to Gix
         toReturn  = if upToDate then (ConfirmedPool predEvent) else pessimisticPool
+      _ <- infoM @String ("upToDate: " ++ (show upToDate))
+      _ <- infoM @String ("toReturn: " ++ (show toReturn))
       pure $ Just toReturn
     (Just confirmed, _) -> do
-      _ <- infoM @String ("Just only confirmed. Predicted is empty.")
+      _ <- infoM @String ("Just only confirmed. Predicted is empty. Confirmed: " ++ (show confirmed))
       pure $ Just confirmed
     _ -> do
       _ <- infoM @String ("Both are nothing.")
@@ -57,20 +61,23 @@ process p@PoolRepository{..} Logging{..} confirmedMaybe predictedMaybe = do
 pessimistic
   :: (MonadIO f)
   => Bool
+  -> Logging f
   -> PoolRepository f
   -> PredictedPool
   -> ConfirmedPool
   -> f ConfirmedPool
-pessimistic consistentChain p predictedPool confirmedPool@(ConfirmedPool confEvent) =
+pessimistic consistentChain logging p predictedPool confirmedPool@(ConfirmedPool confEvent) =
   if consistentChain
-  then needToUpdate p predictedPool (lastConfirmedOutGix confEvent)
+  then needToUpdate p logging predictedPool (lastConfirmedOutGix confEvent)
   else pure $ confirmedPool
 
-needToUpdate :: (MonadIO f) => PoolRepository f -> PredictedPool -> Gix -> f ConfirmedPool
-needToUpdate PoolRepository{..} predicted@(PredictedPool predEvent) newGix = do
+needToUpdate :: (MonadIO f) => PoolRepository f -> Logging f ->  PredictedPool -> Gix -> f ConfirmedPool
+needToUpdate PoolRepository{..} Logging{..} predicted@(PredictedPool predEvent) newGix = do
   let
     event       = predEvent {lastConfirmedOutGix = newGix}
     updatedPool = PredictedPool event
-  _ <- putPredicted updatedPool
+  _   <- infoM @String ("updatedPool: " ++ (show updatedPool))
+  res <- putPredicted updatedPool
+  _   <- infoM @String ("needToUpdate pool. result: " ++ (show res))
   pure $ ConfirmedPool event
 

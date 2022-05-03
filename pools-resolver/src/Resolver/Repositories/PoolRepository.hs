@@ -54,7 +54,6 @@ putConfirmed' conn r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}, txOut=
   res <- liftIO $ runRedis conn $ do
       let confirmed = mkLastConfirmedKey poolId
           encodedPool = (BS.toStrict . encode) r
-          t = 1
       Redis.set confirmed encodedPool
   liftIO $ print res
 
