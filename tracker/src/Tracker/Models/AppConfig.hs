@@ -27,7 +27,8 @@ instance FromDhall BlockRequestConfig
 
 data RedisSettings = RedisSettings
   { redisHost :: String
-  , redisPort :: String 
+  , redisPort :: String
+  , redisPassword :: Maybe String
   } deriving (Generic)
 
 instance FromDhall RedisSettings

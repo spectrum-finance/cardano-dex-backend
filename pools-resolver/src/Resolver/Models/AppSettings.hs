@@ -29,7 +29,8 @@ data HttpServerSettings = HttpServerSettings
 instance FromDhall HttpServerSettings
 
 data RedisSettings = RedisSettings
-  { getRedisHost :: String 
+  { getRedisHost     :: String
+  , getRedisPassword :: Maybe String
   } deriving (Generic)
 
 instance FromDhall RedisSettings
