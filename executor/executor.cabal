@@ -79,6 +79,7 @@ library
                      Executor.Services.PoolsResolver
                      Executor.Programs.Processor
                      Executor.Models.Errors
+                     Executor.Clients.PoolsResolverClient
                      
     build-depends:  cardano-tx
                   , streaming-kafka
@@ -105,6 +106,7 @@ library
                   , ergo-hs-common
                   , tracker
                   , hlog
+                  , retry
 
 executable executor-app
     main-is: Main.hs
