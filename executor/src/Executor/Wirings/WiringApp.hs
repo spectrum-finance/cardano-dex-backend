@@ -9,6 +9,7 @@ import qualified Debug.Trace as D
 import Executor.Programs.Processor
 import Executor.Services.OrdersExecutor
 import Executor.Services.PoolsResolver
+import Executor.Clients.PoolsResolverClient
 
 import Streaming.Consumer
 
@@ -33,9 +34,10 @@ import System.Logging.Hlog
 wire :: IO ()
 wire = runResourceT $ do
   AppConfig {..} <- lift $ read mkConfigReader
-  consumer       <- mkKafkaConsumer kafkaConfig [topicId]
-  loggingMaker   <- makeLogging @(ResourceT IO) @IO loggingConfig
-  poolsResolver  <- mkPoolsResolver poolsResolverConfig loggingMaker
+  consumer             <- mkKafkaConsumer kafkaConfig [topicId]
+  loggingMaker         <- makeLogging @(ResourceT IO) @IO loggingConfig
+  poolsResolverClient  <- mkPoolsResolverClient poolsResolverConfig loggingMaker
+  poolsResolver        <- mkPoolsResolver poolsResolverConfig poolsResolverClient loggingMaker
   let
     explorer       = mkExplorer explorerConfig
     trustStore     = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey secretFile
