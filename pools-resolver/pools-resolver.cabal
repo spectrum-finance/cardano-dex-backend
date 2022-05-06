@@ -113,5 +113,7 @@ executable pools-resolver-app
     build-depends:  base >= 4.9 && < 5
                   , pools-resolver
                   , rio
+    ghc-options:      -O2
+                      -threaded
     hs-source-dirs:   app
     default-language: Haskell2010
