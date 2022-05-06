@@ -34,10 +34,12 @@ mkConnectionPool
   :: (MonadIO f) 
   => RedisSettings
   -> ResourceT f Connection
-mkConnectionPool RedisSettings{..} =
+mkConnectionPool RedisSettings{..} = do
+  let passwordM = fmap BSU.fromString redisPassword
   lift $ liftIO $ checkedConnect
     defaultConnectInfo 
       { connectHost = redisHost
+      , connectAuth = passwordM
       }
 
 putMinIndex'

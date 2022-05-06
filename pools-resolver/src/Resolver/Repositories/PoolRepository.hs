@@ -33,8 +33,9 @@ data PoolRepository f = PoolRepository
   }
 
 mkPoolRepository :: (MonadIO f) => RedisSettings -> f (PoolRepository f)
-mkPoolRepository redis = do
-    conn <- liftIO (checkedConnect $ defaultConnectInfo { connectHost = getRedisHost redis } )
+mkPoolRepository RedisSettings{..} = do
+    let passwordM = fmap BSU.fromString getRedisPassword
+    conn <- liftIO (checkedConnect $ defaultConnectInfo { connectHost = getRedisHost, connectAuth = passwordM } )
     -- _ <- print "Redis connection established..." // todo: log info
     pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
 
