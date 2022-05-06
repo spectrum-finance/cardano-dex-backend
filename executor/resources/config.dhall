@@ -22,28 +22,31 @@ in
     , deafultChangeAddr = "addr_test1vr007v5nktnksje3gnm4aw4arwrkcl5rvvx4lwa3w8mtzxgf6c2nt"
     },
   secretFile =
-    { unSigningKeyFile = "/Users/aleksandr/test123/cardano-dex-sdk-haskell/test/ts.json",
+    { unSigningKeyFile = "/home/dex/cardano-dex-backend/executor/ts.json",
     },
   explorerConfig =
-    { explorerHost = "testnet-api.quickblue.io"
-    , explorerPort = 443
+    { explorerUri = "https://testnet-api.quickblue.io"
+    },
+  nodeSocketConfig =
+    { nodeSocketPath = "/home/dex/cardano-node/testnet-node-local/bin/state-node-testnet/node.socket"
     },
   keyPass =
     { unKeyPass = "secret"
     },
-  topicId = 
+  topicId =
     { unTopicId = "orders-topic"
     },
-  poolsResolverConfig = 
+  poolsResolverConfig =
     { getHost = "0.0.0.0"
     , getPort = 8088
+    , maxAttempts = 5
     },
   paymentConfig =
     { pubKeyHash = "d74d26c5029cf290094fce1a0670da7369b9026571dfb977c6fa234f,"
     , feeAddr = ""
     },
   loggingConfig =
-    { fileHandlers = [fileHandlers "Path" LogLevel.Info]
+    { fileHandlers = [fileHandlers "./logs/executor.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }
