@@ -41,6 +41,7 @@ let
       "https://github.com/ergolabs/cardano-dex-sdk-haskell"."ae7c0a5f1d57b18c2744f24f8b8a8ec7676ae139" = "9NdcRkQ6QF3ACGL9NHxbP8CFAwdncipxYvfppSZ9zcs=";
       "https://github.com/Plutonomicon/plutarch"."473424c89b4457e58e009e65d411ace1efc3ea9e" = "1q7vk7l97zk4rsvvg40qgg33frjli7bdvspcaw0nrccsddzrrxwk";
       "https://github.com/ergolabs/hlog"."4c1f902a830f4b0fa5303be3991935b92849c22d" = "0b9ahygf9gymxdg2b8b1qhvwja5mbq05l88d9v9arrrrpbpc3f2c";
+      "https://github.com/daleiz/rocksdb-haskell"."109af08f95b40f458d4933e3725ecb3e59337c39" = "1i1ya491fapa0g96527krarv0w0iybizqcz518741iw06hhpikiy";
     };
 
     modules = [
