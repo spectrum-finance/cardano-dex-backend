@@ -33,8 +33,9 @@ data RedisSettings = RedisSettings
 
 instance FromDhall RedisSettings
 
-newtype TrackerServiceConfig = TrackerServiceConfig
+data TrackerServiceConfig = TrackerServiceConfig
   { limitOffset :: Natural
+  , maxAttempts :: Natural
   } deriving (Generic)
 
 instance FromDhall TrackerServiceConfig

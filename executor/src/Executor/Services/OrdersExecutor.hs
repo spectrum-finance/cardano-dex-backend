@@ -73,10 +73,10 @@ process'' poolActions Logging{..} PoolsResolver{..} Transactions{..} confirmedOr
         txId       = Interop.extractCardanoTxId tx
         poolOutRef = P.TxOutRef txId 0 -- todo: magic num
     ppool = PredictedPool $ OnChainIndexedEntity pool fout (lastConfirmedOutGix confirmedPool)
-  _ <- infoM ("Going to submit new predicted pool with id:" ++ (show poolId))
-  _ <- sendPredicted ppool
   _ <- infoM @String ("Going to submit tx")
-  submitTx tx
+  _ <- submitTx tx
+  _ <- infoM ("Going to submit new predicted pool with id:" ++ (show poolId))
+  sendPredicted ppool
 
 runOrder
   :: ConfirmedPool

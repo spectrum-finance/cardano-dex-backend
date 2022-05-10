@@ -39,8 +39,9 @@ data AppConfig = AppConfig
 instance FromDhall AppConfig
 
 data PoolsResolverConfig = PoolsResolverConfig
-  { getHost :: String
-  , getPort :: Natural
+  { getHost     :: String
+  , getPort     :: Natural
+  , maxAttempts :: Natural
   } deriving (Generic, Show)
 
 instance FromDhall PoolsResolverConfig

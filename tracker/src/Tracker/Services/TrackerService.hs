@@ -12,7 +12,9 @@ import Explorer.Types
 
 import Prelude
 import System.Logging.Hlog
+import Control.Retry
 import GHC.Natural          as Natural ( naturalToInt, naturalToInteger)
+import Control.Monad.Catch
 import RIO
 
 data TrackerService f = TrackerService
@@ -20,7 +22,7 @@ data TrackerService f = TrackerService
  }
 
 mkTrackerService
-  :: (Monad i, MonadIO f)
+  :: (Monad i, MonadIO f, MonadMask f)
   => TrackerServiceConfig
   -> MakeLogging i f
   -> TrackerCache f
@@ -31,18 +33,32 @@ mkTrackerService settings MakeLogging{..} cache client = do
   pure $ TrackerService $ getOutputs' settings logger cache client
 
 getOutputs'
-  :: (Monad f, MonadIO f)
+  :: (MonadIO f, MonadMask f)
   => TrackerServiceConfig
   -> Logging f
   -> TrackerCache f
   -> Explorer f
   -> f [FullTxOut]
-getOutputs' TrackerServiceConfig{..} Logging{..} TrackerCache{..} Explorer{..} = do
+getOutputs' TrackerServiceConfig{..} logging@Logging{..} TrackerCache{..} explorer = do
   _        <- infoM @String ("Going to fetch min index")
   minIndex <- getMinIndex
   _        <- infoM $ "Min index is " ++ show minIndex
-  outputs  <- getUnspentOutputs minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset)
+  let maxAttemptsInt = (Natural.naturalToInt maxAttempts)
+  outputs  <- getUnspentOutputsRetry maxAttemptsInt logging minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset) explorer
   let newMinIndex = unGix minIndex + toInteger (length $ items outputs)
   _        <- infoM $ "Going to put new Min index is " ++ show newMinIndex
   _        <- putMinIndex $ Gix $ newMinIndex
   pure $ items outputs
+
+
+getUnspentOutputsRetry
+  :: (MonadIO f, MonadMask f) 
+  => Int 
+  -> Logging f
+  -> Gix 
+  -> Limit 
+  -> Explorer f
+  -> f (Items FullTxOut)
+getUnspentOutputsRetry maxAttempts Logging{..} minIndex limit Explorer{..} = do
+  let limitedBackoff = exponentialBackoff 1000000 <> limitRetries maxAttempts
+  recoverAll limitedBackoff (\rs -> infoM ("RetryStatus for getUnspentOutputs " ++ (show rs)) >> (getUnspentOutputs minIndex limit)) 
