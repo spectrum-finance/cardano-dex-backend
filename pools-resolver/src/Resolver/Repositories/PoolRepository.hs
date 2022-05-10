@@ -16,9 +16,9 @@ import System.Logging.Hlog (Logging(Logging, debugM), MakeLogging(..))
 
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.UTF8 as UBS
-import           Data.Aeson (ToJSON, decode, encode)
+import           Data.Aeson           (ToJSON, decode, encode)
 
-import Resolver.Models.AppSettings (PoolStoreSettings(..))
+import Resolver.Settings (PoolStoreSettings(..))
 import ErgoDex.Amm.Pool
 import Core.Types
 

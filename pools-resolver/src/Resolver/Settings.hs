@@ -1,7 +1,8 @@
-module Resolver.Models.AppSettings
+module Resolver.Settings
   ( HttpServerSettings(..)
   , AppSettings(..)
   , PoolStoreSettings(..)
+  , loadAppSettings
   ) where
 
 import RIO

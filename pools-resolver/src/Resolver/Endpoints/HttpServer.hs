@@ -5,18 +5,14 @@ module Resolver.Endpoints.HttpServer
   , mkHttpServer
   ) where
 
-import Resolver.Models.AppSettings as AppSettings
+import RIO
+
+import Resolver.Settings as AppSettings
 import Resolver.Repositories.PoolRepository
 import Resolver.Services.PoolResolver
-import RIO
-import Data.Int
-import Control.Monad.Trans.Except
 import Servant
 import Network.Wai.Handler.Warp as Warp
-import GHC.Natural
 import ErgoDex.Amm.Pool
-import CardanoTx.Models
-import Explorer.Types
 import Core.Types
 
 data HttpServer f = HttpServer
@@ -24,11 +20,11 @@ data HttpServer f = HttpServer
   }
 
 mkHttpServer :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRepository f -> UnliftIO f -> HttpServer f
-mkHttpServer set resolver repo uIO = HttpServer $ runHttpServer' set resolver repo uIO
+mkHttpServer settings resolver repo uIO = HttpServer $ runHttpServer' settings resolver repo uIO
 
 runHttpServer' :: (MonadIO f) => HttpServerSettings -> PoolResolver f -> PoolRepository f -> UnliftIO f -> f ()
 runHttpServer' HttpServerSettings{..} resolver repo uIO =
-  liftIO $ (Warp.run (fromIntegral getPort) (httpApp resolver repo uIO))
+  liftIO $ Warp.run (fromIntegral getPort) (httpApp resolver repo uIO)
 
 type Api =
   "resolve" :> ReqBody '[JSON] PoolId         :> Post '[JSON] (Maybe ConfirmedPool) :<|>
@@ -47,7 +43,7 @@ server :: PoolResolver f -> PoolRepository f -> ServerT Api f
 server r p =
   resolvePool r :<|>
   update p
- 
+
 resolvePool :: PoolResolver f -> PoolId -> f (Maybe ConfirmedPool)
 resolvePool PoolResolver{..} = resolve
 

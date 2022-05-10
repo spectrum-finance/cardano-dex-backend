@@ -71,14 +71,13 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Resolver.Endpoints.HttpServer
-                     Resolver.Models.AppSettings
+    exposed-modules: Resolver.Settings
+                     Resolver.Endpoints.HttpServer
                      Resolver.Program.Resolver
                      Resolver.Repositories.PoolRepository
                      Resolver.Services.PoolResolver
-                     Resolver.Services.ConfigReader
-                     Resolver.Wirings.WiringApp
-                     Resolver.Utils
+                     Resolver.AppWiring
+                     Resolver
 
     build-depends:  streaming-kafka
                   , bytestring

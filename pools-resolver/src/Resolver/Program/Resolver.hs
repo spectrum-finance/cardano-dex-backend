@@ -33,7 +33,7 @@ run'
   -> f ()
 run' PoolRepository{..} Consumer{..} =
     upstream
-  & S.map (\(_, ConfirmedPoolEvent{..}) -> (ConfirmedPool (OnChainIndexedEntity pool txOut gix)))
+  & S.map (\(_, ConfirmedPoolEvent{..}) -> ConfirmedPool (OnChainIndexedEntity pool txOut gix))
   & S.mapM putConfirmed
   & S.handle (\ConsumerException -> S.fromPure ())
   & S.drain
