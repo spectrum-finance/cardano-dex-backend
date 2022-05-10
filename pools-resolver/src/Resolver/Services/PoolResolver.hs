@@ -21,7 +21,7 @@ mkPoolResolver p MakeLogging{..} = do
   logger <- forComponent "poolsResolver"
   pure $ PoolResolver $ resolve' p logger
 
-resolve' :: (MonadIO f) => PoolRepository f -> Logging f -> PoolId -> f (Maybe ConfirmedPool)
+resolve' :: MonadIO f => PoolRepository f -> Logging f -> PoolId -> f (Maybe ConfirmedPool)
 resolve' p@PoolRepository{..} logging@Logging{..} poolId = do
   lastConfirmed <- getLastConfirmed poolId
   _             <- infoM $ "lastConfirmed: " <> show lastConfirmed
@@ -30,7 +30,7 @@ resolve' p@PoolRepository{..} logging@Logging{..} poolId = do
   process p logging lastConfirmed lastPredicted
 
 process
-  :: (MonadIO f)
+  :: MonadIO f
   => PoolRepository f
   -> Logging f
   -> Maybe ConfirmedPool
@@ -49,7 +49,7 @@ process p@PoolRepository{..} Logging{..} confirmedMaybe predictedMaybe = do
     _                   -> infoM @String "Both are nothing." $> Nothing
 
 pessimistic
-  :: (MonadIO f)
+  :: MonadIO f
   => Bool
   -> PoolRepository f
   -> PredictedPool
@@ -60,7 +60,7 @@ pessimistic consistentChain p predictedPool confirmedPool@(ConfirmedPool confEve
   then needToUpdate p predictedPool (lastConfirmedOutGix confEvent)
   else pure confirmedPool
 
-needToUpdate :: (MonadIO f) => PoolRepository f -> PredictedPool -> Gix -> f ConfirmedPool
+needToUpdate :: MonadIO f => PoolRepository f -> PredictedPool -> Gix -> f ConfirmedPool
 needToUpdate PoolRepository{..} (PredictedPool predEvent) newGix = do
   let
     event       = predEvent {lastConfirmedOutGix = newGix}
