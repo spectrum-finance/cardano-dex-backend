@@ -12,6 +12,7 @@ import System.Logging.Hlog (makeLogging, Logging(Logging, infoM), MakeLogging(fo
 
 import Resolver.Endpoints.HttpServer
 import Resolver.Repositories.PoolRepository
+import Debug.Trace as D
 import Resolver.Program.Resolver
 import Resolver.Services.PoolResolver
 import Resolver.Settings (AppSettings(..))
@@ -32,6 +33,5 @@ mkApp ul AppSettings{..} = do
     resolver   = mkResolver poolRepository consumer
     httpServer = mkHttpServer httpSettings poolResolver poolRepository ul
   Logging{infoM} <- forComponent mkLogging "App"
-  pure . App $ infoM @String "Starting Faucet App .."
-    >> forkIO (run resolver)
-    >> runHttpServer httpServer
+  _              <- liftIO $ infoM @String "Starting Resolver App .."
+  pure . App $ concurrently_ (run resolver) (runHttpServer httpServer)

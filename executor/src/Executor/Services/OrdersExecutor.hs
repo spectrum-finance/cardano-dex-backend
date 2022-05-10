@@ -5,14 +5,14 @@ module Executor.Services.OrdersExecutor
 
 import Core.Throw.Combinators
 import Executor.Services.PoolsResolver
-import SubmitAPI.Internal.Transaction
+import SubmitAPI.Internal.Transaction hiding (estimateTxFee)
 import Executor.Models.Errors
 
 import RIO
 
 import System.Logging.Hlog
 import Debug.Trace
-import ErgoDex.State 
+import ErgoDex.State
 import ErgoDex.Amm.Pool
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.PoolActions
@@ -28,10 +28,10 @@ data OrdersExecutor f = OrdersExecutor
   }
 
 mkOrdersExecutor
-  :: (Monad i, MonadIO f, MonadThrow f, MonadUnliftIO f)
+  :: (Monad i, MonadThrow f, MonadUnliftIO f)
   => PoolActions
   -> MakeLogging i f
-  -> PoolsResolver f 
+  -> PoolsResolver f
   -> Transactions f era
   -> i (OrdersExecutor f)
 mkOrdersExecutor actions MakeLogging{..} resolver txs = do
@@ -39,7 +39,7 @@ mkOrdersExecutor actions MakeLogging{..} resolver txs = do
   pure $ OrdersExecutor $ process' actions logger resolver txs
 
 process'
-  :: (MonadIO f, MonadThrow f, MonadUnliftIO f)
+  :: ( MonadThrow f, MonadUnliftIO f)
   => PoolActions
   -> Logging f
   -> PoolsResolver f
@@ -48,7 +48,7 @@ process'
   -> f ()
 process' poolActions logging@Logging{..} resolver tx confirmedOrder@(Confirmed _ (AnyOrder poolId _)) =
   catch (process'' poolActions logging resolver tx confirmedOrder) (\(err :: SomeException) ->
-    infoM ("Ignore error during processing order for pool:" ++ (show poolId) ++ ". Err: " ++ (show err))
+    infoM ("Ignore error during processing order for pool:" ++ show poolId ++ ". Err: " ++ show err)
   )
 
 process''
@@ -60,27 +60,27 @@ process''
   -> Confirmed AnyOrder
   -> f ()
 process'' poolActions Logging{..} PoolsResolver{..} Transactions{..} confirmedOrder@(Confirmed _ (AnyOrder poolId _)) = do
-  _ <- infoM ("Going to process order for pool: " ++ (show poolId))
+  _ <- infoM ("Going to process order for pool: " ++ show poolId)
   maybePool <- resolvePool poolId
-  _ <- infoM ("Pool resolve result: " ++ (show $ not (isNothing maybePool)))
+  _ <- infoM ("Pool resolve result: " ++ show (isJust maybePool))
   pool@(ConfirmedPool confirmedPool) <- throwMaybe EmptyPoolErr maybePool
-  (txCandidate, Predicted cout pool) <- throwEither $ runOrder pool confirmedOrder poolActions
-  _ <- infoM ("TxCandidate: " ++ (show txCandidate))
+  (txCandidate, Predicted cout pPool) <- throwEither $ runOrder pool confirmedOrder poolActions
+  _ <- infoM ("TxCandidate: " ++ show txCandidate)
   tx <- finalizeTx txCandidate
   let
     fout = mkFullTxOut poolOutRef cout
       where
         txId       = Interop.extractCardanoTxId tx
         poolOutRef = P.TxOutRef txId 0 -- todo: magic num
-    ppool = PredictedPool $ OnChainIndexedEntity pool fout (lastConfirmedOutGix confirmedPool)
-  _ <- infoM @String ("Going to submit tx")
+    ppool = PredictedPool $ OnChainIndexedEntity pPool fout (lastConfirmedOutGix confirmedPool)
+  _ <- infoM @String "Going to submit tx"
   _ <- submitTx tx
-  _ <- infoM ("Going to submit new predicted pool with id:" ++ (show poolId))
+  _ <- infoM ("Going to submit new predicted pool with id:" ++ show poolId)
   sendPredicted ppool
 
 runOrder
   :: ConfirmedPool
-  -> Confirmed AnyOrder 
+  -> Confirmed AnyOrder
   -> PoolActions
   -> Either OrderExecErr (TxCandidate, Predicted Pool)
 runOrder (ConfirmedPool (OnChainIndexedEntity pool fullTxOut _)) (Confirmed txOut (AnyOrder _ order)) PoolActions{..} =
