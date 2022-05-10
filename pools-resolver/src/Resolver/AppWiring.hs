@@ -5,7 +5,7 @@ module Resolver.AppWiring
 
 import RIO
 
-import Control.Monad.Trans.Resource (ResourceT, ResIO)
+import Control.Monad.Trans.Resource (ResIO)
 import Control.Concurrent           (forkIO)
 
 import System.Logging.Hlog (makeLogging, Logging(Logging, infoM), MakeLogging(forComponent))
@@ -24,10 +24,10 @@ mkApp
   -> AppSettings
   -> ResIO (App IO)
 mkApp ul AppSettings{..} = do
-  mkLogging       <- makeLogging @(ResourceT IO) @IO loggingConfig
-  poolRepository  <- mkPoolRepository poolStoreSettings mkLogging
-  consumer        <- mkKafkaConsumer kafkaConfig [topicId]
-  poolResolver    <- mkPoolResolver poolRepository mkLogging
+  mkLogging      <- makeLogging loggingConfig
+  poolRepository <- mkPoolRepository poolStoreSettings mkLogging
+  consumer       <- mkKafkaConsumer kafkaConfig [topicId]
+  poolResolver   <- mkPoolResolver poolRepository mkLogging
   let
     resolver   = mkResolver poolRepository consumer
     httpServer = mkHttpServer httpSettings poolResolver poolRepository ul
