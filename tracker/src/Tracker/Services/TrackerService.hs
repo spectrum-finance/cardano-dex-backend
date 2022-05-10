@@ -33,7 +33,7 @@ mkTrackerService settings MakeLogging{..} cache client = do
   pure $ TrackerService $ getOutputs' settings logger cache client
 
 getOutputs'
-  :: (Monad f, MonadIO f, MonadMask f)
+  :: (MonadIO f, MonadMask f)
   => TrackerServiceConfig
   -> Logging f
   -> TrackerCache f
@@ -52,7 +52,7 @@ getOutputs' TrackerServiceConfig{..} logging@Logging{..} TrackerCache{..} explor
 
 
 getUnspentOutputsRetry
-  :: (Monad f, MonadIO f, MonadMask f) 
+  :: (MonadIO f, MonadMask f) 
   => Int 
   -> Logging f
   -> Gix 
