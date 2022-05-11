@@ -33,7 +33,7 @@ mkTrackerCache
   -> MakeLogging i f
   -> i (TrackerCache f)
 mkTrackerCache TrackerStoreSettings{..} tConfig MakeLogging{..} = do
-  logging <- forComponent "PoolRepository"
+  logging <- forComponent "TrackerRepository"
   db      <- Rocks.open storePath
               Rocks.defaultOptions
                 { Rocks.createIfMissing = createIfMissing
