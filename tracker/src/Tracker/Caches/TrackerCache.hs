@@ -1,4 +1,7 @@
-module Tracker.Caches.TrackerCache where
+module Tracker.Caches.TrackerCache 
+  ( TrackerCache(..)
+  , mkTrackerCache
+  ) where
 
 import Explorer.Types
 
@@ -6,13 +9,11 @@ import Tracker.Models.AppConfig
 
 import GHC.Natural
 import Prelude
-import Database.Redis               as Redis
 import System.Logging.Hlog          (Logging(Logging, debugM), MakeLogging(..))
 import Data.ByteString.UTF8         as BSU
 import Data.ByteString              as BS
 import Control.Monad.Trans.Resource
 import Control.Monad.IO.Unlift
-import Control.Monad.Trans.Class
 import RIO
 
 import qualified Database.RocksDB   as Rocks
@@ -21,6 +22,9 @@ data TrackerCache f = TrackerCache
   { putMinIndex :: Gix -> f ()
   , getMinIndex :: f Gix
   }
+
+minIndexKey :: ByteString 
+minIndexKey = "min_index"
 
 mkTrackerCache
   :: (MonadIO i, MonadResource i, MonadIO f)
@@ -46,7 +50,7 @@ putMinIndex'
   -> Gix
   -> f ()
 putMinIndex' db opts newMinIndex =
-  void $ liftIO $ Rocks.put db opts "min_index" (BSU.fromString $ show newMinIndex)
+  void $ liftIO $ Rocks.put db opts minIndexKey (BSU.fromString $ show newMinIndex)
 
 getMinIndex'
   :: (MonadIO f)
@@ -55,7 +59,7 @@ getMinIndex'
   -> TrackerProgrammConfig
   -> f Gix
 getMinIndex' db opts TrackerProgrammConfig{..} =
-  liftIO $ Rocks.get db opts "min_index" <&> getCorrectIndex (Gix . naturalToInteger $ minIndex)
+  liftIO $ Rocks.get db opts minIndexKey <&> getCorrectIndex (Gix . naturalToInteger $ minIndex)
 
 -- todo log err
 getCorrectIndex :: Gix -> Maybe BS.ByteString -> Gix
