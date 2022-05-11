@@ -1,12 +1,8 @@
 module Resolver.AppWiring
-  ( App(..)
-  , mkApp
+  ( mkApp
   ) where
 
 import RIO
-
-import Control.Monad.Trans.Resource (ResIO)
-import Control.Concurrent           (forkIO)
 
 import System.Logging.Hlog (makeLogging, Logging(Logging, infoM), MakeLogging(forComponent))
 
@@ -16,13 +12,12 @@ import Resolver.Program.Resolver
 import Resolver.Services.PoolResolver
 import Resolver.Settings (AppSettings(..))
 import Streaming.Consumer
-
-newtype App m = App { runApp :: m () }
+import Control.Monad.Trans.Resource (ResIO)
 
 mkApp
   :: UnliftIO IO
   -> AppSettings
-  -> ResIO (App IO)
+  -> ResIO ()
 mkApp ul AppSettings{..} = do
   mkLogging      <- makeLogging loggingConfig
   poolRepository <- mkPoolRepository poolStoreSettings mkLogging
@@ -31,7 +26,7 @@ mkApp ul AppSettings{..} = do
   let
     resolver   = mkResolver poolRepository consumer
     httpServer = mkHttpServer httpSettings poolResolver poolRepository ul
+
   Logging{infoM} <- forComponent mkLogging "App"
-  pure . App $ infoM @String "Starting Faucet App .."
-    >> forkIO (run resolver)
-    >> runHttpServer httpServer
+  lift $ infoM @String "Starting Faucet App .."
+    >> concurrently_ (run resolver) (runHttpServer httpServer)

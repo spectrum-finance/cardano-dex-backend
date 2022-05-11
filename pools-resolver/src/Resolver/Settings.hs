@@ -35,4 +35,4 @@ data PoolStoreSettings = PoolStoreSettings
 
 loadAppSettings :: MonadIO f => Maybe String -> f AppSettings
 loadAppSettings maybePath = liftIO $ input auto path
-  where path = T.pack $ fromMaybe "./resources/config.dhall" maybePath
+  where path = T.pack $ fromMaybe "./pools-resolver/resources/config.dhall" maybePath

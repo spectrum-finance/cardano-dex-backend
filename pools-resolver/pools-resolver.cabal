@@ -56,7 +56,8 @@ common project-config
                         TypeSynonymInstances
                         ViewPatterns
 
-  ghc-options:          -Wall
+  ghc-options:          -O2
+                        -Wall
                         -Wcompat
                         -Wincomplete-record-updates
                         -Wincomplete-uni-patterns
@@ -95,9 +96,7 @@ library
                   , servant-server
                   , wai
                   , warp
-                  , hedis
                   , utf8-string
-                  , cardano-tx
                   , quickblue
                   , dhall
                   , playground-common
