@@ -107,7 +107,8 @@ library
                   , exceptions
                   , core == 0.1.0.0
                   , hlog
-                  , rocksdb-haskell == 0.1.0.0
+                  , rocksdb-haskell-jprupp == 2.1.3
+                  , data-default == 0.7.1.1
 
 executable pools-resolver-app
     default-language: Haskell2010

@@ -16,6 +16,7 @@ import System.Logging.Hlog (Logging(Logging, debugM), MakeLogging(..))
 
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.UTF8 as UBS
+import           Data.Default (def)
 import           Data.Aeson           (ToJSON, decode, encode)
 
 import Resolver.Settings (PoolStoreSettings(..))
@@ -33,44 +34,43 @@ data PoolRepository f = PoolRepository
   }
 
 mkPoolRepository
-  :: (MonadIO f, MonadResource f, MonadIO m)
+  :: (MonadIO f, MonadUnliftIO f, MonadIO m)
   => PoolStoreSettings
   -> MakeLogging f m
   -> f (PoolRepository m)
 mkPoolRepository PoolStoreSettings{..} MakeLogging{..} = do
-  logging <- forComponent "PoolRepository"
-  db      <- Rocks.open storePath
-              Rocks.defaultOptions
-                { Rocks.createIfMissing = createIfMissing
-                }
-  pure $ attachTracing logging PoolRepository
-    { putPredicted     = putPredicted' db Rocks.defaultWriteOptions
-    , putConfirmed     = putConfirmed' db Rocks.defaultWriteOptions 
-    , getLastPredicted = getLastPredicted' db Rocks.defaultReadOptions
-    , getLastConfirmed = getLastConfirmed' db Rocks.defaultReadOptions
-    , existsPredicted  = existsPredicted' db Rocks.defaultReadOptions
-    }
+  logging    <- forComponent "PoolRepository"
+  let dbConf = def
+               { Rocks.createIfMissing = createIfMissing
+               }
+  Rocks.withDB storePath dbConf (\db -> pure $ attachTracing logging PoolRepository
+    { putPredicted     = putPredicted' db
+    , putConfirmed     = putConfirmed' db
+    , getLastPredicted = getLastPredicted' db
+    , getLastConfirmed = getLastConfirmed' db
+    , existsPredicted  = existsPredicted' db
+    })
 
-putPredicted' :: MonadIO f => Rocks.DB -> Rocks.WriteOptions -> PredictedPool -> f ()
-putPredicted' db opts r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}}) = do
+putPredicted' :: MonadIO f => Rocks.DB -> PredictedPool -> f ()
+putPredicted' db r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}}) = do
   let predictedNext = mkPredictedKey poolId
       predictedLast = mkLastPredictedKey poolId
       encodedPool   = encodeStrict r
-  Rocks.put db opts predictedNext encodedPool
-  Rocks.put db opts predictedLast encodedPool
+  Rocks.put db predictedNext encodedPool
+  Rocks.put db predictedLast encodedPool
 
-putConfirmed' :: MonadIO f => Rocks.DB -> Rocks.WriteOptions -> ConfirmedPool -> f ()
-putConfirmed' db opts r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}}) =
-  liftIO $ Rocks.put db opts (mkLastConfirmedKey poolId) (encodeStrict r)
+putConfirmed' :: MonadIO f => Rocks.DB -> ConfirmedPool -> f ()
+putConfirmed' db r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}}) =
+  liftIO $ Rocks.put db (mkLastConfirmedKey poolId) (encodeStrict r)
 
-getLastPredicted' :: MonadIO f => Rocks.DB -> Rocks.ReadOptions -> PoolId -> f (Maybe PredictedPool)
-getLastPredicted' db opts pid = liftIO $ Rocks.get db opts (mkLastPredictedKey pid) <&> (>>= (decode . LBS.fromStrict))
+getLastPredicted' :: MonadIO f => Rocks.DB -> PoolId -> f (Maybe PredictedPool)
+getLastPredicted' db pid = liftIO $ Rocks.get db (mkLastPredictedKey pid) <&> (>>= (decode . LBS.fromStrict))
 
-getLastConfirmed' :: MonadIO f => Rocks.DB -> Rocks.ReadOptions -> PoolId -> f (Maybe ConfirmedPool)
-getLastConfirmed' db opts pid = liftIO $ Rocks.get db opts (mkLastConfirmedKey pid) <&> (>>= (decode . LBS.fromStrict))
+getLastConfirmed' :: MonadIO f => Rocks.DB -> PoolId -> f (Maybe ConfirmedPool)
+getLastConfirmed' db pid = liftIO $ Rocks.get db (mkLastConfirmedKey pid) <&> (>>= (decode . LBS.fromStrict))
 
-existsPredicted' :: MonadIO f => Rocks.DB -> Rocks.ReadOptions -> PoolId -> f Bool
-existsPredicted' db opts pid = liftIO $ Rocks.get db opts (mkPredictedKey pid) <&> isJust
+existsPredicted' :: MonadIO f => Rocks.DB -> PoolId -> f Bool
+existsPredicted' db pid = liftIO $ Rocks.get db (mkPredictedKey pid) <&> isJust
 
 encodeStrict :: ToJSON a => a -> ByteString
 encodeStrict = LBS.toStrict . encode

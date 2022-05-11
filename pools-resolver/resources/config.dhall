@@ -23,7 +23,7 @@ in
     , createIfMissing = True
     }
 , loggingConfig =
-    { fileHandlers   = [fileHandlers "Path" LogLevel.Info]
+    { fileHandlers   = [fileHandlers "./resolver.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }

@@ -34,4 +34,4 @@ mkApp ul AppSettings{..} = do
     httpServer = mkHttpServer httpSettings poolResolver poolRepository ul
   Logging{infoM} <- forComponent mkLogging "App"
   _              <- liftIO $ infoM @String "Starting Resolver App .."
-  pure . App $ concurrently_ (run resolver) (runHttpServer httpServer)
+  pure . App $ concurrently_ (runHttpServer httpServer) (run resolver) -- 

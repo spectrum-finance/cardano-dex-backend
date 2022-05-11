@@ -62,4 +62,4 @@ mkConsumerProps KafkaConsumerConfig{..} =
      brokersList (fmap BrokerAddress consumerBrokers)
   <> groupId (ConsumerGroupId consumerGroupId)
   <> noAutoCommit
-  <> logLevel KafkaLogInfo
+  <> logLevel KafkaLogDebug 
