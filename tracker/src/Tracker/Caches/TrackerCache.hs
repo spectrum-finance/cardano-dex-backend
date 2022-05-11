@@ -1,4 +1,7 @@
-module Tracker.Caches.TrackerCache where
+module Tracker.Caches.TrackerCache 
+  ( TrackerCache(..)
+  , mkTrackerCache
+  ) where
 
 import Explorer.Types
 
@@ -6,71 +9,81 @@ import Tracker.Models.AppConfig
 
 import GHC.Natural
 import Prelude
-import Database.Redis               as Redis
-import Debug.Trace                  as Debug
-import Data.ByteString.UTF8         as BSU 
+import System.Logging.Hlog          (Logging(Logging, debugM), MakeLogging(..))
+import Data.ByteString.UTF8         as BSU
 import Data.ByteString              as BS
 import Control.Monad.Trans.Resource
 import Control.Monad.IO.Unlift
-import Control.Monad.Trans.Class
 import RIO
+
+import qualified Database.RocksDB   as Rocks
 
 data TrackerCache f = TrackerCache
   { putMinIndex :: Gix -> f ()
   , getMinIndex :: f Gix
   }
 
-mkTrackerCache
-  :: (MonadIO f) 
-  => RedisSettings
-  -> TrackerProgrammConfig
-  -> ResourceT f (TrackerCache f)
-mkTrackerCache settings tConfig =
-    fmap (\c -> TrackerCache (putMinIndex' c) (getMinIndex' c tConfig)) poolR
-  where
-    poolR = mkConnectionPool settings
+minIndexKey :: ByteString 
+minIndexKey = "min_index"
 
-mkConnectionPool
-  :: (MonadIO f) 
-  => RedisSettings
-  -> ResourceT f Connection
-mkConnectionPool RedisSettings{..} = do
-  let passwordM = fmap BSU.fromString redisPassword
-  lift $ liftIO $ checkedConnect
-    defaultConnectInfo 
-      { connectHost = redisHost
-      , connectAuth = passwordM
-      }
+mkTrackerCache
+  :: (MonadIO i, MonadResource i, MonadIO f)
+  => TrackerStoreSettings
+  -> TrackerProgrammConfig
+  -> MakeLogging i f
+  -> i (TrackerCache f)
+mkTrackerCache TrackerStoreSettings{..} tConfig MakeLogging{..} = do
+  logging <- forComponent "TrackerRepository"
+  db      <- Rocks.open storePath
+              Rocks.defaultOptions
+                { Rocks.createIfMissing = createIfMissing
+                }
+  pure $ attachTracing logging TrackerCache
+    { putMinIndex     = putMinIndex' db Rocks.defaultWriteOptions
+    , getMinIndex     = getMinIndex' db Rocks.defaultReadOptions tConfig
+    }
 
 putMinIndex'
   :: (MonadIO f)
-  => Connection
+  => Rocks.DB
+  -> Rocks.WriteOptions
   -> Gix
   -> f ()
-putMinIndex' conn newMinIndex =
-  void $ liftIO $ runRedis conn $ do
-    Redis.set "min_index" (BSU.fromString $ show newMinIndex)
+putMinIndex' db opts newMinIndex =
+  void $ liftIO $ Rocks.put db opts minIndexKey (BSU.fromString $ show newMinIndex)
 
 getMinIndex'
   :: (MonadIO f)
-  => Connection
+  => Rocks.DB
+  -> Rocks.ReadOptions
   -> TrackerProgrammConfig
   -> f Gix
-getMinIndex' conn TrackerProgrammConfig{..} = liftIO $ do
-  res <- runRedis conn $ Redis.get "min_index"
-  pure $ getCorrectIndex res (Gix . naturalToInteger $ minIndex)
+getMinIndex' db opts TrackerProgrammConfig{..} =
+  liftIO $ Rocks.get db opts minIndexKey <&> getCorrectIndex (Gix . naturalToInteger $ minIndex)
 
 -- todo log err
-getCorrectIndex :: forall c. Show c => Either c (Maybe BS.ByteString) -> Gix -> Gix
-getCorrectIndex input defaultInput@(Gix defaultInputValue) =
+getCorrectIndex :: Gix -> Maybe BS.ByteString -> Gix
+getCorrectIndex defaultInput@(Gix defaultInputValue) input =
   case input of
-    Left err    -> defaultInput
-    Right value ->
-      case value of
-        Just v ->
-          let
-            str = BSU.toString v
-            minIndexInCache = read str :: Integer
-          in
-            if (minIndexInCache < defaultInputValue) then defaultInput else (Gix minIndexInCache)
-        _ -> defaultInput
+    Nothing   -> defaultInput
+    Just v ->
+      let
+        str = BSU.toString v
+        minIndexInCache = read str :: Integer
+        in
+        if minIndexInCache < defaultInputValue then defaultInput else Gix minIndexInCache
+
+attachTracing :: Monad f => Logging f -> TrackerCache f -> TrackerCache f
+attachTracing Logging{..} TrackerCache{..} =
+  TrackerCache
+    { putMinIndex = \gix -> do
+        debugM $ "putMinIndex " <> show gix
+        r <- putMinIndex gix
+        debugM $ "putMinIndex " <> show gix <> " -> " <> show r
+        pure r
+    , getMinIndex = do
+        debugM @String "getMinIndex"
+        r <- getMinIndex
+        debugM $ "getMinIndex -> " <> show r
+        pure r
+    }
