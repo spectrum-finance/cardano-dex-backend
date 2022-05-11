@@ -1,7 +1,7 @@
 module Resolver.Models.AppSettings
   ( HttpServerSettings(..)
   , AppSettings(..)
-  , RedisSettings(..)
+  , PoolStoreSettings(..)
   ) where
 
 import RIO
@@ -12,11 +12,11 @@ import Streaming.Types
 import Dhall
 
 data AppSettings = AppSettings
-  { kafkaConfig      :: KafkaConsumerConfig
-  , topicId          :: TopicId
-  , httpSettings     :: HttpServerSettings
-  , redisSettings    :: RedisSettings
-  , loggingConfig    :: LoggingConfig
+  { kafkaConfig       :: KafkaConsumerConfig
+  , topicId           :: TopicId
+  , httpSettings      :: HttpServerSettings
+  , poolStoreSettings :: PoolStoreSettings
+  , loggingConfig     :: LoggingConfig
   } deriving (Generic)
 
 instance FromDhall AppSettings
@@ -28,9 +28,8 @@ data HttpServerSettings = HttpServerSettings
 
 instance FromDhall HttpServerSettings
 
-data RedisSettings = RedisSettings
-  { getRedisHost     :: String
-  , getRedisPassword :: Maybe String
-  } deriving (Generic)
-
-instance FromDhall RedisSettings
+data PoolStoreSettings = PoolStoreSettings
+  { storePath       :: FilePath
+  , createIfMissing :: Bool
+  }
+  deriving (Generic, FromDhall)

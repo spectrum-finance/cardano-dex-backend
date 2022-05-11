@@ -18,11 +18,12 @@ in
     { getHost = "0.0.0.0"
     , getPort = 8088
     },
-  redisSettings =
-    { getRedisHost = "127.0.0.1"
+  poolStoreSettings =
+    { storePath       = "./data/pools-store"
+    , createIfMissing = True
     },
   loggingConfig =
-    { fileHandlers = [fileHandlers "Path" LogLevel.Info]
+    { fileHandlers = [fileHandlers "./logs/resolver.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }

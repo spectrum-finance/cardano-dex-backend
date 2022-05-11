@@ -9,20 +9,20 @@ module Resolver.Repositories.PoolRepository
   ) where
 
 import RIO
-import Plutus.V1.Ledger.TxId
-import Prelude                     (print)
-import RIO.ByteString.Lazy         as BS
-import Data.Aeson                  as Json
-import Database.Redis              as Redis
-import Data.ByteString.UTF8        as BSU
-import RIO.ByteString.Lazy         as LBS
-import Resolver.Models.AppSettings (RedisSettings(..))
-import Resolver.Utils
+
+import Control.Monad.Trans.Resource (MonadResource)
+
+import System.Logging.Hlog (Logging(Logging, debugM), MakeLogging(..))
+
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.UTF8 as UBS
+import           Data.Aeson           (ToJSON, decode, encode)
+
+import Resolver.Models.AppSettings (PoolStoreSettings(..))
 import ErgoDex.Amm.Pool
-import ErgoDex.State
-import CardanoTx.Models
 import Core.Types
-import Plutus.V1.Ledger.Tx
+
+import qualified Database.RocksDB as Rocks
 
 data PoolRepository f = PoolRepository
   { putPredicted     :: PredictedPool  -> f ()
@@ -32,54 +32,84 @@ data PoolRepository f = PoolRepository
   , existsPredicted  :: PoolId         -> f Bool
   }
 
-mkPoolRepository :: (MonadIO f) => RedisSettings -> f (PoolRepository f)
-mkPoolRepository RedisSettings{..} = do
-    let passwordM = fmap BSU.fromString getRedisPassword
-    conn <- liftIO (checkedConnect $ defaultConnectInfo { connectHost = getRedisHost, connectAuth = passwordM } )
-    -- _ <- print "Redis connection established..." // todo: log info
-    pure $ PoolRepository (putPredicted' conn) (putConfirmed' conn) (getLastPredicted' conn) (getLastConfirmed' conn) (existsPredicted' conn)
+mkPoolRepository
+  :: (MonadIO f, MonadResource f, MonadIO m)
+  => PoolStoreSettings
+  -> MakeLogging f m
+  -> f (PoolRepository m)
+mkPoolRepository PoolStoreSettings{..} MakeLogging{..} = do
+  logging <- forComponent "PoolRepository"
+  db      <- Rocks.open storePath
+              Rocks.defaultOptions
+                { Rocks.createIfMissing = createIfMissing
+                }
+  pure $ attachTracing logging PoolRepository
+    { putPredicted     = putPredicted' db Rocks.defaultWriteOptions
+    , putConfirmed     = putConfirmed' db Rocks.defaultWriteOptions 
+    , getLastPredicted = getLastPredicted' db Rocks.defaultReadOptions
+    , getLastConfirmed = getLastConfirmed' db Rocks.defaultReadOptions
+    , existsPredicted  = existsPredicted' db Rocks.defaultReadOptions
+    }
 
-putPredicted' :: (MonadIO f) => Connection -> PredictedPool -> f ()
-putPredicted' conn r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
-    res <- liftIO $ runRedis conn $ do
-        let predictedNext = mkPredicted poolId
-            predictedLast = mkLastPredictedKey poolId
-            encodedPool = (BS.toStrict . encode) r
-        Redis.set predictedNext encodedPool
-        Redis.set predictedLast encodedPool
-    liftIO $ print res
+putPredicted' :: MonadIO f => Rocks.DB -> Rocks.WriteOptions -> PredictedPool -> f ()
+putPredicted' db opts r@(PredictedPool OnChainIndexedEntity{entity=Pool{..}}) = do
+  let predictedNext = mkPredictedKey poolId
+      predictedLast = mkLastPredictedKey poolId
+      encodedPool   = encodeStrict r
+  Rocks.put db opts predictedNext encodedPool
+  Rocks.put db opts predictedLast encodedPool
 
-putConfirmed' :: (MonadIO f) => Connection -> ConfirmedPool -> f ()
-putConfirmed' conn r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}, txOut=FullTxOut{..}, lastConfirmedOutGix=gix}) = do
-  res <- liftIO $ runRedis conn $ do
-      let confirmed = mkLastConfirmedKey poolId
-          encodedPool = (BS.toStrict . encode) r
-          t = 1
-      Redis.set confirmed encodedPool
-  liftIO $ print res
+putConfirmed' :: MonadIO f => Rocks.DB -> Rocks.WriteOptions -> ConfirmedPool -> f ()
+putConfirmed' db opts r@(ConfirmedPool OnChainIndexedEntity{entity=Pool{..}}) =
+  liftIO $ Rocks.put db opts (mkLastConfirmedKey poolId) (encodeStrict r)
 
-getLastPredicted' :: (MonadIO f) =>  Connection -> PoolId -> f (Maybe PredictedPool)
-getLastPredicted' conn id = liftIO $ getFromRedis conn (mkLastPredictedKey id)
+getLastPredicted' :: MonadIO f => Rocks.DB -> Rocks.ReadOptions -> PoolId -> f (Maybe PredictedPool)
+getLastPredicted' db opts pid = liftIO $ Rocks.get db opts (mkLastPredictedKey pid) <&> (>>= (decode . LBS.fromStrict))
 
-getLastConfirmed' :: (MonadIO f) => Connection -> PoolId -> f (Maybe ConfirmedPool)
-getLastConfirmed' conn id = liftIO $ getFromRedis conn (mkLastConfirmedKey id)
+getLastConfirmed' :: MonadIO f => Rocks.DB -> Rocks.ReadOptions -> PoolId -> f (Maybe ConfirmedPool)
+getLastConfirmed' db opts pid = liftIO $ Rocks.get db opts (mkLastConfirmedKey pid) <&> (>>= (decode . LBS.fromStrict))
 
-getFromRedis :: (MonadIO f, FromJSON a) => Connection -> BSU.ByteString -> f (Maybe a)
-getFromRedis conn key = do
-  maybeRes <- liftIO $ runRedis conn (Redis.get key)
-  let resParsed = (unsafeFromEither maybeRes) >>= (Json.decode . LBS.fromStrict)
-  pure resParsed
+existsPredicted' :: MonadIO f => Rocks.DB -> Rocks.ReadOptions -> PoolId -> f Bool
+existsPredicted' db opts pid = liftIO $ Rocks.get db opts (mkPredictedKey pid) <&> isJust
 
-existsPredicted' :: (MonadIO f) => Connection -> PoolId -> f Bool
-existsPredicted' conn pId = do
-  res <- liftIO $ runRedis conn (Redis.exists $ mkPredicted pId)
-  pure $ unsafeFromEither res
+encodeStrict :: ToJSON a => a -> ByteString
+encodeStrict = LBS.toStrict . encode
 
-mkLastPredictedKey :: PoolId -> BSU.ByteString
-mkLastPredictedKey (PoolId poolId) = BSU.fromString $ "predicted:last:" ++ show poolId
+mkLastPredictedKey :: PoolId -> ByteString
+mkLastPredictedKey (PoolId poolId) = UBS.fromString $ "predicted:last:" ++ show poolId
 
-mkLastConfirmedKey :: PoolId -> BSU.ByteString
-mkLastConfirmedKey (PoolId poolId) = BSU.fromString $ "confirmed:last:" ++ show poolId
+mkLastConfirmedKey :: PoolId -> ByteString
+mkLastConfirmedKey (PoolId poolId) = UBS.fromString $ "confirmed:last:" ++ show poolId
 
-mkPredicted :: PoolId -> BSU.ByteString
-mkPredicted (PoolId pid) = BSU.fromString $ "predicted:" ++ show pid
+mkPredictedKey :: PoolId -> ByteString
+mkPredictedKey (PoolId pid) = fromString $ "predicted:prev:" ++ show pid
+
+attachTracing :: Monad m => Logging m -> PoolRepository m -> PoolRepository m
+attachTracing Logging{..} PoolRepository{..} =
+  PoolRepository
+    { putPredicted = \pool -> do
+        debugM $ "putPredicted " <> show pool
+        r <- putPredicted pool
+        debugM $ "putPredicted " <> show pool <> " -> " <> show r
+        pure r
+    , putConfirmed = \pool -> do
+        debugM $ "putConfirmed " <> show pool
+        r <- putConfirmed pool
+        debugM $ "putConfirmed " <> show pool <> " -> " <> show r
+        pure r
+    , getLastPredicted = \pid -> do
+        debugM $ "getLastPredicted " <> show pid
+        r <- getLastPredicted pid
+        debugM $ "getLastPredicted " <> show pid <> " -> " <> show r
+        pure r
+    , getLastConfirmed = \pid -> do
+        debugM $ "getLastConfirmed " <> show pid
+        r <- getLastConfirmed pid
+        debugM $ "getLastConfirmed " <> show pid <> " -> " <> show r
+        pure r
+    , existsPredicted = \pid -> do
+        debugM $ "existsPredicted " <> show pid
+        r <- existsPredicted pid
+        debugM $ "existsPredicted " <> show pid <> " -> " <> show r
+        pure r
+    }

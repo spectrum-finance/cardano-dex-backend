@@ -21,5 +21,6 @@ in
 
     buildInputs = with cardano-dex-backend; [
       pkgs.rdkafka
+      pkgs.rocksdb
     ];
   }

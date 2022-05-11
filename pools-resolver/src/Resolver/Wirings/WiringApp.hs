@@ -16,8 +16,8 @@ import Streaming.Consumer
 runApp :: IO ()
 runApp = runResourceT $ do
   AppSettings {..} <- lift $ CR.read CR.mkConfigReader
-  loggingMaker     <- makeLogging @(ResourceT IO) @IO loggingConfig
-  poolRepository   <- lift $ mkPoolRepository redisSettings
+  loggingMaker     <- makeLogging loggingConfig
+  poolRepository   <- mkPoolRepository poolStoreSettings loggingMaker
   consumer         <- mkKafkaConsumer kafkaConfig [topicId]
   poolResolver     <- mkPoolResolver poolRepository loggingMaker
   let
