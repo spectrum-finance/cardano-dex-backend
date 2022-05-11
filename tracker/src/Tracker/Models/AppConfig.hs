@@ -1,5 +1,5 @@
 module Tracker.Models.AppConfig 
-    ( RedisSettings(..)
+    ( TrackerStoreSettings(..)
     , BlockRequestConfig(..)
     , TrackerProgrammConfig(..)
     , TrackerServiceConfig(..)
@@ -25,13 +25,11 @@ newtype BlockRequestConfig = BlockRequestConfig
 
 instance FromDhall BlockRequestConfig
 
-data RedisSettings = RedisSettings
-  { redisHost :: String
-  , redisPort :: String
-  , redisPassword :: Maybe String
-  } deriving (Generic)
-
-instance FromDhall RedisSettings
+data TrackerStoreSettings = TrackerStoreSettings
+  { storePath       :: FilePath
+  , createIfMissing :: Bool
+  }
+  deriving (Generic, FromDhall)
 
 data TrackerServiceConfig = TrackerServiceConfig
   { limitOffset :: Natural
@@ -48,7 +46,7 @@ data AppConfig = AppConfig
   , ordersProducerConfig  :: KafkaProducerConfig
   , ordersTopicName       :: Text
   , trackerProgrammConfig :: TrackerProgrammConfig
-  , redisConfig           :: RedisSettings
+  , trackerStoreConfig    :: TrackerStoreSettings
   , trackerServiceConfig  :: TrackerServiceConfig
   , loggingConfig       :: LoggingConfig
   } deriving (Generic)
