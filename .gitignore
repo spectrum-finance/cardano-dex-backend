@@ -24,3 +24,5 @@ cabal.project.local~
 .vscode
 stack.yaml.lock
 explorer.dhall
+logs/
+data/
