@@ -56,7 +56,8 @@ common project-config
                         TypeSynonymInstances
                         ViewPatterns
 
-  ghc-options:          -Wall
+  ghc-options:          -O2
+                        -Wall
                         -Wcompat
                         -Wincomplete-record-updates
                         -Wincomplete-uni-patterns
@@ -71,20 +72,20 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Resolver.Endpoints.HttpServer
-                     Resolver.Models.AppSettings
+    exposed-modules: Resolver.Settings
+                     Resolver.Endpoints.HttpServer
                      Resolver.Program.Resolver
                      Resolver.Repositories.PoolRepository
                      Resolver.Services.PoolResolver
-                     Resolver.Services.ConfigReader
-                     Resolver.Wirings.WiringApp
-                     Resolver.Utils
+                     Resolver.AppWiring
+                     Resolver
 
     build-depends:  streaming-kafka
                   , bytestring
                   , aeson
                   , rio
                   , bytestring
+                  , text == 1.2.5.0
                   , streamly == 0.8.0
                   , plutus-ledger-api -any
                   , plutus-tx -any
@@ -95,9 +96,7 @@ library
                   , servant-server
                   , wai
                   , warp
-                  , hedis
                   , utf8-string
-                  , cardano-tx
                   , quickblue
                   , dhall
                   , playground-common
@@ -107,11 +106,16 @@ library
                   , exceptions
                   , core == 0.1.0.0
                   , hlog
+                  , rocksdb-haskell == 0.1.0.0
 
 executable pools-resolver-app
-    main-is: Main.hs
-    build-depends:  base >= 4.9 && < 5
-                  , pools-resolver
-                  , rio
-    hs-source-dirs:   app
     default-language: Haskell2010
+    hs-source-dirs:   app
+    main-is:          Main.hs
+
+    ghc-options:      -O2
+                      -threaded
+
+    build-depends:    base >= 4.9 && < 5
+                    , pools-resolver
+                    , rio

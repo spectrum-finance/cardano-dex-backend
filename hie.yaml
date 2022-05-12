@@ -6,6 +6,8 @@ cradle:
       component: "executor:lib:executor"
     - path: "./pools-resolver/src"
       component: "pools-resolver:lib:pools-resolver"
+    - path: "./pools-resolver/app"
+      component: "pools-resolver:exe:pools-resolver-app"
     - path: "./streaming-kafka/src"
       component: "streaming-kafka:lib:streaming-kafka"
     - path: "./tracker/src"

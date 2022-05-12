@@ -1,7 +1,9 @@
 module Main where
 
-import RIO
-import Resolver.Wirings.WiringApp
+import Resolver
+import System.Environment
 
 main :: IO ()
-main = runApp
+main = do
+  args <- getArgs
+  runApp args

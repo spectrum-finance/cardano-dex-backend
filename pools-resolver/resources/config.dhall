@@ -1,28 +1,29 @@
 let LogLevel = < Info | Error | Warn | Debug >
-let format = "$time - $pid - $loggername - $prio - $msg" : Text
+let format = "$time - $loggername - $prio - $msg" : Text
 let fileHandlers = \(path : Text) -> \(level : LogLevel) -> {_1 = path, _2 = level, _3 = format}
 let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = component, _2 = level}
 in
 {
   kafkaConfig =
-    { consumerBrokers = ["127.0.0.1:9092"]
-    , consumerGroupId = "resolver_group_id_1"
-    , consumerTimeout = 10
-    , consumerPollRate = 1000
+    { consumerBrokers   = ["127.0.0.1:9092"]
+    , consumerGroupId   = "resolver_group_id_1"
+    , consumerTimeout   = 10
+    , consumerPollRate  = 1000
     , consumerBatchSize = 1
-    },
-  topicId =
+    }
+, topicId =
     { unTopicId = "pools-topic"
-    },
-  httpSettings =
+    }
+, httpSettings =
     { getHost = "0.0.0.0"
     , getPort = 8088
-    },
-  redisSettings =
-    { getRedisHost = "127.0.0.1"
-    },
-  loggingConfig =
-    { fileHandlers = [fileHandlers "Path" LogLevel.Info]
+    }
+, poolStoreSettings =
+    { storePath       = "./data/pools-store"
+    , createIfMissing = True
+    }
+, loggingConfig =
+    { fileHandlers   = [fileHandlers "Path" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }
