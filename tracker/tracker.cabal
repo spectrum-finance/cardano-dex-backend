@@ -103,6 +103,7 @@ library
                   , plutus-ledger
                   , hlog
                   , retry
+                  , time
 
 executable tracker-app
     main-is: Main.hs

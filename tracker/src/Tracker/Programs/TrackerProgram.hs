@@ -1,9 +1,7 @@
 module Tracker.Programs.TrackerProgram where
 
 import Streaming.Events
-import Streaming.Producer
-import Streaming.Types
-import Debug.Trace
+import Streaming.Producer ( Producer(produce) )
 
 import Tracker.Services.TrackerService
 import Tracker.Models.AppConfig
@@ -12,17 +10,18 @@ import ErgoDex.Class
 import System.Logging.Hlog
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
-import Debug.Trace as Trace
 import ErgoDex.State
 
 import Explorer.Models as Explorer
 import Explorer.Types
 
-import qualified Streamly.Prelude as S
+import qualified Streamly.Prelude      as S
+import           Data.Time.Clock.POSIX
 import           RIO
 import           GHC.Natural as Natural
 import           Control.Monad.Catch
 import Explorer.Class (ToCardanoTx(toCardanoTx))
+import Database.Redis (Reply(Integer))
 
 data TrackerProgram f = TrackerProgram
   { run :: f ()
@@ -55,45 +54,48 @@ run' TrackerProgrammConfig{..} logging@Logging{..} explorer orderProd poolProd =
   & S.drain
 
 process
-  :: (Monad f)
+  :: (MonadIO f)
   => TrackerService f
   -> Logging f
   -> Producer f PoolId ConfirmedOrderEvent
   -> Producer f PoolId ConfirmedPoolEvent
   -> f ()
 process TrackerService{..} Logging{..} orderProd poolProd = do
-  utxos <- getOutputs
+  utxos         <- getOutputs
+  swapEvents    <- mkSwapEvents $ parseOnChainEntity utxos
+  depositEvents <- mkDepositEvents $ parseOnChainEntity utxos
+  redeemEvents  <- mkRedeemEvents $ parseOnChainEntity utxos
   let
-    confirmedOrderEvents =
-        swapEvents ++ depositEvents ++ redeemEvents
-      where
-        swapEvents    = mkSwapEvents $ parseOnChainEntity utxos
-        depositEvents = mkDepositEvents $ parseOnChainEntity utxos
-        redeemEvents  = mkRedeemEvents $ parseOnChainEntity utxos
-
+    confirmedOrderEvents = swapEvents ++ depositEvents ++ redeemEvents
     confirmedPoolEvents = mkPoolEvents $ parseOnChainEntity utxos
-  _ <- infoM ("confirmedPoolEvents in batch: "  ++ (show (length confirmedPoolEvents)))
-  _ <- infoM ("confirmedOrderEvents in batch: " ++ (show (length confirmedOrderEvents)))
+  _ <- infoM ("confirmedPoolEvents in batch: "  ++ show (length confirmedPoolEvents))
+  _ <- infoM ("confirmedOrderEvents in batch: " ++ show (length confirmedOrderEvents))
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))
 
 mkSwapEvents
-  :: [(OnChain Swap, Gix)]
-  -> [(PoolId, ConfirmedOrderEvent)]
-mkSwapEvents =
-  fmap (\(OnChain fullTxOut s@Swap{..}, gix) -> (swapPoolId, ConfirmedOrderEvent (AnyOrder swapPoolId (SwapAction s)) fullTxOut gix))
+  :: forall f. MonadIO f
+  => [(OnChain Swap, Gix)]
+  -> f [(PoolId, ConfirmedOrderEvent)]
+mkSwapEvents input = do
+  currentTime <- liftIO $ fmap round getPOSIXTime
+  pure $ fmap (\(OnChain fullTxOut s@Swap{..}, gix) -> (swapPoolId, ConfirmedOrderEvent (AnyOrder swapPoolId (SwapAction s)) fullTxOut gix currentTime)) input
 
 mkRedeemEvents
-  :: [(OnChain Redeem, Gix)]
-  -> [(PoolId, ConfirmedOrderEvent)]
-mkRedeemEvents =
-  fmap (\(OnChain fullTxOut s@Redeem{..}, gix) -> (redeemPoolId, ConfirmedOrderEvent (AnyOrder redeemPoolId (RedeemAction s)) fullTxOut gix))
+  :: forall f. MonadIO f
+  => [(OnChain Redeem, Gix)]
+  -> f [(PoolId, ConfirmedOrderEvent)]
+mkRedeemEvents input = do
+  currentTime <- liftIO $ fmap round getPOSIXTime
+  pure $ fmap (\(OnChain fullTxOut s@Redeem{..}, gix) -> (redeemPoolId, ConfirmedOrderEvent (AnyOrder redeemPoolId (RedeemAction s)) fullTxOut gix currentTime)) input
 
 mkDepositEvents
-  :: [(OnChain Deposit, Gix)]
-  -> [(PoolId, ConfirmedOrderEvent)]
-mkDepositEvents =
-  fmap (\(OnChain fullTxOut s@Deposit{..}, gix) -> (depositPoolId, ConfirmedOrderEvent (AnyOrder depositPoolId (DepositAction s)) fullTxOut gix))
+  :: forall f. MonadIO f
+  => [(OnChain Deposit, Gix)]
+  -> f [(PoolId, ConfirmedOrderEvent)]
+mkDepositEvents input = do
+  currentTime <- liftIO $ fmap round getPOSIXTime
+  pure $ fmap (\(OnChain fullTxOut s@Deposit{..}, gix) -> (depositPoolId, ConfirmedOrderEvent (AnyOrder depositPoolId (DepositAction s)) fullTxOut gix currentTime)) input
 
 mkPoolEvents
   :: [(OnChain Pool, Gix)]

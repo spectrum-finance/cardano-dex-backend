@@ -34,6 +34,7 @@ data AppConfig = AppConfig
   , txAssemblyConfig    :: TxAssemblyConfig
   , nodeSocketConfig    :: NodeSocketConfig
   , loggingConfig       :: LoggingConfig
+  , ordersConfig        :: OrdersConfig
   } deriving (Generic)
 
 instance FromDhall AppConfig
@@ -52,12 +53,18 @@ data NodeSocketConfig = NodeSocketConfig
 
 instance FromDhall NodeSocketConfig
 
+data OrdersConfig = OrdersConfig
+  { orderLifetime :: Natural
+  } deriving (Generic, Show)
+
+instance FromDhall OrdersConfig
+
 data PaymentConfig = PaymentConfig
   { pubKeyHash :: Text
   , feeAddr    :: Text
   } deriving (Generic, Show)
 
+instance FromDhall PaymentConfig
+
 mkPubKeyHash :: Text -> PubKeyHash
 mkPubKeyHash r = PubKeyHash $ BuiltinByteString $ Data.encodeUtf8 r
-
-instance FromDhall PaymentConfig

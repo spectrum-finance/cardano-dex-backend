@@ -23,6 +23,7 @@ data ConfirmedOrderEvent = ConfirmedOrderEvent
   { anyOrder :: AnyOrder
   , txOut    :: FullTxOut
   , gix      :: Gix
+  , time     :: Integer
   } deriving (Generic, FromJSON, ToJSON)
 
 instance ToKafka PoolId ConfirmedOrderEvent where
