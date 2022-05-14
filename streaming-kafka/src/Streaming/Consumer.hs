@@ -60,6 +60,7 @@ upstream' consumer timeout batchSize =
 mkConsumerProps :: KafkaConsumerConfig -> ConsumerProperties
 mkConsumerProps KafkaConsumerConfig{..} =
      brokersList (fmap BrokerAddress consumerBrokers)
+  <> extraProp "max.poll.interval.ms" (pack . show $ maxPollIntervalMs)
   <> groupId (ConsumerGroupId consumerGroupId)
   <> noAutoCommit
   <> logLevel KafkaLogInfo

@@ -3,9 +3,7 @@ module Executor.Wirings.WiringApp
   ) where
 
 import Executor.Services.ConfigReader
-import Common.Cardano.Interop
 import Executor.Models.Config
-import qualified Debug.Trace as D
 import Executor.Programs.Processor
 import Executor.Services.OrdersExecutor
 import Executor.Services.PoolsResolver
@@ -25,11 +23,11 @@ import ErgoDex.Amm.PoolActions
 import WalletAPI.TrustStore
 import WalletAPI.Vault
 import WalletAPI.Utxos
-import NetworkAPI.Service
 import Explorer.Service
-import SubmitAPI.Config
 import SubmitAPI.Service
 import System.Logging.Hlog
+import qualified Ledger as Plutus.V1.Ledger.Crypto
+import Common.Cardano.Interop (fromCardanoPaymentKeyHash)
 
 wire :: IO ()
 wire = runResourceT $ do
@@ -42,7 +40,7 @@ wire = runResourceT $ do
     explorer       = mkExplorer explorerConfig
     trustStore     = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey secretFile
     vault          = mkVault trustStore keyPass
-  walletOutputs <- lift $ mkWalletOutputs' explorer vault
+  walletOutputs <- mkWalletOutputs' lift loggingMaker explorer vault
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   let
     epochSlots     = C.CardanoModeParams $ C.EpochSlots 21600
