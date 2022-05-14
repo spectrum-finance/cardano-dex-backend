@@ -40,25 +40,27 @@ getOutputs'
   -> Explorer f
   -> f [FullTxOut]
 getOutputs' TrackerServiceConfig{..} logging@Logging{..} TrackerCache{..} explorer = do
-  _        <- infoM @String ("Going to fetch min index")
+  _        <- infoM @String "Going to fetch min index"
   minIndex <- getMinIndex
   _        <- infoM $ "Min index is " ++ show minIndex
-  let maxAttemptsInt = (Natural.naturalToInt maxAttempts)
-  outputs  <- getUnspentOutputsRetry maxAttemptsInt logging minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset) explorer
-  let newMinIndex = unGix minIndex + toInteger (length $ items outputs)
+  let maxAttemptsInt = Natural.naturalToInt maxAttempts
+  Items{..}  <- getUnspentOutputsRetry maxAttemptsInt logging minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset) explorer
+  let 
+    lastOutputGix = globalIndex . last $ items
+    newMinIndex   = unGix minIndex + unGix lastOutputGix + 1
   _        <- infoM $ "Going to put new Min index is " ++ show newMinIndex
-  _        <- putMinIndex $ Gix $ newMinIndex
-  pure $ items outputs
+  _        <- putMinIndex $ Gix newMinIndex
+  pure items
 
 
 getUnspentOutputsRetry
-  :: (MonadIO f, MonadMask f) 
-  => Int 
+  :: (MonadIO f, MonadMask f)
+  => Int
   -> Logging f
-  -> Gix 
-  -> Limit 
+  -> Gix
+  -> Limit
   -> Explorer f
   -> f (Items FullTxOut)
 getUnspentOutputsRetry maxAttempts Logging{..} minIndex limit Explorer{..} = do
   let limitedBackoff = exponentialBackoff 1000000 <> limitRetries maxAttempts
-  recoverAll limitedBackoff (\rs -> infoM ("RetryStatus for getUnspentOutputs " ++ (show rs)) >> (getUnspentOutputs minIndex limit)) 
+  recoverAll limitedBackoff (\rs -> infoM ("RetryStatus for getUnspentOutputs " ++ show rs) >> getUnspentOutputs minIndex limit)
