@@ -6,6 +6,7 @@ packages:
   tracker
   executor
   pools-resolver
+  ledger-bridge
 
 package cardano-crypto-praos
   flags: -external-libsodium-vrf

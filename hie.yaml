@@ -12,3 +12,5 @@ cradle:
       component: "streaming-kafka:lib:streaming-kafka"
     - path: "./tracker/src"
       component: "tracker:lib:tracker"
+    - path: "./ledger-bridge/src"
+      component: "ledger-bridge:lib:ledger-bridge"

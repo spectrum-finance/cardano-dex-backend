@@ -52,7 +52,6 @@ let
           tracker.package.buildable = false;
           executor.package.buildable = false;
           pools-resolver.package.buildable = false;
-          ledger-bridge.package.buildable = false;
 
           # Broken due to haddock errors. Refer to https://github.com/input-output-hk/plutus/blob/master/nix/pkgs/haskell/haskell.nix
           plutus-ledger.doHaddock = false;
