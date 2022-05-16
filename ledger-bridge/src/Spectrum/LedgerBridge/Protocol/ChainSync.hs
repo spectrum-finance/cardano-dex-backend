@@ -1,106 +1,103 @@
-module Spectrum.LedgerBridge.Protocol.ChainSync where
+module Spectrum.LedgerBridge.Protocol.ChainSync
+  ( mkChainSyncClient
+  ) where
 
+import RIO
+  ( (<&>), ($>) )
+
+import Control.Monad
+  ( guard )
 import Control.Monad.Class.MonadSTM
-    ( MonadSTM (..), MonadSTMTx (..), TMVar, TQueue, TVar )
-import Control.Monad.Class.MonadThrow
-    ( MonadCatch (..), MonadMask (..) )
+  ( MonadSTM (..), MonadSTMTx (..), TQueue )
 
 import Network.TypedProtocol.Pipelined
-    ( Nat (..), natToInt )
+  ( Nat (..), natToInt )
 import Ouroboros.Network.Block
-    ( Point (..), Tip (..) )
+  ( Point (..), Tip (..) )
 import Ouroboros.Network.Protocol.ChainSync.ClientPipelined
-    ( ChainSyncClientPipelined (..)
-    , ClientPipelinedStIdle (..)
-    , ClientPipelinedStIntersect (..)
-    , ClientStNext (..)
-    )
+  ( ChainSyncClientPipelined (..)
+  , ClientPipelinedStIdle (..)
+  , ClientPipelinedStIntersect (..)
+  , ClientStNext (..)
+  )
 
-import Spectrum.LedgerBridge.Protocol.ChainSync
+import Spectrum.LedgerBridge.Protocol.Data.ChainSync
+  ( RequestNextResponse(RollBackward, RollForward)
+  , RequestNext(RequestNext)
+  , FindIntersectResponse(IntersectionNotFound, IntersectionFound)
+  , FindIntersect(FindIntersect, points)
+  , ChainSyncResponse(..)
+  , ChainSyncRequest(..)
+  )
 
 type MaxInFlight = Int
 
 mkChainSyncClient
-    :: forall m block.
-        ( MonadSTM m
-        )
-    => MaxInFlight
-        -- ^ Max number of requests allowed to be in-flight / pipelined
-    -> TQueue m (ChainSyncMessage block)
-        -- ^ Incoming request queue
-    -> (Json -> m ())
-        -- ^ An emitter for yielding JSON objects
-    -> ChainSyncClientPipelined block (Point block) (Tip block) m ()
-mkChainSyncClient maxInFlight queue yield =
-    ChainSyncClientPipelined $ clientStIdle Zero Seq.Empty
+  :: forall m block. MonadSTM m
+  => MaxInFlight
+  -- ^ Max number of requests allowed to be in-flight / pipelined
+  -> TQueue m (ChainSyncRequest block)
+  -- ^ Incoming request queue
+  -> TQueue m (ChainSyncResponse block)
+  -- ^ Outgoing response queue
+  -> ChainSyncClientPipelined block (Point block) (Tip block) m ()
+mkChainSyncClient maxInFlight incomingQ outgoingQ =
+    ChainSyncClientPipelined $ clientStIdle Zero
   where
-    await :: m (ChainSyncMessage block)
-    await = atomically (readTQueue queue)
+    await :: m (ChainSyncRequest block)
+    await = atomically (readTQueue incomingQ)
 
-    tryAwait :: m (Maybe (ChainSyncMessage block))
-    tryAwait = atomically (tryReadTQueue queue)
+    tryAwait :: m (Maybe (ChainSyncRequest block))
+    tryAwait = atomically (tryReadTQueue incomingQ)
 
     clientStIdle
-        :: forall n. ()
-        => Nat n
-        -> Seq (Wsp.ToResponse (RequestNextResponse block))
-        -> m (ClientPipelinedStIdle n block (Point block) (Tip block) m ())
-    clientStIdle Zero buffer = await <&> \case
-        MsgRequestNext RequestNext toResponse _ ->
-            let buffer' = buffer |> toResponse
-                collect = CollectResponse
-                    (Just $ clientStIdle (Succ Zero) buffer')
-                    (clientStNext Zero buffer')
-            in SendMsgRequestNextPipelined collect
+      :: forall n. ()
+      => Nat n
+      -> m (ClientPipelinedStIdle n block (Point block) (Tip block) m ())
+    clientStIdle Zero = await <&> \case
+      RequestNextReq RequestNext ->
+        let 
+          collect = CollectResponse
+            (Just $ clientStIdle (Succ Zero))
+            (clientStNext Zero)
+        in SendMsgRequestNextPipelined collect
 
-        MsgFindIntersect FindIntersect{points} toResponse _ ->
-            SendMsgFindIntersect points (clientStIntersect toResponse)
+      FindIntersectReq FindIntersect{points} ->
+        SendMsgFindIntersect points clientStIntersect
 
-    clientStIdle n@(Succ prev) buffer = tryAwait >>= \case
-        -- If there's no immediate incoming message, we take this opportunity to
-        -- wait and collect one response.
-        Nothing ->
-            pure $ CollectResponse Nothing (clientStNext prev buffer)
+    clientStIdle n@(Succ prev) = tryAwait >>= \case
+      -- If there's no immediate incoming message, we take this opportunity to
+      -- wait and collect one response.
+      Nothing ->
+        pure $ CollectResponse Nothing (clientStNext prev)
 
-        -- Yet, if we have already received a new message from the client, we
-        -- prioritize it and pipeline it right away unless there are already too
-        -- many requests in flights.
-        Just (MsgRequestNext RequestNext toResponse _) -> do
-            let buffer' = buffer |> toResponse
-            let collect = CollectResponse
-                    (guard (natToInt n < maxInFlight) $> clientStIdle (Succ n) buffer')
-                    (clientStNext n buffer')
-            pure $ SendMsgRequestNextPipelined collect
+      -- Yet, if we have already received a new message from the client, we
+      -- prioritize it and pipeline it right away unless there are already too
+      -- many requests in flights.
+      Just (RequestNextReq RequestNext) -> do
+        let collect = CollectResponse (guard (natToInt n < maxInFlight) $> clientStIdle (Succ n)) (clientStNext n)
+        pure $ SendMsgRequestNextPipelined collect
 
-        Just (MsgFindIntersect _FindIntersect _toResponse toFault) -> do
-            let fault = "'FindIntersect' requests cannot be interleaved with 'RequestNext'."
-            yield $ Wsp.mkFault $ toFault Wsp.FaultClient fault
-            clientStIdle n buffer
+      Just (FindIntersectReq _FindIntersect) -> -- 'FindIntersect' requests cannot be interleaved with 'RequestNext'.
+        clientStIdle n
 
-    clientStNext
-        :: Nat n
-        -> Seq (Wsp.ToResponse (RequestNextResponse block))
-        -> ClientStNext n block (Point block) (Tip block) m ()
-    clientStNext _ Empty =
-        error "invariant violation: empty buffer on clientStNext"
-    clientStNext n (toResponse :<| buffer) =
-        ClientStNext
-            { recvMsgRollForward = \block tip -> do
-                yield $ encodeRequestNextResponse $ toResponse $ RollForward block tip
-                clientStIdle n buffer
-            , recvMsgRollBackward = \point tip -> do
-                yield $ encodeRequestNextResponse $ toResponse $ RollBackward point tip
-                clientStIdle n buffer
-            }
-
-    clientStIntersect
-        :: Wsp.ToResponse (FindIntersectResponse block)
-        -> ClientPipelinedStIntersect block (Point block) (Tip block) m ()
-    clientStIntersect toResponse = ClientPipelinedStIntersect
-        { recvMsgIntersectFound = \point tip -> do
-            yield $ encodeFindIntersectResponse $ toResponse $ IntersectionFound point tip
-            clientStIdle Zero Seq.empty
-        , recvMsgIntersectNotFound = \tip -> do
-            yield $ encodeFindIntersectResponse $ toResponse $ IntersectionNotFound tip
-            clientStIdle Zero Seq.empty
+    clientStNext :: Nat n -> ClientStNext n block (Point block) (Tip block) m ()
+    clientStNext n =
+      ClientStNext
+        { recvMsgRollForward = \block tip -> do
+            atomically $ writeTQueue outgoingQ $ RequestNextRes $ RollForward block tip
+            clientStIdle n
+        , recvMsgRollBackward = \point tip -> do
+            atomically $ writeTQueue outgoingQ $ RequestNextRes $ RollBackward point tip
+            clientStIdle n
         }
+
+    clientStIntersect :: ClientPipelinedStIntersect block (Point block) (Tip block) m ()
+    clientStIntersect = ClientPipelinedStIntersect
+      { recvMsgIntersectFound = \point tip -> do
+          atomically $ writeTQueue outgoingQ $ FindIntersectRes $ IntersectionFound point tip
+          clientStIdle Zero
+      , recvMsgIntersectNotFound = \tip -> do
+          atomically $ writeTQueue outgoingQ $ FindIntersectRes $ IntersectionNotFound tip
+          clientStIdle Zero
+      }

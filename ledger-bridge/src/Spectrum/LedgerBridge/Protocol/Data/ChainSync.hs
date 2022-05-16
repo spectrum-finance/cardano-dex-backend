@@ -1,22 +1,42 @@
-module Spectrum.LedgerBridge.Protocol.Data.ChainSync where
+{-# LANGUAGE DuplicateRecordFields #-}
+
+module Spectrum.LedgerBridge.Protocol.Data.ChainSync
+  ( ChainSyncRequest(..)
+  , ChainSyncResponse(..)
+  , FindIntersect(..)
+  , FindIntersectResponse(..)
+  , RequestNext(..)
+  , RequestNextResponse(..)
+  ) where
+
+import GHC.Generics
+  ( Generic )
 
 import Ouroboros.Network.Block
-    ( Point (..), Tip (..) )
+  ( Point (..), Tip (..) )
+
+data ChainSyncRequest block
+  = FindIntersectReq (FindIntersect block)
+  | RequestNextReq RequestNext
+
+data ChainSyncResponse block
+  = FindIntersectRes (FindIntersectResponse block)
+  | RequestNextRes (RequestNextResponse block)
 
 data FindIntersect block
-    = FindIntersect { points :: [Point block] }
-    deriving (Generic, Show, Eq)
+  = FindIntersect { points :: [Point block] }
+  deriving (Generic, Show, Eq)
 
 data FindIntersectResponse block
-    = IntersectionFound { point :: Point block, tip :: Tip block }
-    | IntersectionNotFound { tip :: Tip block }
-    deriving (Generic, Show)
+  = IntersectionFound { point :: Point block, tip :: Tip block }
+  | IntersectionNotFound { tip :: Tip block }
+  deriving (Generic, Show)
 
 data RequestNext
-    = RequestNext
-    deriving (Generic, Show, Eq)
+  = RequestNext
+  deriving (Generic, Show, Eq)
 
 data RequestNextResponse block
-    = RollForward { block :: block, tip :: Tip block }
-    | RollBackward { point :: Point block, tip :: Tip block }
-    deriving (Generic, Show)
+  = RollForward { block :: block, tip :: Tip block }
+  | RollBackward { point :: Point block, tip :: Tip block }
+  deriving (Generic, Show)

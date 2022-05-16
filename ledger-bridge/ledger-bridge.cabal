@@ -73,14 +73,18 @@ library
     hs-source-dirs: src
     
     exposed-modules: Spectrum.LedgerBridge
+                     Spectrum.LedgerBridge.Protocol.Client
                      Spectrum.LedgerBridge.Protocol.ChainSync
                      Spectrum.LedgerBridge.Protocol.Data.ChainSync
+                     Cardano.Network.Protocol.NodeToClient.Trace
 
     build-depends:  streaming-kafka
                   , bytestring
                   , aeson
                   , rio
                   , bytestring
+                  , containers == 0.6.2.1
+                  , stm == 2.5.0.1
                   , text == 1.2.5.0
                   , streamly == 0.8.0
                   , plutus-ledger-api -any
@@ -98,6 +102,7 @@ library
                   , playground-common
                   , transformers
                   , unliftio-core
+                  , io-classes == 0.2.0.0
                   , resourcet
                   , exceptions
                   , core == 0.1.0.0
@@ -107,10 +112,11 @@ library
                   , base58-bytestring
                   , base64
                   , bech32
+                  , cborg
                   , bytestring
+                  , contra-tracer
                   , cardano-api
                   , cardano-binary
-                  , cardano-client
                   , cardano-crypto
                   , cardano-crypto-class
                   , cardano-crypto-wrapper
@@ -126,4 +132,9 @@ library
                   , ouroboros-consensus-cardano
                   , ouroboros-consensus-shelley
                   , ouroboros-network
+                  , ouroboros-network-framework
+                  , typed-protocols
+                  , typed-protocols-cborg
+                  , network-mux
+                  , iohk-monitoring == 0.2.0.0
 
