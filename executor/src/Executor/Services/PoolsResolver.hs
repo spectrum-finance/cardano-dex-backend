@@ -44,7 +44,7 @@ resolvePool'
   -> f (Maybe ConfirmedPool)
 resolvePool' PoolsResolverConfig{..} PoolsResolverClient{..} Logging{..} poolId = do
   _ <- infoM ("Going to resolve pool with id:" ++ (show poolId))
-  let limitedBackoff = exponentialBackoff 1000000 <> limitRetries (naturalToInt maxAttempts)
+  let limitedBackoff = constantDelay 1000000 <> limitRetries (naturalToInt maxAttempts)
   recoverAll limitedBackoff (\rs -> infoM ("RetryStatus for resolvePool " ++ (show rs)) >> resolvePool poolId)
 
 sendPredicted'
@@ -55,5 +55,5 @@ sendPredicted'
   -> PredictedPool
   -> f ()
 sendPredicted' PoolsResolverConfig{..} PoolsResolverClient{..} Logging{..} predicted = do
-  let limitedBackoff = exponentialBackoff 1000000 <> limitRetries (naturalToInt maxAttempts)
+  let limitedBackoff = constantDelay 1000000 <> limitRetries (naturalToInt maxAttempts)
   recoverAll limitedBackoff (\rs -> infoM ("RetryStatus for sendPredicted " ++ (show rs)) >> (sendPredicted predicted))

@@ -77,7 +77,6 @@ library
                      Resolver.Program.Resolver
                      Resolver.Repositories.PoolRepository
                      Resolver.Services.PoolResolver
-                     Resolver.AppWiring
                      Resolver
 
     build-depends:  streaming-kafka
