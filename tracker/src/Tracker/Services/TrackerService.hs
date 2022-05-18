@@ -13,9 +13,10 @@ import Explorer.Types
 import Prelude
 import System.Logging.Hlog
 import Control.Retry
-import GHC.Natural          as Natural ( naturalToInt, naturalToInteger)
+import GHC.Natural          as Natural (naturalToInt)
 import Control.Monad.Catch
 import RIO
+import Data.Text.Internal.Fusion.Size (isEmpty)
 
 data TrackerService f = TrackerService
  { getOutputs :: f [FullTxOut]
@@ -43,11 +44,9 @@ getOutputs' TrackerServiceConfig{..} logging@Logging{..} TrackerCache{..} explor
   _        <- infoM @String "Going to fetch min index"
   minIndex <- getMinIndex
   _        <- infoM $ "Min index is " ++ show minIndex
-  let maxAttemptsInt = Natural.naturalToInt maxAttempts
-  Items{..}  <- getUnspentOutputsRetry maxAttemptsInt logging minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset) explorer
-  let 
-    lastOutputGix = globalIndex . last $ items
-    newMinIndex   = unGix minIndex + unGix lastOutputGix + 1
+  Items{..}  <- getUnspentOutputsRetry logging minIndex (Limit $ toInteger $ Natural.naturalToInt limitOffset) explorer
+  let
+    newMinIndex = if null items then unGix minIndex else (unGix. globalIndex . last $ items) + 1
   _        <- infoM $ "Going to put new Min index is " ++ show newMinIndex
   _        <- putMinIndex $ Gix newMinIndex
   pure items
@@ -55,12 +54,11 @@ getOutputs' TrackerServiceConfig{..} logging@Logging{..} TrackerCache{..} explor
 
 getUnspentOutputsRetry
   :: (MonadIO f, MonadMask f)
-  => Int
-  -> Logging f
+  => Logging f
   -> Gix
   -> Limit
   -> Explorer f
   -> f (Items FullTxOut)
-getUnspentOutputsRetry maxAttempts Logging{..} minIndex limit Explorer{..} = do
-  let limitedBackoff = exponentialBackoff 1000000 <> limitRetries maxAttempts
-  recoverAll limitedBackoff (\rs -> infoM ("RetryStatus for getUnspentOutputs " ++ show rs) >> getUnspentOutputs minIndex limit)
+getUnspentOutputsRetry Logging{..} minIndex limit Explorer{..} = do
+  let limitedBackoff = constantDelay 1000000
+  recoverAll limitedBackoff (\rs -> infoM ("RetryStatus for getUnspentOutputs " ++ show rs) >> getUnspentOutputs minIndex limit Asc)
