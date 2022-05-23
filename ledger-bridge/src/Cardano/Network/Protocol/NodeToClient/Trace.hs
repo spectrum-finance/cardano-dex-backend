@@ -20,8 +20,6 @@ import Ouroboros.Network.NodeToClient
   ( ConnectionId (..), LocalAddress, NodeToClientVersion )
 import Ouroboros.Network.Protocol.Handshake.Type
   ( Handshake, Message (..), RefuseReason (..) )
-import Ouroboros.Network.Protocol.LocalTxSubmission.Type
-  ( LocalTxSubmission, Message (..) )
 
 import qualified Data.Aeson as Json
 import qualified Data.Aeson.Types as Json
@@ -29,57 +27,15 @@ import qualified Data.Map.Strict as Map
 
 type HandshakeTrace = TraceSendRecv (Handshake NodeToClientVersion Term)
 
-data TraceClient tx err
+data TraceClient
   = TrHandshake (WithMuxBearer (ConnectionId LocalAddress) HandshakeTrace)
   deriving (Generic, Show)
 
-encodeTraceClient
-    :: forall tx err. ()
-    => (tx -> Json.Value)
-    -> (err -> Json.Value)
-    -> TraceClient tx err
-    -> Json.Value
-encodeTraceClient encodeTx encodeErr = \case
+encodeTraceClient :: TraceClient -> Json.Value
+encodeTraceClient= \case
     TrHandshake tr ->
-      Json.object (("tag" .= Json.String "Handshake")
-        : encodeTraceSendRecvHandshake tr
-      )
+      Json.object (("tag" .= Json.String "Handshake") : encodeTraceSendRecvHandshake tr)
   where
-    encodeTraceSendRecvTxSubmission
-      :: TraceSendRecv (LocalTxSubmission tx err)
-      -> [Json.Pair]
-    encodeTraceSendRecvTxSubmission = \case
-        TraceSendMsg (AnyMessageAndAgency agency msg) ->
-          [ "event" .= ("send" :: String)
-          , "agency" .= show agency
-          ] ++ encodeMsg msg
-        TraceRecvMsg (AnyMessageAndAgency agency msg) ->
-          [ "event" .= ("receive" :: String)
-          , "agency" .= show agency
-          ] ++ encodeMsg msg
-      where
-        encodeMsg
-          :: Message (LocalTxSubmission tx err) from to
-          -> [Json.Pair]
-        encodeMsg = \case
-          MsgSubmitTx tx ->
-            [ "tag" .= ("SubmitTx" :: String)
-            , "tx" .= encodeTx tx
-            ]
-          MsgAcceptTx ->
-            [ "tag" .= ("AcceptTx" :: String)
-            ]
-          MsgRejectTx err ->
-            [ "tag" .= ("RejectTx" :: String)
-            , "reasons" .= encodeErr err
-            ]
-          MsgDone ->
-            [ "tag" .= ("Done" :: String)
-            ]
-
-    encodeTraceSendRecvHandshake
-      :: WithMuxBearer (ConnectionId LocalAddress) HandshakeTrace
-      -> [Json.Pair]
     encodeTraceSendRecvHandshake = \case
         WithMuxBearer _peerId (TraceSendMsg (AnyMessageAndAgency agency msg)) ->
           [ "event" .= ("send" :: String)
@@ -119,7 +75,7 @@ encodeTraceClient encodeTx encodeErr = \case
           HandshakeDecodeError{} -> Json.String "HandshakeDecodeError"
           Refused{} -> Json.String "ServerRejected"
 
-instance HasPrivacyAnnotation (TraceClient tx err)
-instance HasSeverityAnnotation (TraceClient tx err) where
+instance HasPrivacyAnnotation TraceClient
+instance HasSeverityAnnotation TraceClient where
   getSeverityAnnotation = \case
     TrHandshake{}    -> Info

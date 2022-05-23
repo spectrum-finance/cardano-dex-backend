@@ -26,13 +26,11 @@ import Cardano.Chain.Slotting
     ( EpochSlots (..) )
 import Cardano.Ledger.Crypto
     ( StandardCrypto )
-import Cardano.Slotting.Slot
-    ( SlotNo )
 import Cardano.Network.Protocol.NodeToClient.Trace
     ( TraceClient (..) )
 
 import Network.Mux
-    ( MuxError (..), MuxMode (..) )
+    ( MuxMode (..) )
 import Network.TypedProtocol.Codec
     ( Codec )
 import Network.TypedProtocol.Codec.CBOR
@@ -42,11 +40,7 @@ import Ouroboros.Consensus.Byron.Ledger.Config
 import Ouroboros.Consensus.Cardano
     ( CardanoBlock )
 import Ouroboros.Consensus.Cardano.Block
-    ( CardanoEras, CodecConfig (..), HardForkApplyTxErr )
-import Ouroboros.Consensus.Ledger.Query
-    ( Query (..) )
-import Ouroboros.Consensus.Ledger.SupportsMempool
-    ( GenTx, GenTxId )
+    ( CardanoEras, CodecConfig (..) )
 import Ouroboros.Consensus.Network.NodeToClient
     ( ClientCodecs, Codecs' (..), clientCodecs )
 import Ouroboros.Consensus.Node.NetworkProtocolVersion
@@ -58,7 +52,7 @@ import Ouroboros.Network.Block
 import Ouroboros.Network.Channel
     ( Channel, hoistChannel )
 import Ouroboros.Network.Driver.Simple
-    ( TraceSendRecv, runPeer, runPipelinedPeer )
+    ( TraceSendRecv, runPipelinedPeer )
 import Ouroboros.Network.Mux
     ( MuxPeer (..), OuroborosApplication (..), RunMiniProtocol (..) )
 import Ouroboros.Network.NodeToClient
@@ -76,8 +70,6 @@ import Ouroboros.Network.Protocol.ChainSync.ClientPipelined
     ( ChainSyncClientPipelined, chainSyncClientPeerPipelined )
 import Ouroboros.Network.Protocol.ChainSync.Type
     ( ChainSync )
-import Ouroboros.Network.Protocol.Handshake.Type
-    ( HandshakeProtocolError (..) )
 import Ouroboros.Network.Protocol.Handshake.Version
     ( combineVersions, simpleSingletonVersions )
 
@@ -97,25 +89,23 @@ type Client m = OuroborosApplication 'InitiatorMode LocalAddress ByteString m ()
 type ChainSyncClient m block = ChainSyncClientPipelined block (Point block) (Tip block) m ()
 
 connectClient
-    :: MonadIO m
-    => Tracer IO (TraceClient tx err)
-    -> (NodeToClientVersion -> Client IO)
-    -> NodeToClientVersionData
-    -> FilePath
-    -> m ()
-connectClient tr client vData addr = liftIO $ withIOManager $ \iocp -> do
+  :: MonadIO m
+  => Tracer IO TraceClient
+  -> (NodeToClientVersion -> Client IO)
+  -> NodeToClientVersionData
+  -> FilePath
+  -> m ()
+connectClient tr mkClient' vData addr = liftIO $ withIOManager $ \iocp -> do
     connectTo (localSnocket iocp) tracers versions addr
   where
     versions = combineVersions
-        [ simpleSingletonVersions v vData (client v)
-        | v <- [NodeToClientV_10]
-        ]
-
-    tracers :: NetworkConnectTracers LocalAddress NodeToClientVersion
+      [ simpleSingletonVersions v vData $ mkClient' v
+      | v <- [NodeToClientV_10] -- todo: add v11, v12, v13
+      ]
     tracers = NetworkConnectTracers
-        { nctMuxTracer = nullTracer
-        , nctHandshakeTracer = contramap TrHandshake tr
-        }
+      { nctMuxTracer       = nullTracer
+      , nctHandshakeTracer = contramap TrHandshake tr
+      }
 
 mkClient
   :: forall m.
@@ -158,7 +148,7 @@ localChainSync
       -- ^ Base tracer for the mini-protocols
   -> Codec protocol DeserialiseFailure m ByteString
       -- ^ Codec for deserializing / serializing binary data
-  -> ChainSyncClientPipelined Block (Point Block) (Tip Block) m ()
+  -> ChainSyncClient m Block
       -- ^ The actual chain sync client
   -> Channel m ByteString
       -- ^ A 'Channel' is a abstract communication instrument which

@@ -44,17 +44,14 @@ mkChainSyncClient
 mkChainSyncClient maxInFlight incomingQ outgoingQ =
     ChainSyncClientPipelined $ clientStIdle Zero
   where
-    await :: m (ChainSyncRequest block)
-    await = atomically (readTQueue incomingQ)
+    pull :: m (ChainSyncRequest block)
+    pull = atomically (readTQueue incomingQ)
 
-    tryAwait :: m (Maybe (ChainSyncRequest block))
-    tryAwait = atomically (tryReadTQueue incomingQ)
+    tryPull :: m (Maybe (ChainSyncRequest block))
+    tryPull = atomically (tryReadTQueue incomingQ)
 
-    clientStIdle
-      :: forall n. ()
-      => Nat n
-      -> m (ClientPipelinedStIdle n block (Point block) (Tip block) m ())
-    clientStIdle Zero = await <&> \case
+    clientStIdle :: Nat n -> m (ClientPipelinedStIdle n block (Point block) (Tip block) m ())
+    clientStIdle Zero = pull <&> \case
       RequestNextReq RequestNext ->
         let 
           collect = CollectResponse
@@ -65,7 +62,7 @@ mkChainSyncClient maxInFlight incomingQ outgoingQ =
       FindIntersectReq FindIntersect{points} ->
         SendMsgFindIntersect points clientStIntersect
 
-    clientStIdle n@(Succ prev) = tryAwait >>= \case
+    clientStIdle n@(Succ prev) = tryPull >>= \case
       -- If there's no immediate incoming message, we take this opportunity to
       -- wait and collect one response.
       Nothing ->
