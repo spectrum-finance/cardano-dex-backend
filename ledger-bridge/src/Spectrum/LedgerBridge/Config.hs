@@ -24,5 +24,6 @@ data NetworkParameters = NetworkParameters
   } deriving (Generic, Eq, Show)
 
 data BridgeConfig = BridgeConfig
-  { nodeSock  :: FilePath
+  { nodeSocket  :: !FilePath
+  , nodeConfig  :: !FilePath
   }

@@ -29,6 +29,7 @@ common project-config
                         DeriveFunctor
                         DeriveGeneric
                         DeriveTraversable
+                        DerivingStrategies
                         DoAndIfThenElse
                         EmptyDataDecls
                         ExistentialQuantification
@@ -75,6 +76,7 @@ library
     exposed-modules: Spectrum.Context
                      Spectrum.LedgerBridge
                      Spectrum.LedgerBridge.Config
+                     Spectrum.LedgerBridge.Exception
                      Spectrum.LedgerBridge.Data.LedgerUpdate
                      Spectrum.LedgerBridge.Protocol.Client
                      Spectrum.LedgerBridge.Protocol.ChainSync
