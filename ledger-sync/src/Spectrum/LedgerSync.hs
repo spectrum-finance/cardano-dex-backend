@@ -1,4 +1,7 @@
-module Spectrum.LedgerBridge where
+module Spectrum.LedgerSync
+  ( LedgerSync(..)
+  , mkLedgerSync
+  ) where
 
 import RIO ( (<&>) )
 
@@ -19,9 +22,9 @@ import Control.Monad.Trans.Resource
 import Control.Tracer
   ( Tracer (..), natTracer)
 
-import           Spectrum.LedgerBridge.Data.LedgerUpdate ( LedgerUpdate )
-import qualified Spectrum.LedgerBridge.Data.LedgerUpdate as Update
-import Spectrum.LedgerBridge.Protocol.Data.ChainSync
+import           Spectrum.LedgerSync.Data.LedgerUpdate ( LedgerUpdate )
+import qualified Spectrum.LedgerSync.Data.LedgerUpdate as Update
+import Spectrum.LedgerSync.Protocol.Data.ChainSync
   ( RequestNextResponse(RollBackward, RollForward, block, point),
     RequestNext(RequestNext),
     ChainSyncResponse(RequestNextRes, FindIntersectRes),
@@ -35,48 +38,47 @@ import Ouroboros.Network.Block ( Point )
 import Ouroboros.Network.NodeToClient.Version
   ( NodeToClientVersionData (NodeToClientVersionData) )
 
-import Spectrum.LedgerBridge.Config
-  ( BridgeConfig(..),
-    NetworkParameters(NetworkParameters, slotsPerEpoch, networkMagic),
-    ChainSyncClientConfig(ChainSyncClientConfig, maxInFlight, startAt) )
-import Spectrum.LedgerBridge.Exception
+import Spectrum.LedgerSync.Config
+  ( NetworkParameters(NetworkParameters, slotsPerEpoch, networkMagic),
+    LedgerSyncConfig(..) )
+import Spectrum.LedgerSync.Exception
   ( ChainSyncInitFailed(ChainSyncInitFailed) )
-import Spectrum.LedgerBridge.Protocol.ChainSync
+import Spectrum.LedgerSync.Protocol.ChainSync
   ( mkChainSyncClient )
-import Spectrum.LedgerBridge.Protocol.Client
+import Spectrum.LedgerSync.Protocol.Client
   ( mkClient, connectClient, Block )
+import Spectrum.LedgerSync.Types
+  ( toPoint )
 
-data LedgerBridge m block = LedgerBridge
-  { pull    :: m (LedgerUpdate block)
-  , tryPull :: m (Maybe (LedgerUpdate block))
+data LedgerSync m = LedgerSync
+  { pull    :: m (LedgerUpdate Block)
+  , tryPull :: m (Maybe (LedgerUpdate Block))
   }
 
-seeded
+mkLedgerSync
   :: forall m env.
     ( MonadAsync m
     , MonadST m
     , MonadThrow m
     , MonadResource m
     , MonadReader env m
-    , HasType BridgeConfig env
-    , HasType ChainSyncClientConfig env
+    , HasType LedgerSyncConfig env
     , HasType NetworkParameters env
     )
   => UnliftIO m
   -> Tracer m TraceClient
-  -> m (LedgerBridge m Block)
-seeded unliftIO tr = do
-  BridgeConfig{nodeSocket}                      <- askContext
-  ChainSyncClientConfig{maxInFlight, startAt}   <- askContext
-  NetworkParameters{slotsPerEpoch,networkMagic} <- askContext
+  -> m (LedgerSync m)
+mkLedgerSync unliftIO tr = do
+  LedgerSyncConfig{nodeSocket, maxInFlight, startAt} <- askContext
+  NetworkParameters{slotsPerEpoch,networkMagic}      <- askContext
   (outQ, inQ) <- atomically $ (,) <$> newTQueue <*> newTQueue
   let
     chainSyncClient = mkChainSyncClient maxInFlight outQ inQ
     client          = mkClient unliftIO slotsPerEpoch chainSyncClient
     versions        = NodeToClientVersionData networkMagic
   connectClient (natTracer unliftIO tr) client versions nodeSocket
-  seedTo outQ inQ startAt
-  pure LedgerBridge
+  seedTo outQ inQ (toPoint startAt)
+  pure LedgerSync
     { pull    = pull' outQ inQ
     , tryPull = tryPull' outQ inQ
     }

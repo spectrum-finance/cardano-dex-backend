@@ -1,6 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Spectrum.LedgerBridge.Protocol.Data.ChainSync
+module Spectrum.LedgerSync.Protocol.Data.ChainSync
   ( ChainSyncRequest(..)
   , ChainSyncResponse(..)
   , FindIntersect(..)

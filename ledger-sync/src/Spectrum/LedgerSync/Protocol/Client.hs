@@ -1,4 +1,4 @@
-module Spectrum.LedgerBridge.Protocol.Client where
+module Spectrum.LedgerSync.Protocol.Client where
 
 import Control.Monad.Class.MonadAsync
     ( MonadAsync )
@@ -75,6 +75,9 @@ import Ouroboros.Network.Protocol.Handshake.Version
 
 -- | Concrete block type.
 type Block = CardanoBlock StandardCrypto
+
+-- | Concrete point type.
+type ConcretePoint = Point Block
 
 -- | Concrete eras type.
 type Eras = CardanoEras StandardCrypto

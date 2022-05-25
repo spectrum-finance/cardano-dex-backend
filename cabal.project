@@ -5,8 +5,9 @@ packages:
   streaming-kafka
   tracker
   executor
+  amm-executor
   pools-resolver
-  ledger-bridge
+  ledger-sync
 
 package cardano-crypto-praos
   flags: -external-libsodium-vrf

@@ -1,4 +1,4 @@
-module Spectrum.LedgerBridge.Exception
+module Spectrum.LedgerSync.Exception
   ( ChainSyncInitFailed(..)
   ) where
 

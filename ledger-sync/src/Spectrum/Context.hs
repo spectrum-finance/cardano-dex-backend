@@ -2,9 +2,10 @@ module Spectrum.Context
   ( HasType
   , MonadReader
   , askContext
+  , ask
   ) where
 
-import RIO ( MonadReader, asks )
+import RIO ( MonadReader(ask), asks )
 
 import Data.Generics.Product.Typed
   ( HasType, typed )

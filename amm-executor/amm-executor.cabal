@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               ledger-bridge
+name:               amm-executor
 version:            0.1.0.0
 
 author:             ErgoLabs
@@ -73,18 +73,11 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Spectrum.Context
-                     Spectrum.LedgerBridge
-                     Spectrum.LedgerBridge.Config
-                     Spectrum.LedgerBridge.Exception
-                     Spectrum.LedgerBridge.Data.LedgerUpdate
-                     Spectrum.LedgerBridge.Protocol.Client
-                     Spectrum.LedgerBridge.Protocol.ChainSync
-                     Spectrum.LedgerBridge.Protocol.Data.ChainSync
-                     Cardano.Network.Protocol.NodeToClient.Trace
+    exposed-modules: Spectrum.Executor
+                     Spectrum.Executor.Config
+                     Spectrum.Executor.DataSource
 
-    build-depends:  streaming-kafka
-                  , bytestring
+    build-depends:  bytestring
                   , aeson
                   , rio
                   , bytestring
@@ -92,28 +85,18 @@ library
                   , containers == 0.6.2.1
                   , stm == 2.5.0.1
                   , text == 1.2.5.0
-                  , streamly == 0.8.0
-                  , plutus-ledger-api -any
-                  , plutus-tx -any
-                  , hw-kafka-client
-                  , dex-core == 0.1.0.0
                   , hashable == 1.3.0.0
-                  , servant
-                  , servant-server
-                  , wai
-                  , warp
                   , utf8-string
-                  , quickblue
                   , dhall
-                  , playground-common
                   , transformers
+                  , transformers-base
                   , unliftio-core
+                  , monad-control
                   , io-classes == 0.2.0.0
                   , resourcet
                   , exceptions
+                  , streamly
                   , core == 0.1.0.0
-                  , hlog
-                  , rocksdb-haskell == 0.1.0.0
                   , base16
                   , base58-bytestring
                   , base64
@@ -121,6 +104,7 @@ library
                   , cborg
                   , bytestring
                   , contra-tracer
+                  , cardano-tx
                   , cardano-api
                   , cardano-binary
                   , cardano-crypto
@@ -143,4 +127,19 @@ library
                   , typed-protocols-cborg
                   , network-mux
                   , iohk-monitoring == 0.2.0.0
+                  , hlog
+                  , ledger-sync
+                  , unix == 2.7.2.2
+                  , dex-core == 0.1.0.0
 
+executable amm-executor-app
+    default-language: Haskell2010
+    hs-source-dirs:   app
+    main-is:          Main.hs
+
+    ghc-options:      -O2
+                      -threaded
+
+    build-depends:    base >= 4.9 && < 5
+                    , amm-executor
+                    , rio

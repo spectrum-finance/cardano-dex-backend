@@ -1,4 +1,4 @@
-module Spectrum.LedgerBridge.Protocol.ChainSync
+module Spectrum.LedgerSync.Protocol.ChainSync
   ( mkChainSyncClient
   ) where
 
@@ -21,7 +21,7 @@ import Ouroboros.Network.Protocol.ChainSync.ClientPipelined
   , ClientStNext (..)
   )
 
-import Spectrum.LedgerBridge.Protocol.Data.ChainSync
+import Spectrum.LedgerSync.Protocol.Data.ChainSync
   ( RequestNextResponse(RollBackward, RollForward)
   , RequestNext(RequestNext)
   , FindIntersectResponse(IntersectionNotFound, IntersectionFound)
