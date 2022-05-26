@@ -3,7 +3,7 @@ module Spectrum.LedgerSync
   , mkLedgerSync
   ) where
 
-import RIO ( (<&>) )
+import RIO ( (<&>), void )
 
 import Spectrum.Context ( MonadReader, HasType, askContext )
 import Spectrum.Prelude ( UnliftIO )
@@ -89,11 +89,14 @@ mkLedgerSync unliftIO tr = do
     chainSyncClient = mkChainSyncClient (naturalToInt maxInFlight) outQ inQ
     client          = mkClient unliftIO slotsPerEpoch chainSyncClient
     versions        = NodeToClientVersionData networkMagic
+  
   infoM @String "Connecting Node Client"
-  client <- forkIO $ connectClient (natTracer unliftIO tr) client versions nodeSocketPath
-  infoM $ "Seeding ChainSync to " <> show startAt
+  void $ forkIO $ connectClient (natTracer unliftIO tr) client versions nodeSocketPath
+  
+  infoM $ "Seeding LedgerSync to " <> show startAt
   seedTo outQ inQ (toPoint startAt)
-  infoM @String "ChainSync initialized successfully"
+  
+  infoM @String "LedgerSync initialized successfully"
   pure LedgerSync
     { pull    = pull' outQ inQ
     , tryPull = tryPull' outQ inQ
