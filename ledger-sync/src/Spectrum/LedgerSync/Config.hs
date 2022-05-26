@@ -4,7 +4,7 @@ module Spectrum.LedgerSync.Config
   , parseNetworkParameters
   ) where
 
-import RIO ( (>=>) )
+import RIO ( (>=>), Natural )
 import RIO.FilePath (replaceFileName)
 
 import System.Exit (die)
@@ -42,9 +42,9 @@ import Ouroboros.Network.Magic
 import Spectrum.LedgerSync.Types ( StartingPoint )
 
 data LedgerSyncConfig = LedgerSyncConfig
-  { nodeSocket  :: !FilePath
-  , maxInFlight :: !Int
-  , startAt     :: !StartingPoint
+  { nodeSocketPath :: !FilePath
+  , maxInFlight    :: !Natural
+  , startAt        :: !StartingPoint
   } deriving (Generic, FromDhall)
 
 data NetworkParameters = NetworkParameters

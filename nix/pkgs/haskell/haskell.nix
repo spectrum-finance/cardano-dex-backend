@@ -40,7 +40,7 @@ let
       "https://github.com/ergolabs/cardano-dex-contracts"."69122d9b4924b63af763d1b7cd11ca616f41b952" = "7NcNSS6MS1g3z0QuF6DypuZMMQo1ybaGCTb9YaRVuMY=";
       "https://github.com/ergolabs/cardano-dex-sdk-haskell"."ae7c0a5f1d57b18c2744f24f8b8a8ec7676ae139" = "9NdcRkQ6QF3ACGL9NHxbP8CFAwdncipxYvfppSZ9zcs=";
       "https://github.com/Plutonomicon/plutarch"."473424c89b4457e58e009e65d411ace1efc3ea9e" = "1q7vk7l97zk4rsvvg40qgg33frjli7bdvspcaw0nrccsddzrrxwk";
-      "https://github.com/ergolabs/hlog"."4c1f902a830f4b0fa5303be3991935b92849c22d" = "0b9ahygf9gymxdg2b8b1qhvwja5mbq05l88d9v9arrrrpbpc3f2c";
+      "https://github.com/ergolabs/hlog"."231ff5f0a12841174cf6d92a932f45fea4552bae" = "15j3sa6gl9f3cqpwwcc6idicqb02wjd4h27vvhs68y3wqzyshfmy";
       "https://github.com/daleiz/rocksdb-haskell"."109af08f95b40f458d4933e3725ecb3e59337c39" = "1i1ya491fapa0g96527krarv0w0iybizqcz518741iw06hhpikiy";
     };
 

@@ -10,6 +10,7 @@ import Control.Monad.IO.Class
     ( MonadIO (..) )
 import Control.Tracer
     ( Tracer (..), contramap, nullTracer )
+import           Control.Monad.Class.MonadSTM
 
 import Data.ByteString.Lazy
     ( ByteString )
@@ -30,7 +31,7 @@ import Cardano.Network.Protocol.NodeToClient.Trace
     ( TraceClient (..) )
 
 import Network.Mux
-    ( MuxMode (..) )
+    ( MuxMode (..), MiniProtocolNum (MiniProtocolNum), MiniProtocolLimits (MiniProtocolLimits, maximumIngressQueue) )
 import Network.TypedProtocol.Codec
     ( Codec )
 import Network.TypedProtocol.Codec.CBOR
@@ -54,7 +55,7 @@ import Ouroboros.Network.Channel
 import Ouroboros.Network.Driver.Simple
     ( TraceSendRecv, runPipelinedPeer )
 import Ouroboros.Network.Mux
-    ( MuxPeer (..), OuroborosApplication (..), RunMiniProtocol (..) )
+    ( MuxPeer (..), OuroborosApplication (..), RunMiniProtocol (..), ControlMessage, MiniProtocol (..) )
 import Ouroboros.Network.NodeToClient
     ( LocalAddress
     , NetworkConnectTracers (..)
@@ -64,7 +65,7 @@ import Ouroboros.Network.NodeToClient
     , connectTo
     , localSnocket
     , nodeToClientProtocols
-    , withIOManager
+    , withIOManager, ConnectionId
     )
 import Ouroboros.Network.Protocol.ChainSync.ClientPipelined
     ( ChainSyncClientPipelined, chainSyncClientPeerPipelined )
@@ -125,19 +126,35 @@ mkClient
       -- ^ Client with the driving logic
   -> (NodeToClientVersion -> Client IO)
 mkClient unlift epochSlots client = \nodeToClientV ->
-    nodeToClientProtocols (const $ pure $ NodeToClientProtocols
-      { localChainSyncProtocol =
-          InitiatorProtocolOnly $ MuxPeerRaw $ \channel ->
-            localChainSync unlift trChainSync (codecChainSync nodeToClientV)
-            client
-            (hoistChannel liftIO channel)
-      , localTxSubmissionProtocol = undefined
-      , localStateQueryProtocol   = undefined
-      })
-      nodeToClientV
+    nodeToClientChainSync $ const $ pure $
+      InitiatorProtocolOnly $ MuxPeerRaw $ \channel ->
+        localChainSync unlift trChainSync (codecChainSync nodeToClientV)
+        client
+        (hoistChannel liftIO channel)
   where
     trChainSync    = nullTracer
     codecChainSync = cChainSyncCodec . codecs epochSlots
+
+nodeToClientChainSync
+  :: (ConnectionId addr -> STM m ControlMessage -> RunMiniProtocol appType bytes m a b)
+  -> OuroborosApplication appType addr bytes m a b
+nodeToClientChainSync protocols =
+    OuroborosApplication $ \connectionId controlMessageSTM ->
+      case protocols connectionId controlMessageSTM of
+        localChainSyncProtocol ->
+          [ localChainSyncMiniProtocol localChainSyncProtocol
+          ]
+  where
+    maximumMiniProtocolLimits =
+      MiniProtocolLimits
+        { maximumIngressQueue = 0xffffffff
+        }
+    localChainSyncMiniProtocol localChainSyncProtocol =
+      MiniProtocol
+        { miniProtocolNum    = MiniProtocolNum 5
+        , miniProtocolLimits = maximumMiniProtocolLimits
+        , miniProtocolRun    = localChainSyncProtocol
+        }
 
 localChainSync
   :: forall m protocol.

@@ -8,21 +8,29 @@ import RIO ( (<&>) )
 import Spectrum.Context ( MonadReader, HasType, askContext )
 import Spectrum.Prelude ( UnliftIO )
 
+import GHC.Num ( naturalToInt )
+
 import Control.Monad.Class.MonadSTM
-  ( MonadSTM (..), MonadSTMTx (..), TQueue )
+  ( MonadSTM (..), MonadSTMTx (..), TQueue (..) )
 import Control.Monad.Class.MonadThrow
-  ( MonadThrow (throwIO) )
+  ( MonadThrow (throwIO), MonadMask )
 import Control.Monad.Class.MonadST
   ( MonadST )
 import Control.Monad.Class.MonadAsync
-  ( MonadAsync )
+  ( MonadAsync (withAsync), link )
 import Control.Monad.Trans.Resource
   ( MonadResource )
+import Control.Monad.Class.MonadFork
+  ( MonadFork )
 
 import Control.Tracer
   ( Tracer (..), natTracer)
 
-import           Spectrum.LedgerSync.Data.LedgerUpdate ( LedgerUpdate )
+import System.Logging.Hlog
+  ( Logging(Logging, errorM, warnM, infoM, debugM), MakeLogging(..) )
+
+import Spectrum.LedgerSync.Data.LedgerUpdate
+  ( LedgerUpdate )
 import qualified Spectrum.LedgerSync.Data.LedgerUpdate as Update
 import Spectrum.LedgerSync.Protocol.Data.ChainSync
   ( RequestNextResponse(RollBackward, RollForward, block, point),
@@ -58,30 +66,39 @@ data LedgerSync m = LedgerSync
 mkLedgerSync
   :: forall m env.
     ( MonadAsync m
+    , MonadFork m
+    , MonadMask m
     , MonadST m
-    , MonadThrow m
     , MonadResource m
     , MonadReader env m
     , HasType LedgerSyncConfig env
     , HasType NetworkParameters env
+    , HasType (MakeLogging m m) env
     )
   => UnliftIO m
   -> Tracer m TraceClient
   -> m (LedgerSync m)
 mkLedgerSync unliftIO tr = do
-  LedgerSyncConfig{nodeSocket, maxInFlight, startAt} <- askContext
-  NetworkParameters{slotsPerEpoch,networkMagic}      <- askContext
+  MakeLogging{..}                                        <- askContext
+  LedgerSyncConfig{nodeSocketPath, maxInFlight, startAt} <- askContext
+  NetworkParameters{slotsPerEpoch,networkMagic}          <- askContext
+
+  Logging{..} <- forComponent "LedgerSync"
   (outQ, inQ) <- atomically $ (,) <$> newTQueue <*> newTQueue
   let
-    chainSyncClient = mkChainSyncClient maxInFlight outQ inQ
+    chainSyncClient = mkChainSyncClient (naturalToInt maxInFlight) outQ inQ
     client          = mkClient unliftIO slotsPerEpoch chainSyncClient
     versions        = NodeToClientVersionData networkMagic
-  connectClient (natTracer unliftIO tr) client versions nodeSocket
-  seedTo outQ inQ (toPoint startAt)
-  pure LedgerSync
-    { pull    = pull' outQ inQ
-    , tryPull = tryPull' outQ inQ
-    }
+  infoM @String "Connecting Node Client"
+  withAsync (connectClient (natTracer unliftIO tr) client versions nodeSocketPath) $ \worker -> do
+    link worker
+    infoM $ "Seeding ChainSync to " <> show startAt
+    seedTo outQ inQ (toPoint startAt)
+    infoM @String "ChainSync initialized successfully"
+    pure LedgerSync
+      { pull    = pull' outQ inQ
+      , tryPull = tryPull' outQ inQ
+      }
 
 -- | Set chain sync state to the desired block
 seedTo
@@ -102,18 +119,18 @@ pull'
   => TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> m (LedgerUpdate block)
-pull' outQ inQ = do
-  atomically $ writeTQueue outQ $ RequestNextReq RequestNext
-  atomically $ readTQueue inQ <&> extractUpdate
+pull' outQ inQ = atomically $ do
+  writeTQueue outQ $ RequestNextReq RequestNext
+  readTQueue inQ <&> extractUpdate
 
 tryPull'
   :: MonadSTM m
   => TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> m (Maybe (LedgerUpdate block))
-tryPull' outQ inQ = do
-  atomically $ writeTQueue outQ $ RequestNextReq RequestNext
-  atomically $ tryReadTQueue inQ <&> (<&> extractUpdate)
+tryPull' outQ inQ = atomically $ do
+  writeTQueue outQ $ RequestNextReq RequestNext
+  tryReadTQueue inQ <&> (<&> extractUpdate)
 
 extractUpdate :: ChainSyncResponse block -> LedgerUpdate block
 extractUpdate (RequestNextRes RollForward{block})  = Update.RollForward block

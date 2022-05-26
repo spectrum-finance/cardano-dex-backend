@@ -137,3 +137,4 @@ library
                   , typed-protocols-cborg
                   , network-mux
                   , iohk-monitoring == 0.2.0.0
+                  , hlog
