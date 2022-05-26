@@ -21,7 +21,7 @@ import Control.Monad.Class.MonadAsync
 import Control.Monad.Trans.Resource
   ( MonadResource )
 import Control.Monad.Class.MonadFork
-  ( MonadFork )
+  ( MonadFork (forkIO) )
 
 import Control.Tracer
   ( Tracer (..), natTracer)
@@ -90,15 +90,14 @@ mkLedgerSync unliftIO tr = do
     client          = mkClient unliftIO slotsPerEpoch chainSyncClient
     versions        = NodeToClientVersionData networkMagic
   infoM @String "Connecting Node Client"
-  withAsync (connectClient (natTracer unliftIO tr) client versions nodeSocketPath) $ \worker -> do
-    link worker
-    infoM $ "Seeding ChainSync to " <> show startAt
-    seedTo outQ inQ (toPoint startAt)
-    infoM @String "ChainSync initialized successfully"
-    pure LedgerSync
-      { pull    = pull' outQ inQ
-      , tryPull = tryPull' outQ inQ
-      }
+  client <- forkIO $ connectClient (natTracer unliftIO tr) client versions nodeSocketPath
+  infoM $ "Seeding ChainSync to " <> show startAt
+  seedTo outQ inQ (toPoint startAt)
+  infoM @String "ChainSync initialized successfully"
+  pure LedgerSync
+    { pull    = pull' outQ inQ
+    , tryPull = tryPull' outQ inQ
+    }
 
 -- | Set chain sync state to the desired block
 seedTo
@@ -119,18 +118,18 @@ pull'
   => TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> m (LedgerUpdate block)
-pull' outQ inQ = atomically $ do
-  writeTQueue outQ $ RequestNextReq RequestNext
-  readTQueue inQ <&> extractUpdate
+pull' outQ inQ = do
+  atomically $ writeTQueue outQ $ RequestNextReq RequestNext
+  atomically $ readTQueue inQ <&> extractUpdate
 
 tryPull'
   :: MonadSTM m
   => TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> m (Maybe (LedgerUpdate block))
-tryPull' outQ inQ = atomically $ do
-  writeTQueue outQ $ RequestNextReq RequestNext
-  tryReadTQueue inQ <&> (<&> extractUpdate)
+tryPull' outQ inQ = do
+  atomically $ writeTQueue outQ $ RequestNextReq RequestNext
+  atomically $ tryReadTQueue inQ <&> (<&> extractUpdate)
 
 extractUpdate :: ChainSyncResponse block -> LedgerUpdate block
 extractUpdate (RequestNextRes RollForward{block})  = Update.RollForward block
