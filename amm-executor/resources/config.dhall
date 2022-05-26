@@ -15,7 +15,7 @@ in
 , nodeConfigPath = "/root/cardano-node/node-conf.json"
 , loggingConfig =
     { rootLogLevel   = LogLevel.Info
-    , fileHandlers   = [fileHandlers "Path" LogLevel.Info]
+    , fileHandlers   = [fileHandlers "logs/amm-executor.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 }
