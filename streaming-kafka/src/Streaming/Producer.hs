@@ -13,11 +13,12 @@ import Streaming.Config
 import Streaming.Class
 import Data.Bifunctor as Either
 import Streaming.Types
+import Data.Aeson (Value(String))
 
 data Producer f k v = Producer
   { produce :: S.SerialT f (k, v) -> f ()
   }
- 
+
 mkKafkaProducer
   :: (MonadThrow f, S.MonadAsync f, ToKafka k v)
   => KafkaProducerConfig
@@ -44,8 +45,8 @@ produce'
 produce' prod topic upstream =
     upstream
   & S.mapM (\(k, v) -> produceMessage prod (toKafka topic k v))
-  & S.map (maybeToLeft ())
-  & S.map (Either.first (const ProducerExecption))
+  & S.map (maybeToLeft "noError")
+  & S.map (Either.first (ProducerExecption . show))
   & S.mapM throwEither
   & S.drain
 

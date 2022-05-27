@@ -11,14 +11,14 @@ newtype TopicId = TopicId { unTopicId :: String }
 
 instance FromDhall TopicId
 
-data ProducerExecption = ProducerExecption
+data ProducerExecption = ProducerExecption { desc :: String }
   deriving Show
 
 instance Exception ProducerExecption
 
 instance Err.Error ProducerExecption
 
-data ConsumerException = ConsumerException
+data ConsumerException = ConsumerException { desc :: String }
   deriving Show
 
 instance Exception ConsumerException

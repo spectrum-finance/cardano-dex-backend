@@ -14,26 +14,35 @@ import qualified Streamly.Prelude as S
 import           Streaming.Types
 import           Streaming.Events
 import           Streaming.Consumer
+import System.Logging.Hlog
 
 data Resolver f = Resolver
   { run :: f ()
   }
 
 mkResolver
-  :: (S.MonadAsync f, MonadCatch f)
+  :: (Monad i, S.MonadAsync f, MonadCatch f)
   => PoolRepository f
+  -> MakeLogging i f
   -> Consumer f PoolId ConfirmedPoolEvent
-  -> Resolver f
-mkResolver repo cons = Resolver $ run' repo cons
+  -> i (Resolver f)
+mkResolver repo MakeLogging{..} cons = do
+  logging <- forComponent "Resolver"
+  pure $ Resolver $ run' repo logging cons
 
 run'
   :: (S.MonadAsync f, MonadCatch f)
   => PoolRepository f
+  -> Logging f
   -> Consumer f PoolId ConfirmedPoolEvent
   -> f ()
-run' PoolRepository{..} Consumer{..} =
+run' PoolRepository{..} Logging{..} Consumer{..} =
     upstream
-  & S.map (\(_, ConfirmedPoolEvent{..}) -> ConfirmedPool (OnChainIndexedEntity pool txOut gix))
+  & S.mapM (\a -> fmap (const a) (infoM @String "Going to process msgs") )
+  & S.map mkConfirmedPool
   & S.mapM putConfirmed
-  & S.handle (\ConsumerException -> S.fromPure ())
+  & S.handle (\(a :: SomeException) -> lift . errorM $ ("resolver error: " ++ show a))
   & S.drain
+
+mkConfirmedPool :: (PoolId, ConfirmedPoolEvent) -> ConfirmedPool
+mkConfirmedPool (_, ConfirmedPoolEvent{..}) = ConfirmedPool (OnChainIndexedEntity pool txOut gix)
