@@ -1,5 +1,6 @@
 module Spectrum.Executor.Config
   ( AppConfig(..)
+  , DataSourceConfig(..)
   , loadAppConfig
   ) where
 
@@ -19,9 +20,16 @@ import qualified Data.Text as T
 
 import Spectrum.LedgerSync.Config
   ( LedgerSyncConfig )
+import Spectrum.Executor.Types
+  ( ConcretePoint )
+
+data DataSourceConfig = DataSourceConfig
+  { startAt :: !ConcretePoint
+  } deriving (Generic, FromDhall)
 
 data AppConfig = AppConfig
   { ledgerSyncConfig :: !LedgerSyncConfig
+  , dataSourceConfig :: !DataSourceConfig
   , loggingConfig    :: !LoggingConfig
   , nodeConfigPath   :: !FilePath
   } deriving (Generic, FromDhall)

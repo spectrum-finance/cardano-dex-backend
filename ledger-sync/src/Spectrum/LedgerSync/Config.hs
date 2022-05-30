@@ -39,12 +39,9 @@ import Ouroboros.Consensus.BlockchainTime.WallClock.Types
 import Ouroboros.Network.Magic
   ( NetworkMagic (..) )
 
-import Spectrum.LedgerSync.Types ( StartingPoint )
-
 data LedgerSyncConfig = LedgerSyncConfig
   { nodeSocketPath :: !FilePath
   , maxInFlight    :: !Natural
-  , startAt        :: !StartingPoint
   } deriving (Generic, FromDhall)
 
 data NetworkParameters = NetworkParameters

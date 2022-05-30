@@ -1,5 +1,7 @@
-module Spectrum.LedgerSync.Types
-  ( StartingPoint(..)
+{-# LANGUAGE DerivingVia #-}
+
+module Spectrum.Executor.Types
+  ( ConcretePoint(..)
   , ConcreteHash(..)
   , toPoint
   ) where
@@ -21,13 +23,13 @@ import Ouroboros.Consensus.HardFork.Combinator ( OneEraHash(OneEraHash) )
 import Data.ByteString.Short ( toShort )
 import Ouroboros.Consensus.Cardano.Block ( CardanoEras )
 
-data StartingPoint = StartingPoint
+data ConcretePoint = ConcretePoint
   { slot :: SlotNo
   , hash :: ConcreteHash
   } deriving (Generic, Eq, Show, FromDhall)
 
-toPoint :: StartingPoint -> Point Block
-toPoint StartingPoint{slot, hash=ConcreteHash hash} = BlockPoint{atSlot=slot, withHash=hash}
+toPoint :: ConcretePoint -> Point Block
+toPoint ConcretePoint{slot, hash=ConcreteHash hash} = BlockPoint{atSlot=slot, withHash=hash}
 
 instance FromDhall SlotNo where
   autoWith _ = D.Decoder{..}

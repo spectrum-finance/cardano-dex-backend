@@ -78,7 +78,6 @@ library
                      Spectrum.Prelude
                      Spectrum.LedgerSync
                      Spectrum.LedgerSync.Config
-                     Spectrum.LedgerSync.Types
                      Spectrum.LedgerSync.Exception
                      Spectrum.LedgerSync.Data.LedgerUpdate
                      Spectrum.LedgerSync.Protocol.Client

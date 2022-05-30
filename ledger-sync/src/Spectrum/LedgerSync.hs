@@ -11,13 +11,13 @@ import Spectrum.Prelude ( UnliftIO )
 import GHC.Num ( naturalToInt )
 
 import Control.Monad.Class.MonadSTM
-  ( MonadSTM (..), MonadSTMTx (..), TQueue (..) )
+  ( MonadSTM (..), MonadSTMTx (..), TQueue )
 import Control.Monad.Class.MonadThrow
   ( MonadThrow (throwIO), MonadMask )
 import Control.Monad.Class.MonadST
   ( MonadST )
 import Control.Monad.Class.MonadAsync
-  ( MonadAsync (withAsync), link )
+  ( MonadAsync )
 import Control.Monad.Trans.Resource
   ( MonadResource )
 import Control.Monad.Class.MonadFork
@@ -55,12 +55,11 @@ import Spectrum.LedgerSync.Protocol.ChainSync
   ( mkChainSyncClient )
 import Spectrum.LedgerSync.Protocol.Client
   ( mkClient, connectClient, Block )
-import Spectrum.LedgerSync.Types
-  ( toPoint )
 
 data LedgerSync m = LedgerSync
   { pull    :: m (LedgerUpdate Block)
   , tryPull :: m (Maybe (LedgerUpdate Block))
+  , seekTo  :: Point Block -> m ()
   }
 
 mkLedgerSync
@@ -79,9 +78,9 @@ mkLedgerSync
   -> Tracer m TraceClient
   -> m (LedgerSync m)
 mkLedgerSync unliftIO tr = do
-  MakeLogging{..}                                        <- askContext
-  LedgerSyncConfig{nodeSocketPath, maxInFlight, startAt} <- askContext
-  NetworkParameters{slotsPerEpoch,networkMagic}          <- askContext
+  MakeLogging{..}                               <- askContext
+  LedgerSyncConfig{nodeSocketPath, maxInFlight} <- askContext
+  NetworkParameters{slotsPerEpoch,networkMagic} <- askContext
 
   Logging{..} <- forComponent "LedgerSync"
   (outQ, inQ) <- atomically $ (,) <$> newTQueue <*> newTQueue
@@ -92,24 +91,21 @@ mkLedgerSync unliftIO tr = do
   
   infoM @String "Connecting Node Client"
   void $ forkIO $ connectClient (natTracer unliftIO tr) client versions nodeSocketPath
-  
-  infoM $ "Seeding LedgerSync to " <> show startAt
-  seedTo outQ inQ (toPoint startAt)
-  
   infoM @String "LedgerSync initialized successfully"
   pure LedgerSync
     { pull    = pull' outQ inQ
     , tryPull = tryPull' outQ inQ
+    , seekTo  = seekTo' outQ inQ
     }
 
 -- | Set chain sync state to the desired block
-seedTo
+seekTo'
   :: (MonadSTM m, MonadThrow m, StandardHash block)
   => TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> Point block
   -> m ()
-seedTo outQ inQ point = do
+seekTo' outQ inQ point = do
   atomically $ writeTQueue outQ $ FindIntersectReq $ FindIntersect [point]
   res <- atomically $ readTQueue inQ
   case res of
@@ -136,5 +132,5 @@ tryPull' outQ inQ = do
 
 extractUpdate :: ChainSyncResponse block -> LedgerUpdate block
 extractUpdate (RequestNextRes RollForward{block})  = Update.RollForward block
-extractUpdate (RequestNextRes RollBackward{point}) = Update.RollBackward $ pointHash point
+extractUpdate (RequestNextRes RollBackward{point}) = Update.RollBackward point
 extractUpdate _                                    = undefined

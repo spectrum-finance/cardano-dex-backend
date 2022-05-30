@@ -41,14 +41,14 @@ import Spectrum.LedgerSync (mkLedgerSync)
 import Cardano.Network.Protocol.NodeToClient.Trace (encodeTraceClient)
 import Data.Aeson (encode)
 import Data.ByteString.Lazy.UTF8 (toString)
-import Spectrum.Executor.DataSource (mkDataSource, DataSource (upstream))
-import Spectrum.Executor.Config (AppConfig(..), loadAppConfig)
+import Spectrum.Executor.DataSource.Stream (mkDataSource, DataSource (upstream))
+import Spectrum.Executor.Config (AppConfig(..), loadAppConfig, DataSourceConfig)
 import RIO.List (headMaybe)
 import Control.Monad.Trans.Class (MonadTrans(lift))
-import RIO.Prelude.Types (MonadTrans)
 
 data Env m = Env
   { ledgerSyncConfig :: !LedgerSyncConfig
+  , dataSourceConfig :: !DataSourceConfig
   , networkParams    :: !NetworkParameters
   , mkLogging        :: !(MakeLogging m m)
   } deriving stock (Generic)
@@ -71,7 +71,10 @@ runApp args = do
   AppConfig{..} <- loadAppConfig $ headMaybe args
   nparams       <- parseNetworkParameters nodeConfigPath
   mkLogging     <- makeLogging loggingConfig
-  let env = Env ledgerSyncConfig nparams $ translateMakeLogging (App . lift) mkLogging
+  let
+    env =
+      Env ledgerSyncConfig dataSourceConfig nparams
+        $ translateMakeLogging (App . lift) mkLogging
   runContext env wireApp
 
 wireApp :: App ()

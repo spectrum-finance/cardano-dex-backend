@@ -75,7 +75,9 @@ library
     
     exposed-modules: Spectrum.Executor
                      Spectrum.Executor.Config
-                     Spectrum.Executor.DataSource
+                     Spectrum.Executor.Types
+                     Spectrum.Executor.DataSource.Stream
+                     Spectrum.Executor.DataSource.Persistence
 
     build-depends:  bytestring
                   , aeson
@@ -131,6 +133,7 @@ library
                   , ledger-sync
                   , unix == 2.7.2.2
                   , dex-core == 0.1.0.0
+                  , rocksdb-haskell == 0.1.0.0
 
 executable amm-executor-app
     default-language: Haskell2010
