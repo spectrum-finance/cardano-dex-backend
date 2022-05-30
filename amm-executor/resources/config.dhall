@@ -8,7 +8,7 @@ in
     { nodeSocketPath = "/root/cardano-node/ipc/node.socket"
     , maxInFlight = 256
     }
-, dataSourceConfig =
+, eventSourceConfig =
     { startAt =
       { slot = 59190535
       , hash = "2ba0e86679ddd0015ee5a4f17c093201a2b5e41ca919152af89333b5c8964319"

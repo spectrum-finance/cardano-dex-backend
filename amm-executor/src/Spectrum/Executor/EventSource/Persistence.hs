@@ -1,4 +1,4 @@
-module Spectrum.Executor.DataSource.Persistence where
+module Spectrum.Executor.EventSource.Persistence where
 
 import Spectrum.Executor.Types (ConcretePoint)
 import Control.Concurrent (newMVar, putMVar, readMVar)

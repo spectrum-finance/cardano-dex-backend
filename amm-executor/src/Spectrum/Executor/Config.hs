@@ -1,6 +1,6 @@
 module Spectrum.Executor.Config
   ( AppConfig(..)
-  , DataSourceConfig(..)
+  , EventSourceConfig(..)
   , loadAppConfig
   ) where
 
@@ -23,15 +23,15 @@ import Spectrum.LedgerSync.Config
 import Spectrum.Executor.Types
   ( ConcretePoint )
 
-data DataSourceConfig = DataSourceConfig
+data EventSourceConfig = EventSourceConfig
   { startAt :: !ConcretePoint
   } deriving (Generic, FromDhall)
 
 data AppConfig = AppConfig
-  { ledgerSyncConfig :: !LedgerSyncConfig
-  , dataSourceConfig :: !DataSourceConfig
-  , loggingConfig    :: !LoggingConfig
-  , nodeConfigPath   :: !FilePath
+  { ledgerSyncConfig  :: !LedgerSyncConfig
+  , eventSourceConfig :: !EventSourceConfig
+  , loggingConfig     :: !LoggingConfig
+  , nodeConfigPath    :: !FilePath
   } deriving (Generic, FromDhall)
 
 loadAppConfig :: MonadIO f => Maybe String -> f AppConfig

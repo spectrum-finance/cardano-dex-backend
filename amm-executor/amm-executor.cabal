@@ -76,8 +76,10 @@ library
     exposed-modules: Spectrum.Executor
                      Spectrum.Executor.Config
                      Spectrum.Executor.Types
-                     Spectrum.Executor.DataSource.Stream
-                     Spectrum.Executor.DataSource.Persistence
+                     Spectrum.Executor.EventSource.Stream
+                     Spectrum.Executor.EventSource.Persistence
+                     Spectrum.Executor.EventSource.LedgerView
+                     Spectrum.Executor.EventSource.Data.TxEvent
 
     build-depends:  bytestring
                   , aeson

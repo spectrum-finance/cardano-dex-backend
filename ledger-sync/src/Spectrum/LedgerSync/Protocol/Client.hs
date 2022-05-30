@@ -59,12 +59,10 @@ import Ouroboros.Network.Mux
 import Ouroboros.Network.NodeToClient
     ( LocalAddress
     , NetworkConnectTracers (..)
-    , NodeToClientProtocols (..)
     , NodeToClientVersion (..)
     , NodeToClientVersionData (..)
     , connectTo
     , localSnocket
-    , nodeToClientProtocols
     , withIOManager, ConnectionId
     )
 import Ouroboros.Network.Protocol.ChainSync.ClientPipelined

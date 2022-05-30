@@ -40,9 +40,12 @@ import Spectrum.LedgerSync.Protocol.Data.ChainSync
     FindIntersect(FindIntersect),
     FindIntersectResponse (IntersectionFound) )
 
-import Ouroboros.Consensus.Block ( pointHash, StandardHash )
-import Cardano.Network.Protocol.NodeToClient.Trace ( TraceClient )
-import Ouroboros.Network.Block ( Point )
+import Ouroboros.Consensus.Block
+  ( StandardHash )
+import Cardano.Network.Protocol.NodeToClient.Trace
+  ( TraceClient )
+import Ouroboros.Network.Block
+  ( Point )
 import Ouroboros.Network.NodeToClient.Version
   ( NodeToClientVersionData (NodeToClientVersionData) )
 
