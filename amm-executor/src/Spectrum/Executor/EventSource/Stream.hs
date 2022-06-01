@@ -14,6 +14,7 @@ import Spectrum.Executor.Config (EventSourceConfig (EventSourceConfig, startAt))
 import Spectrum.Executor.Types (ConcretePoint, toPoint, ConcretePoint (slot))
 import Spectrum.Executor.EventSource.Persistence (Persistence (Persistence, getLastPoint), mkRuntimePersistence)
 import Spectrum.Executor.EventSource.Data.TxEvent
+import Spectrum.Executor.EventSource.Data.TxContext
 import Spectrum.LedgerSync.Data.LedgerUpdate (LedgerUpdate(RollForward))
 import Ouroboros.Consensus.Shelley.Ledger (ShelleyBlock(ShelleyBlock))
 
@@ -25,9 +26,10 @@ import Spectrum.LedgerSync.Protocol.Client (Block)
 import Ouroboros.Consensus.Cardano.Block (HardForkBlock(BlockAlonzo), AlonzoEra, StandardCrypto)
 import Cardano.Ledger.Alonzo.Tx (ValidatedTx)
 import Cardano.Ledger.Alonzo.TxSeq (TxSeq(txSeqTxns))
+import Spectrum.Executor.EventSource.Data.Tx (fromAlonzoLedgerTx)
 
 newtype EventSource s m = EventSource
-  { upstream :: s m (TxEvent LedgerTx String)
+  { upstream :: s m (TxEvent 'LedgerTx)
   }
 
 mkEventSource
@@ -42,7 +44,7 @@ mkEventSource
   => LedgerSync m
   -> m (EventSource s m)
 mkEventSource lsync = do
-  MakeLogging{..}           <- askContext
+  MakeLogging{..}            <- askContext
   EventSourceConfig{startAt} <- askContext
 
   logging     <- forComponent "EventSource"
@@ -55,14 +57,14 @@ upstream'
   :: forall s m. (IsStream s, Monad (s m), MonadAsync m)
   => Logging m
   -> LedgerSync m
-  -> s m (TxEvent LedgerTx String)
+  -> s m (TxEvent 'LedgerTx)
 upstream' Logging{..} LedgerSync{..}
   = S.repeatM pull >>= processUpdate & S.trace (infoM . show)
 
-processUpdate :: (IsStream s, Monad m) => LedgerUpdate Block -> s m (TxEvent LedgerTx String)
-processUpdate (RollForward (BlockAlonzo (ShelleyBlock (Ledger.Block _ txs) _))) =
+processUpdate :: (IsStream s, Monad m) => LedgerUpdate Block -> s m (TxEvent 'LedgerTx)
+processUpdate (RollForward (BlockAlonzo (ShelleyBlock (Ledger.Block _ txs) headerHash))) =
   let txs' = txSeqTxns txs
-  in S.fromFoldable txs' & S.map (AppliedTx . show)
+  in S.fromFoldable txs' & S.map (AppliedTx . fromAlonzoLedgerTx headerHash)
 processUpdate _ = S.nil
 
 seekToBeginning :: Monad m => Logging m -> Persistence m -> LedgerSync m -> ConcretePoint -> m ()

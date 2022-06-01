@@ -1,16 +1,16 @@
 module Spectrum.Executor.EventSource.Data.TxEvent where
 
+import Spectrum.Executor.EventSource.Data.Tx
+  ( MinimalTx )
+import Spectrum.Executor.EventSource.Data.TxContext
+  ( TxCtx(MempoolTx, LedgerTx) )
+
 type TxHash = String
 
-data Tx ctx = Tx String
+data TxEvent ctx where
+  PendingTx   :: MinimalTx 'MempoolTx -> TxEvent 'MempoolTx
+  AppliedTx   :: MinimalTx 'LedgerTx  -> TxEvent 'LedgerTx
+  UpappliedTx :: TxHash -> TxEvent 'LedgerTx
 
-data TxCtx = LedgerTx | MempoolTx
-  deriving (Eq, Show)
-
-data TxEvent ctx tx where
-  PendingTx   :: tx     -> TxEvent 'MempoolTx tx
-  AppliedTx   :: tx     -> TxEvent 'LedgerTx tx
-  UpappliedTx :: TxHash -> TxEvent 'LedgerTx tx
-
-deriving instance Eq tx => Eq (TxEvent ctx tx)
-deriving instance Show tx => Show (TxEvent ctx tx)
+deriving instance Eq (TxEvent ctx)
+deriving instance Show (TxEvent ctx)

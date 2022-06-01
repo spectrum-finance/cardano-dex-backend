@@ -79,7 +79,9 @@ library
                      Spectrum.Executor.EventSource.Stream
                      Spectrum.Executor.EventSource.Persistence
                      Spectrum.Executor.EventSource.LedgerView
+                     Spectrum.Executor.EventSource.Data.TxContext
                      Spectrum.Executor.EventSource.Data.TxEvent
+                     Spectrum.Executor.EventSource.Data.Tx
 
     build-depends:  bytestring
                   , aeson
@@ -131,6 +133,8 @@ library
                   , typed-protocols-cborg
                   , network-mux
                   , iohk-monitoring == 0.2.0.0
+                  , plutus-ledger
+                  , plutus-tx
                   , hlog
                   , ledger-sync
                   , unix == 2.7.2.2
