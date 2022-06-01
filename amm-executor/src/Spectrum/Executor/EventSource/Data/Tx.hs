@@ -11,6 +11,7 @@ import qualified Ledger as P
 import qualified Data.Set as Set
 
 import Data.ByteString.Short (ShortByteString, fromShort)
+import qualified Data.Sequence.Strict as StrictSeq
 
 import qualified Cardano.Ledger.Alonzo.Tx as Al
 
@@ -20,7 +21,7 @@ import qualified Cardano.Crypto.Hash.Class as CC
 import qualified PlutusTx.Prelude as PlutusTx
 
 import CardanoTx.Models
-  ( FullTxOut )
+  ( FullTxOut (FullTxOut), TxOutDatum (EmptyDatum, KnownDatumHash) )
 import Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(MempoolTx, LedgerTx) )
 import Ouroboros.Consensus.Cardano.Block
@@ -39,6 +40,11 @@ import qualified Cardano.Ledger.SafeHash as Ledger
 import qualified Cardano.Ledger.TxIn as Ledger
 import Cardano.Ledger.Crypto (Crypto)
 import Data.ByteString.Short (fromShort)
+
+import qualified Ledger.Tx.CardanoAPI as Interop
+import RIO ((<&>))
+import Cardano.Api.Shelley (fromShelleyTxIn, fromShelleyTxOut, CardanoEra (AlonzoEra), ShelleyBasedEra (ShelleyBasedEraAlonzo))
+import Data.Foldable (Foldable(toList))
 
 -- | A minimal sufficient representation of an unconfirmed transaction
 data MinimalUnconfirmedTx = MinimalUnconfirmedTx
@@ -63,17 +69,38 @@ deriving instance Eq (MinimalTx ctx)
 deriving instance Show (MinimalTx ctx)
 
 fromAlonzoLedgerTx
-  :: Crypto crypto
+  :: (Crypto crypto, crypto ~ StandardCrypto)
   => ShelleyHash (EraCrypto (AlonzoEra crypto))
   -> Al.ValidatedTx (AlonzoEra crypto) -> MinimalTx 'LedgerTx
 fromAlonzoLedgerTx blockHash vtx =
   let
-    body    = Al.body vtx
-    blockId = P.BlockId . CC.hashToBytes . TPraos.unHashHeader $ unShelleyHash blockHash
-    txId    = P.TxId . PlutusTx.toBuiltin . CC.hashToBytes . Ledger.extractHash . Ledger._unTxId . Ledger.txid $ body
+    body = Al.body vtx
+    blockId
+      = P.BlockId
+      . CC.hashToBytes
+      . TPraos.unHashHeader
+      $ unShelleyHash blockHash
+    txId
+      = P.TxId
+      . PlutusTx.toBuiltin
+      . CC.hashToBytes
+      . Ledger.extractHash
+      . Ledger._unTxId
+      . Ledger.txid
+      $ body
+    fromCardanoTxIn tin = P.TxIn (Interop.fromCardanoTxIn (fromShelleyTxIn tin)) Nothing
+    fromCardanoTxOut ix tout =
+      Interop.fromCardanoTxOut (fromShelleyTxOut ShelleyBasedEraAlonzo tout) <&> (\P.TxOut{..} ->
+        FullTxOut
+          (P.TxOutRef txId ix)
+          txOutAddress
+          txOutValue
+          (maybe EmptyDatum KnownDatumHash txOutDatumHash))
   in MinimalLedgerTx $ MinimalConfirmedTx
-    { blockId   = blockId 
-    , txId      = txId 
-    , txInputs  = undefined
-    , txOutputs = undefined
+    { blockId   = blockId
+    , txId      = txId
+    , txInputs  = Set.fromList $ Set.toList (Al.inputs body) <&> fromCardanoTxIn
+    , txOutputs = zip [0..] (toList $ Al.outputs body)
+                    <&> uncurry fromCardanoTxOut
+                    >>= either mempty pure
     }
