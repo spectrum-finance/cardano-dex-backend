@@ -10,23 +10,42 @@ import GHC.Generics ( Generic )
 
 import qualified Data.Text as T
 
-import Dhall (FromDhall)
-import qualified Dhall         as D
-import Dhall.Core ( Expr(..), Chunks(..) )
+import Data.ByteString.Short
+  ( toShort, fromShort )
+import Data.ByteString.Base16
+  ( encodeBase16 )
+import Data.Aeson
+  ( ToJSON(..), FromJSON(..) )
+import Data.Aeson.Types
+  ( Value(String) )
 
-import Ouroboros.Consensus.Block ( SlotNo(SlotNo), Point (BlockPoint) )
-import Ouroboros.Network.Block   ( HeaderHash, atSlot, withHash )
-import Spectrum.LedgerSync.Protocol.Client ( Block )
 
-import Cardano.Crypto.Hashing ( decodeHash, hashToBytes )
-import Ouroboros.Consensus.HardFork.Combinator ( OneEraHash(OneEraHash) )
-import Data.ByteString.Short ( toShort )
-import Ouroboros.Consensus.Cardano.Block ( CardanoEras )
+import qualified Dhall as D
+import Dhall
+  ( FromDhall )
+import Dhall.Core
+  ( Expr(..), Chunks(..) )
+
+import Ouroboros.Consensus.Block
+  ( SlotNo(SlotNo), Point (BlockPoint) )
+import Ouroboros.Network.Block
+  ( HeaderHash, atSlot, withHash )
+import Spectrum.LedgerSync.Protocol.Client
+  ( Block )
+
+import Cardano.Crypto.Hashing
+  ( decodeHash, hashToBytes )
+import Ouroboros.Consensus.HardFork.Combinator.AcrossEras
+  ( getOneEraHash )
+import Ouroboros.Consensus.HardFork.Combinator
+  ( OneEraHash(OneEraHash) )
+import Ouroboros.Consensus.Cardano.Block
+  ( CardanoEras )
 
 data ConcretePoint = ConcretePoint
   { slot :: SlotNo
   , hash :: ConcreteHash
-  } deriving (Generic, Eq, Show, FromDhall)
+  } deriving (Generic, Eq, Show, FromDhall, ToJSON, FromJSON)
 
 toPoint :: ConcretePoint -> Point Block
 toPoint ConcretePoint{slot, hash=ConcreteHash hash} = BlockPoint{atSlot=slot, withHash=hash}
@@ -49,6 +68,13 @@ instance FromDhall ConcreteHash where
       extract expr                    = D.typeError expected expr
 
       expected = pure Text
+
+instance ToJSON ConcreteHash where
+  toJSON (ConcreteHash hh) = toJSON . encodeBase16 . fromShort . getOneEraHash $ hh
+
+instance FromJSON ConcreteHash where
+  parseJSON (String s) = either fail (pure . ConcreteHash) $ oneEraHashFromString s
+  parseJSON _          = fail "Expected a string"
 
 oneEraHashFromString :: D.Text -> Either String (OneEraHash (CardanoEras crypto))
 oneEraHashFromString =

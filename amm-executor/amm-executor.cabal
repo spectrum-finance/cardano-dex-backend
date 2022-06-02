@@ -77,11 +77,11 @@ library
                      Spectrum.Executor.Config
                      Spectrum.Executor.Types
                      Spectrum.Executor.EventSource.Stream
-                     Spectrum.Executor.EventSource.Persistence
-                     Spectrum.Executor.EventSource.LedgerView
                      Spectrum.Executor.EventSource.Data.TxContext
                      Spectrum.Executor.EventSource.Data.TxEvent
                      Spectrum.Executor.EventSource.Data.Tx
+                     Spectrum.Executor.EventSource.Persistence.LedgerHistory
+                     Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
 
     build-depends:  bytestring
                   , aeson
@@ -110,6 +110,7 @@ library
                   , bech32
                   , cborg
                   , bytestring
+                  , serialise
                   , contra-tracer
                   , cardano-tx
                   , cardano-api
