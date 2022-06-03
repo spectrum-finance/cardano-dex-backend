@@ -21,6 +21,7 @@ import WalletAPI.TrustStore
 import Explorer.Config
 import NetworkAPI.Config.NodeConfig
 import SubmitAPI.Config
+import NetworkAPI.Config.NodesSocketsConfig (NodesSocketsConfig)
 
 data AppConfig = AppConfig
   { kafkaConfig         :: KafkaConsumerConfig
@@ -32,7 +33,7 @@ data AppConfig = AppConfig
   , keyPass             :: KeyPass
   , nodeConfig          :: NodeConfig
   , txAssemblyConfig    :: TxAssemblyConfig
-  , nodeSocketConfig    :: NodeSocketConfig
+  , nodeSocketsConfigs  :: NodesSocketsConfig
   , loggingConfig       :: LoggingConfig
   } deriving (Generic)
 
@@ -45,12 +46,6 @@ data PoolsResolverConfig = PoolsResolverConfig
   } deriving (Generic, Show)
 
 instance FromDhall PoolsResolverConfig
-
-data NodeSocketConfig = NodeSocketConfig
-  { nodeSocketPath :: FilePath
-  } deriving (Generic, Show)
-
-instance FromDhall NodeSocketConfig
 
 data PaymentConfig = PaymentConfig
   { pubKeyHash :: Text

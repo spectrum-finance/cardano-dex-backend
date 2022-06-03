@@ -72,7 +72,7 @@ process'' poolActions Logging{..} PoolsResolver{..} Transactions{..} confirmedOr
         poolOutRef = P.TxOutRef txId 0 -- todo: magic num
     ppool = PredictedPool $ OnChainIndexedEntity predictedPool fout (lastConfirmedOutGix confirmedPool)
   _ <- infoM @String "Going to submit tx"
-  _ <- submitTx tx
+  _ <- submitTx (entity confirmedPool) tx
   _ <- infoM ("Going to submit new predicted pool with id:" ++ show poolId)
   sendPredicted ppool
 

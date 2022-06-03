@@ -18,7 +18,6 @@ import qualified Cardano.Api as C
 import           Ledger      (PaymentPubKeyHash(..))
 
 import NetworkAPI.Types
-import NetworkAPI.Node.NodeClient
 import ErgoDex.Amm.PoolActions
 import WalletAPI.TrustStore
 import WalletAPI.Vault
@@ -28,7 +27,8 @@ import SubmitAPI.Service
 import System.Logging.Hlog
 import qualified Ledger as Plutus.V1.Ledger.Crypto
 import Common.Cardano.Interop (fromCardanoPaymentKeyHash)
-import NetworkAPI.NetworkService (mkNetworkService)
+import NetworkAPI.PoolsConnector (mkPoolsConnector)
+import NetworkAPI.Service (mkCardanoNetwork)
 
 wire :: IO ()
 wire = runResourceT $ do
@@ -46,12 +46,11 @@ wire = runResourceT $ do
   let
     epochSlots     = C.CardanoModeParams $ C.EpochSlots 21600
     networkId      = C.Testnet (C.NetworkMagic 1097911063)
-    sockPath       = SocketPath (nodeSocketPath nodeSocketConfig)
-  networkClient  <- mkNodeClient loggingMaker C.AlonzoEra epochSlots networkId sockPath
-  networkService <- mkNetworkService loggingMaker networkClient
+  poolsConnector <- mkPoolsConnector loggingMaker nodeSocketsConfigs epochSlots networkId
+  cardanoNetwork <- mkCardanoNetwork loggingMaker C.AlonzoEra poolsConnector
   let
-    transactions   = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
-    poolAction     = mkPoolActions (PaymentPubKeyHash $ executorPkh)
+    transactions   = mkTransactions cardanoNetwork networkId walletOutputs vault txAssemblyConfig
+    poolAction     = mkPoolActions (PaymentPubKeyHash executorPkh)
   ordersExecutor <- mkOrdersExecutor poolAction loggingMaker poolsResolver transactions
   processor      <- mkProcessor ordersExecutor loggingMaker consumer
   lift $ run processor

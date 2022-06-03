@@ -51,7 +51,6 @@ getOutputs' TrackerServiceConfig{..} logging@Logging{..} TrackerCache{..} explor
   _        <- putMinIndex $ Gix newMinIndex
   pure items
 
-
 getUnspentOutputsRetry
   :: (MonadIO f, MonadMask f)
   => Logging f
