@@ -4,6 +4,7 @@ module Spectrum.Executor.Types
   ( ConcretePoint(..)
   , ConcreteHash(..)
   , toPoint
+  , fromPoint
   ) where
 
 import GHC.Generics ( Generic )
@@ -49,6 +50,9 @@ data ConcretePoint = ConcretePoint
 
 toPoint :: ConcretePoint -> Point Block
 toPoint ConcretePoint{slot, hash=ConcreteHash hash} = BlockPoint{atSlot=slot, withHash=hash}
+
+fromPoint :: Point Block -> ConcretePoint
+fromPoint BlockPoint{atSlot, withHash} = ConcretePoint{slot=atSlot, hash=ConcreteHash withHash}
 
 instance FromDhall SlotNo where
   autoWith _ = D.Decoder{..}

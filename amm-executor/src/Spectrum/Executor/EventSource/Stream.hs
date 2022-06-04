@@ -36,14 +36,21 @@ import Spectrum.Context
 import Spectrum.Executor.Config
   ( EventSourceConfig (EventSourceConfig, startAt) )
 import Spectrum.Executor.Types
-  ( ConcretePoint (ConcretePoint), toPoint, ConcretePoint (slot), ConcreteHash (ConcreteHash) )
+  ( ConcretePoint (ConcretePoint), toPoint, fromPoint, ConcretePoint (slot), ConcreteHash (ConcreteHash) )
 import Spectrum.Executor.EventSource.Persistence.LedgerHistory
-  ( LedgerHistory (LedgerHistory, getLastPoint, putLastPoint), mkRuntimeLedgerHistory )
+  ( LedgerHistory (..), mkRuntimeLedgerHistory )
 import Spectrum.Executor.EventSource.Data.TxEvent
-  ( TxEvent(AppliedTx) )
+  ( TxEvent(AppliedTx, UnappliedTx) )
 import Spectrum.Executor.EventSource.Data.TxContext
 import Spectrum.LedgerSync.Data.LedgerUpdate
-  ( LedgerUpdate(RollForward) )
+  ( LedgerUpdate(RollForward, RollBackward) )
+import Ouroboros.Consensus.Block (Point)
+import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
+import qualified Data.Set as Set
+import Control.Monad.Trans.Control (MonadBaseControl)
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Catch (MonadThrow)
+import Control.Monad (join)
 
 newtype EventSource s m = EventSource
   { upstream :: s m (TxEvent 'LedgerTx)
@@ -76,25 +83,68 @@ upstream'
   -> LedgerHistory m
   -> LedgerSync m
   -> s m (TxEvent 'LedgerTx)
-upstream' Logging{..} persistence LedgerSync{..}
-  = S.repeatM pull >>= processUpdate persistence
+upstream' logging@Logging{..} persistence LedgerSync{..}
+  = S.repeatM pull >>= processUpdate logging persistence
   & S.trace (infoM . show)
 
 processUpdate
-  :: (IsStream s, Monad m)
-  => LedgerHistory m
+  :: forall s m.
+    ( IsStream s
+    , Monad (s m)
+    , MonadIO m
+    , MonadBaseControl IO m
+    , MonadThrow m
+    )
+  => Logging m
+  -> LedgerHistory m
   -> LedgerUpdate Block
   -> s m (TxEvent 'LedgerTx)
 processUpdate
+  _
   LedgerHistory{..}
   (RollForward (BlockAlonzo (ShelleyBlock (Ledger.Block (TPraos.BHeader hBody _) txs) hHash))) =
     let
       txs'  = txSeqTxns txs
       point = ConcretePoint (TPraos.bheaderSlotNo hBody) (ConcreteHash ch)
         where ch = OneEraHash . toShort . CC.hashToBytes . TPraos.unHashHeader . unShelleyHash $ hHash
-    in S.before (putLastPoint point)
+    in S.before (setTip point)
       $ S.fromFoldable txs' & S.map (AppliedTx . fromAlonzoLedgerTx hHash)
-processUpdate _ _ = S.nil
+processUpdate logging lh (RollBackward point) = streamUnappliedTxs logging lh point
+processUpdate Logging{..} _ upd = S.before (errorM $ "Cannot process update " <> show upd) mempty
+
+streamUnappliedTxs
+  :: forall s m.
+    ( IsStream s
+    , Monad (s m)
+    , MonadIO m
+    , MonadBaseControl IO m
+    , MonadThrow m
+    )
+  => Logging m
+  -> LedgerHistory m
+  -> Point Block
+  -> s m (TxEvent 'LedgerTx)
+streamUnappliedTxs Logging{..} LedgerHistory{..} point = join $ S.fromEffect $ do
+  knownPoint <- pointExists $ fromPoint point
+  if knownPoint
+    then infoM $ "Rolling back to point " <> show point
+    else errorM $ "An attempt to roll back to an unknown point " <> show point
+  let
+    rollbackOne :: ConcretePoint -> s m (TxEvent 'LedgerTx)
+    rollbackOne pt = do
+      block <- S.fromEffect $ getBlock pt
+      case block of
+        Just BlockLinks{..} -> do
+          S.fromEffect $ dropBlock pt >> setTip prevPoint
+          let emitTxs = S.fromFoldable (Set.toList txIds <&> UnappliedTx)
+          if toPoint prevPoint == point
+            then emitTxs
+            else emitTxs <> rollbackOne prevPoint
+        Nothing -> mempty
+  tipM <- getTip
+  case tipM of
+    Just tip -> pure $ rollbackOne tip
+    Nothing  -> pure mempty
 
 seekToBeginning
   :: Monad m
@@ -104,7 +154,7 @@ seekToBeginning
   -> ConcretePoint
   -> m ()
 seekToBeginning Logging{..} LedgerHistory{..} LedgerSync{..} pointLowConf = do
-  lastCheckpoint <- getLastPoint
+  lastCheckpoint <- getTip
   let
     confSlot = slot pointLowConf
     pointLow = fromMaybe pointLowConf

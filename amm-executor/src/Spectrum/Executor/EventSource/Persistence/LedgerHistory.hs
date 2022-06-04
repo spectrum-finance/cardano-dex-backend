@@ -19,15 +19,16 @@ import Control.Monad.IO.Class
 import Spectrum.Executor.Types
   ( ConcretePoint )
 import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
-  ( BlockLinks (BlockLinks, blockPoint) )
+  ( BlockLinks )
 import Spectrum.Executor.EventSource.Persistence.Exception
   ( StorageDeserializationFailed(StorageDeserializationFailed) )
 
 data LedgerHistory m = LedgerHistory
-  { putLastPoint :: ConcretePoint -> m ()
-  , getLastPoint :: m (Maybe ConcretePoint)
-  , putBlock     :: BlockLinks -> m ()
+  { setTip :: ConcretePoint -> m ()
+  , getTip :: m (Maybe ConcretePoint)
+  , putBlock     :: ConcretePoint -> BlockLinks -> m ()
   , getBlock     :: ConcretePoint -> m (Maybe BlockLinks)
+  , pointExists  :: ConcretePoint -> m Bool
   , dropBlock    :: ConcretePoint -> m Bool
   }
 
@@ -35,26 +36,33 @@ mkRuntimeLedgerHistory :: MonadIO m => m (LedgerHistory m)
 mkRuntimeLedgerHistory = liftIO $ do
   store <- newMVar mempty
   pure LedgerHistory
-    { putLastPoint = \p -> liftIO $ do
+    { setTip = \p -> liftIO $ do
         s <- readMVar store
-        putMVar store $ Map.insert "k" (encodeStrict p) s
-    , getLastPoint = liftIO $ do
+        putMVar store $ Map.insert lastPointKey (encodeStrict p) s
+    , getTip = liftIO $ do
         s <- readMVar store
-        mapM decode' $ Map.lookup "k" s
-    , putBlock = \blk@BlockLinks{..} -> liftIO $ do
+        mapM decode' $ Map.lookup lastPointKey s
+    , putBlock = \point blk -> liftIO $ do
         s <- readMVar store
-        putMVar store $ Map.insert (encodeStrict blockPoint) (encodeStrict blk) s
+        putMVar store $ Map.insert (encodeStrict point) (encodeStrict blk) s
     , getBlock = \point -> liftIO $ do
         s <- readMVar store
         mapM decode' $ Map.lookup (encodeStrict point) s
+    , pointExists = \point -> liftIO $ do
+        s <- readMVar store
+        pure $ Map.member (encodeStrict point) s
     , dropBlock = \point -> liftIO $ do
         s <- readMVar store
-        let pkey = encodeStrict point
-        blk <- mapM decode' $ Map.lookup pkey s
-        case blk of
-          Just BlockLinks{..} | blockPoint == point -> putMVar store (Map.delete pkey s) $> True
-          _ -> pure False
+        let
+          pkey   = encodeStrict point
+          exists = Map.member pkey s
+        if exists
+          then putMVar store (Map.delete pkey s) $> True
+          else pure False
     }
+
+lastPointKey :: ByteString
+lastPointKey = "lastPoint"
 
 encodeStrict :: ToJSON a => a -> ByteString
 encodeStrict = LBS.toStrict . encode

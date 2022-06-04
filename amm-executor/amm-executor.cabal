@@ -81,6 +81,7 @@ library
                      Spectrum.Executor.EventSource.Data.TxEvent
                      Spectrum.Executor.EventSource.Data.Tx
                      Spectrum.Executor.EventSource.Persistence.LedgerHistory
+                     Spectrum.Executor.EventSource.Persistence.Exception
                      Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
 
     build-depends:  bytestring

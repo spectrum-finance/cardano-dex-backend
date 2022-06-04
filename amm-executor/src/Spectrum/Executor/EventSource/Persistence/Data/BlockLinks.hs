@@ -13,6 +13,6 @@ import Spectrum.Executor.Types
   ( ConcretePoint )
 
 data BlockLinks = BlockLinks
-  { blockPoint :: ConcretePoint
+  { prevPoint  :: ConcretePoint
   , txIds      :: Set.Set TxId
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
