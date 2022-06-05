@@ -22,6 +22,8 @@ import Spectrum.LedgerSync.Config
   ( LedgerSyncConfig )
 import Spectrum.Executor.Types
   ( ConcretePoint )
+import Spectrum.Executor.EventSource.Persistence.Config
+    ( LedgerStoreConfig )
 
 data EventSourceConfig = EventSourceConfig
   { startAt :: !ConcretePoint
@@ -30,6 +32,7 @@ data EventSourceConfig = EventSourceConfig
 data AppConfig = AppConfig
   { ledgerSyncConfig  :: !LedgerSyncConfig
   , eventSourceConfig :: !EventSourceConfig
+  , ledgerStoreConfig :: !LedgerStoreConfig
   , loggingConfig     :: !LoggingConfig
   , nodeConfigPath    :: !FilePath
   } deriving (Generic, FromDhall)

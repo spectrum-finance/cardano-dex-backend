@@ -38,7 +38,7 @@ import Spectrum.Executor.Config
 import Spectrum.Executor.Types
   ( ConcretePoint (ConcretePoint), toPoint, fromPoint, ConcretePoint (slot), ConcreteHash (ConcreteHash) )
 import Spectrum.Executor.EventSource.Persistence.LedgerHistory
-  ( LedgerHistory (..), mkRuntimeLedgerHistory )
+  ( LedgerHistory (..), mkRuntimeLedgerHistory, mkLedgerHistory )
 import Spectrum.Executor.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx, UnappliedTx) )
 import Spectrum.Executor.EventSource.Data.TxContext
@@ -51,6 +51,8 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad (join)
+import Spectrum.Executor.EventSource.Persistence.Config (LedgerStoreConfig)
+import Control.Monad.Trans.Resource (MonadResource)
 
 newtype EventSource s m = EventSource
   { upstream :: s m (TxEvent 'LedgerTx)
@@ -61,18 +63,21 @@ mkEventSource
     ( IsStream s
     , Monad (s m)
     , MonadAsync m
+    , MonadResource m
     , MonadReader env m
     , HasType (MakeLogging m m) env
     , HasType EventSourceConfig env
+    , HasType LedgerStoreConfig env
     )
   => LedgerSync m
   -> m (EventSource s m)
 mkEventSource lsync = do
   mklog@MakeLogging{..}      <- askContext
   EventSourceConfig{startAt} <- askContext
+  lhcong                     <- askContext
 
   logging     <- forComponent "EventSource"
-  persistence <- mkRuntimeLedgerHistory mklog
+  persistence <- mkLedgerHistory mklog lhcong
 
   seekToBeginning logging persistence lsync startAt
   pure $ EventSource $ upstream' logging persistence lsync

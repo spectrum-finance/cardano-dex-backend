@@ -1,10 +1,19 @@
 module Spectrum.Executor.EventSource.Persistence.LedgerHistory
   ( LedgerHistory(..)
+  , mkLedgerHistory
   , mkRuntimeLedgerHistory
   ) where
 
 import RIO
-  ( ByteString, MonadThrow (throwM), ($>), newIORef, readIORef, writeIORef )
+  ( ByteString
+  , MonadThrow (throwM)
+  , ($>)
+  , newIORef
+  , readIORef
+  , writeIORef
+  , (<&>)
+  , isJust
+  )
 
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map as Map
@@ -13,6 +22,13 @@ import Data.Aeson
 
 import Control.Monad.IO.Class
   ( MonadIO (liftIO) )
+import Control.Monad.Trans.Resource
+  ( MonadResource )
+
+import System.Logging.Hlog
+  ( Logging (..), MakeLogging (..) )
+
+import qualified Database.RocksDB as Rocks
 
 import Spectrum.Executor.Types
   ( ConcretePoint )
@@ -20,7 +36,8 @@ import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
   ( BlockLinks )
 import Spectrum.Executor.EventSource.Persistence.Exception
   ( StorageDeserializationFailed(StorageDeserializationFailed) )
-import System.Logging.Hlog (Logging (..), MakeLogging (..))
+import Spectrum.Executor.EventSource.Persistence.Config
+  ( LedgerStoreConfig (..) )
 
 data LedgerHistory m = LedgerHistory
   { setTip      :: ConcretePoint -> m ()
@@ -31,6 +48,35 @@ data LedgerHistory m = LedgerHistory
   , dropBlock   :: ConcretePoint -> m Bool
   }
 
+mkLedgerHistory
+  :: (MonadIO f, MonadResource f, MonadIO m)
+  => MakeLogging f m
+  -> LedgerStoreConfig
+  -> f (LedgerHistory m)
+mkLedgerHistory MakeLogging{..} LedgerStoreConfig{..} = do
+  logging <- forComponent "PoolRepository"
+  db      <- Rocks.open storePath
+              Rocks.defaultOptions
+                { Rocks.createIfMissing = createIfMissing
+                }
+  let
+    readopts = Rocks.defaultReadOptions
+    writeopts = Rocks.defaultWriteOptions
+  pure $ attachLogging logging LedgerHistory
+    { setTip = liftIO . Rocks.put db writeopts lastPointKey . encodeStrict
+    , getTip = liftIO $ Rocks.get db readopts lastPointKey >>= mapM decode'
+    , putBlock = \point blk -> Rocks.put db writeopts (encodeStrict point) (encodeStrict blk)
+    , getBlock = \point -> liftIO $ Rocks.get db readopts (encodeStrict point) >>= mapM decode'
+    , pointExists = \point -> liftIO $ Rocks.get db readopts (encodeStrict point) <&> isJust
+    , dropBlock = \point -> liftIO $ do
+        let pkey = encodeStrict point
+        exists <- Rocks.get db readopts pkey <&> isJust
+        if exists
+          then Rocks.delete db writeopts pkey $> True
+          else pure False
+    }
+
+-- | Runtime-only storage primarily for tests.
 mkRuntimeLedgerHistory :: MonadIO m => MakeLogging m m -> m (LedgerHistory m)
 mkRuntimeLedgerHistory MakeLogging{..} = do
   store   <- liftIO $ newIORef mempty

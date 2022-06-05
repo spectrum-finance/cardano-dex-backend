@@ -14,6 +14,10 @@ in
       , hash = "2ba0e86679ddd0015ee5a4f17c093201a2b5e41ca919152af89333b5c8964319"
       }
     }
+, ledgerStoreConfig =
+    { storePath       = "./data/amm-executor"
+    , createIfMissing = True
+    }
 , nodeConfigPath = "/root/cardano-node/node-conf.json"
 , loggingConfig =
     { rootLogLevel   = LogLevel.Info

@@ -7,7 +7,10 @@ module Spectrum.Executor
   ( runApp
   ) where
 
-import RIO ( ReaderT (runReaderT), MonadReader (ask), MonadIO (liftIO), void )
+import RIO
+  ( ReaderT (runReaderT), MonadReader (ask), MonadIO (liftIO), void )
+import RIO.List
+  ( headMaybe )
 
 import System.Posix.Signals
   ( Handler (..)
@@ -17,17 +20,34 @@ import System.Posix.Signals
   , softwareTermination
   )
 
-import GHC.Generics (Generic)
+import GHC.Generics
+  ( Generic )
 
-import Control.Monad.Class.MonadSTM   ( MonadSTM )
-import Control.Monad.Class.MonadST    ( MonadST )
-import Control.Monad.Class.MonadAsync ( MonadAsync )
-import Control.Monad.Class.MonadFork  ( MonadThread, MonadFork )
-import Control.Monad.Trans.Control    ( MonadBaseControl )
-import Control.Monad.Base             ( MonadBase )
-import Control.Monad.Class.MonadThrow ( MonadThrow, MonadMask, MonadCatch )
-import Control.Monad.Trans.Resource   ( MonadResource )
+import Data.Aeson
+  ( encode )
+import Data.ByteString.Lazy.UTF8
+  ( toString )
+
+import Control.Monad.Class.MonadSTM
+  ( MonadSTM )
+import Control.Monad.Class.MonadST
+  ( MonadST )
+import Control.Monad.Class.MonadAsync
+  ( MonadAsync )
+import Control.Monad.Class.MonadFork
+  ( MonadThread, MonadFork )
+import Control.Monad.Trans.Control
+  ( MonadBaseControl )
+import Control.Monad.Base
+  ( MonadBase )
+import Control.Monad.Class.MonadThrow
+  ( MonadThrow, MonadMask, MonadCatch )
+import Control.Monad.Trans.Resource
+  ( MonadResource )
+import Control.Monad.Trans.Class
+  ( MonadTrans(lift) )
 import qualified Control.Monad.Catch as MC
+
 
 import Control.Tracer
   ( stdoutTracer, Contravariant (contramap) )
@@ -36,21 +56,25 @@ import System.Logging.Hlog
 
 import Streamly.Prelude as S (drain)
 
-import Spectrum.LedgerSync.Config ( NetworkParameters, LedgerSyncConfig, parseNetworkParameters )
-import Spectrum.LedgerSync (mkLedgerSync)
-import Cardano.Network.Protocol.NodeToClient.Trace (encodeTraceClient)
-import Data.Aeson (encode)
-import Data.ByteString.Lazy.UTF8 (toString)
-import Spectrum.Executor.EventSource.Stream (mkEventSource, EventSource (upstream))
-import Spectrum.Executor.Config (AppConfig(..), loadAppConfig, EventSourceConfig)
-import RIO.List (headMaybe)
-import Control.Monad.Trans.Class (MonadTrans(lift))
+import Spectrum.LedgerSync.Config
+  ( NetworkParameters, LedgerSyncConfig, parseNetworkParameters )
+import Spectrum.LedgerSync
+  ( mkLedgerSync )
+import Cardano.Network.Protocol.NodeToClient.Trace
+  ( encodeTraceClient )
+import Spectrum.Executor.EventSource.Stream
+  ( mkEventSource, EventSource (upstream) )
+import Spectrum.Executor.Config
+  ( AppConfig(..), loadAppConfig, EventSourceConfig )
+import Spectrum.Executor.EventSource.Persistence.Config
+  ( LedgerStoreConfig )
 
 data Env m = Env
-  { ledgerSyncConfig  :: !LedgerSyncConfig
-  , eventSourceConfig :: !EventSourceConfig
-  , networkParams     :: !NetworkParameters
-  , mkLogging         :: !(MakeLogging m m)
+  { ledgerSyncConfig   :: !LedgerSyncConfig
+  , eventSourceConfig  :: !EventSourceConfig
+  , lederHistoryConfig :: !LedgerStoreConfig
+  , networkParams      :: !NetworkParameters
+  , mkLogging          :: !(MakeLogging m m)
   } deriving stock (Generic)
 
 newtype App a = App
@@ -73,7 +97,7 @@ runApp args = do
   mkLogging     <- makeLogging loggingConfig
   let
     env =
-      Env ledgerSyncConfig eventSourceConfig nparams
+      Env ledgerSyncConfig eventSourceConfig ledgerStoreConfig nparams
         $ translateMakeLogging (App . lift) mkLogging
   runContext env wireApp
 
