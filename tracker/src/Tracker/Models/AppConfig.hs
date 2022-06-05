@@ -33,7 +33,6 @@ data TrackerStoreSettings = TrackerStoreSettings
 
 data TrackerServiceConfig = TrackerServiceConfig
   { limitOffset :: Natural
-  , maxAttempts :: Natural
   } deriving (Generic)
 
 instance FromDhall TrackerServiceConfig

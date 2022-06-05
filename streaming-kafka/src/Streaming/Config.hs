@@ -17,6 +17,7 @@ data KafkaConsumerConfig = KafkaConsumerConfig
   , consumerPollRate  :: Natural
   , consumerBatchSize :: Natural
   , consumerTimeout   :: Natural
+  , maxPollIntervalMs :: Natural
   } deriving (Generic)
 
 instance FromDhall KafkaConsumerConfig

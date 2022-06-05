@@ -3,9 +3,7 @@ module Executor.Wirings.WiringApp
   ) where
 
 import Executor.Services.ConfigReader
-import Common.Cardano.Interop
 import Executor.Models.Config
-import qualified Debug.Trace as D
 import Executor.Programs.Processor
 import Executor.Services.OrdersExecutor
 import Executor.Services.PoolsResolver
@@ -20,16 +18,17 @@ import qualified Cardano.Api as C
 import           Ledger      (PaymentPubKeyHash(..))
 
 import NetworkAPI.Types
-import NetworkAPI.Node.Service
+import NetworkAPI.Node.NodeClient
 import ErgoDex.Amm.PoolActions
 import WalletAPI.TrustStore
 import WalletAPI.Vault
 import WalletAPI.Utxos
-import NetworkAPI.Service
 import Explorer.Service
-import SubmitAPI.Config
 import SubmitAPI.Service
 import System.Logging.Hlog
+import qualified Ledger as Plutus.V1.Ledger.Crypto
+import Common.Cardano.Interop (fromCardanoPaymentKeyHash)
+import NetworkAPI.NetworkService (mkNetworkService)
 
 wire :: IO ()
 wire = runResourceT $ do
@@ -42,14 +41,16 @@ wire = runResourceT $ do
     explorer       = mkExplorer explorerConfig
     trustStore     = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey secretFile
     vault          = mkVault trustStore keyPass
-  walletOutputs <- lift $ mkWalletOutputs' explorer vault
+  walletOutputs <- mkWalletOutputs' lift loggingMaker explorer vault
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   let
     epochSlots     = C.CardanoModeParams $ C.EpochSlots 21600
     networkId      = C.Testnet (C.NetworkMagic 1097911063)
     sockPath       = SocketPath (nodeSocketPath nodeSocketConfig)
-    network        = mkNetwork C.AlonzoEra epochSlots networkId sockPath
-    transactions   = mkTransactions network networkId walletOutputs vault txAssemblyConfig
+  networkClient  <- mkNodeClient loggingMaker C.AlonzoEra epochSlots networkId sockPath
+  networkService <- mkNetworkService loggingMaker networkClient
+  let
+    transactions   = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
     poolAction     = mkPoolActions (PaymentPubKeyHash $ executorPkh)
   ordersExecutor <- mkOrdersExecutor poolAction loggingMaker poolsResolver transactions
   processor      <- mkProcessor ordersExecutor loggingMaker consumer
