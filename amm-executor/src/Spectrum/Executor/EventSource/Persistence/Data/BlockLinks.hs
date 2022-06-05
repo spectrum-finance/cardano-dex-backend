@@ -3,7 +3,6 @@ module Spectrum.Executor.EventSource.Persistence.Data.BlockLinks where
 import GHC.Generics
   ( Generic )
 
-import qualified Data.Set as Set
 import Data.Aeson
   ( ToJSON, FromJSON )
 
@@ -14,5 +13,5 @@ import Spectrum.Executor.Types
 
 data BlockLinks = BlockLinks
   { prevPoint  :: ConcretePoint
-  , txIds      :: Set.Set TxId
+  , txIds      :: [TxId]
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)

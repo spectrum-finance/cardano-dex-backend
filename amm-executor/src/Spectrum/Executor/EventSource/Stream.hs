@@ -38,7 +38,7 @@ import Spectrum.Executor.Config
 import Spectrum.Executor.Types
   ( ConcretePoint (ConcretePoint), toPoint, fromPoint, ConcretePoint (slot), ConcreteHash (ConcreteHash) )
 import Spectrum.Executor.EventSource.Persistence.LedgerHistory
-  ( LedgerHistory (..), mkRuntimeLedgerHistory, mkLedgerHistory )
+  ( LedgerHistory (..), mkLedgerHistory )
 import Spectrum.Executor.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx, UnappliedTx) )
 import Spectrum.Executor.EventSource.Data.TxContext
@@ -138,7 +138,7 @@ streamUnappliedTxs Logging{..} LedgerHistory{..} point = join $ S.fromEffect $ d
       case block of
         Just BlockLinks{..} -> do
           S.fromEffect $ dropBlock pt >> setTip prevPoint
-          let emitTxs = S.fromFoldable (Set.toList txIds <&> UnappliedTx)
+          let emitTxs = S.fromFoldable (Prelude.reverse txIds <&> UnappliedTx) -- unapply txs in reverse order
           if toPoint prevPoint == point
             then emitTxs
             else emitTxs <> rollbackOne prevPoint
