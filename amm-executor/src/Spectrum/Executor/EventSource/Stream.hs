@@ -3,7 +3,7 @@ module Spectrum.Executor.EventSource.Stream
   , mkEventSource
   ) where
 
-import RIO ( (&), MonadReader, (<&>), fromMaybe )
+import RIO ( (&), MonadReader, (<&>), fromMaybe, ($>) )
 
 import Data.ByteString.Short (toShort)
 
@@ -68,11 +68,11 @@ mkEventSource
   => LedgerSync m
   -> m (EventSource s m)
 mkEventSource lsync = do
-  MakeLogging{..}            <- askContext
+  mklog@MakeLogging{..}      <- askContext
   EventSourceConfig{startAt} <- askContext
 
   logging     <- forComponent "EventSource"
-  persistence <- mkRuntimeLedgerHistory
+  persistence <- mkRuntimeLedgerHistory mklog
 
   seekToBeginning logging persistence lsync startAt
   pure $ EventSource $ upstream' logging persistence lsync
@@ -126,9 +126,6 @@ streamUnappliedTxs
   -> s m (TxEvent 'LedgerTx)
 streamUnappliedTxs Logging{..} LedgerHistory{..} point = join $ S.fromEffect $ do
   knownPoint <- pointExists $ fromPoint point
-  if knownPoint
-    then infoM $ "Rolling back to point " <> show point
-    else errorM $ "An attempt to roll back to an unknown point " <> show point
   let
     rollbackOne :: ConcretePoint -> s m (TxEvent 'LedgerTx)
     rollbackOne pt = do
@@ -143,7 +140,10 @@ streamUnappliedTxs Logging{..} LedgerHistory{..} point = join $ S.fromEffect $ d
         Nothing -> mempty
   tipM <- getTip
   case tipM of
-    Just tip -> pure $ rollbackOne tip
+    Just tip ->
+      if knownPoint
+        then infoM ("Rolling back to point " <> show point) $> rollbackOne tip
+        else errorM ("An attempt to roll back to an unknown point " <> show point) $> mempty
     Nothing  -> pure mempty
 
 seekToBeginning
