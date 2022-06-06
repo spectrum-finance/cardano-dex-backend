@@ -58,7 +58,7 @@ import Spectrum.Executor.EventSource.Persistence.LedgerHistory
 import Spectrum.Executor.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx, UnappliedTx) )
 import Spectrum.Executor.EventSource.Data.TxContext
-  ( TxCtx(LedgerTx) )
+  ( TxCtx(LedgerCtx) )
 import Spectrum.LedgerSync.Data.LedgerUpdate
   ( LedgerUpdate(RollForward, RollBackward) )
 import Ouroboros.Consensus.Block
@@ -68,8 +68,8 @@ import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 
-newtype EventSource s m = EventSource
-  { upstream :: s m (TxEvent 'LedgerTx)
+newtype EventSource s m ctx = EventSource
+  { upstream :: s m (TxEvent ctx)
   }
 
 mkEventSource
@@ -84,7 +84,7 @@ mkEventSource
     , HasType LedgerStoreConfig env
     )
   => LedgerSync m
-  -> m (EventSource s m)
+  -> m (EventSource s m 'LedgerCtx)
 mkEventSource lsync = do
   mklog@MakeLogging{..}      <- askContext
   EventSourceConfig{startAt} <- askContext
@@ -101,7 +101,7 @@ upstream'
   => Logging m
   -> LedgerHistory m
   -> LedgerSync m
-  -> s m (TxEvent 'LedgerTx)
+  -> s m (TxEvent 'LedgerCtx)
 upstream' logging@Logging{..} persistence LedgerSync{..}
   = S.repeatM pull >>= processUpdate logging persistence
   & S.trace (infoM . show)
@@ -117,7 +117,7 @@ processUpdate
   => Logging m
   -> LedgerHistory m
   -> LedgerUpdate Block
-  -> s m (TxEvent 'LedgerTx)
+  -> s m (TxEvent 'LedgerCtx)
 processUpdate
   _
   LedgerHistory{..}
@@ -142,11 +142,11 @@ streamUnappliedTxs
   => Logging m
   -> LedgerHistory m
   -> Point Block
-  -> s m (TxEvent 'LedgerTx)
+  -> s m (TxEvent 'LedgerCtx)
 streamUnappliedTxs Logging{..} LedgerHistory{..} point = join $ S.fromEffect $ do
   knownPoint <- pointExists $ fromPoint point
   let
-    rollbackOne :: ConcretePoint -> s m (TxEvent 'LedgerTx)
+    rollbackOne :: ConcretePoint -> s m (TxEvent 'LedgerCtx)
     rollbackOne pt = do
       block <- S.fromEffect $ getBlock pt
       case block of

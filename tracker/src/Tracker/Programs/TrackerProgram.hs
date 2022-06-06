@@ -12,7 +12,6 @@ import ErgoDex.Class
 import System.Logging.Hlog
 import ErgoDex.Amm.Orders
 import ErgoDex.Amm.Pool
-import Debug.Trace as Trace
 import ErgoDex.State
 
 import Explorer.Models as Explorer

@@ -2,5 +2,5 @@ module Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(..)
   ) where
 
-data TxCtx = LedgerTx | MempoolTx
+data TxCtx = LedgerCtx | MempoolCtx
   deriving (Eq, Show)

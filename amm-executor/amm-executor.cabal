@@ -76,6 +76,9 @@ library
     exposed-modules: Spectrum.Executor
                      Spectrum.Executor.Config
                      Spectrum.Executor.Types
+                     Spectrum.Executor.Topic
+                     Spectrum.Executor.Data.OrderState
+                     Spectrum.Executor.Data.PoolState
                      Spectrum.Executor.EventSource.Stream
                      Spectrum.Executor.EventSource.Data.TxContext
                      Spectrum.Executor.EventSource.Data.TxEvent
@@ -84,6 +87,12 @@ library
                      Spectrum.Executor.EventSource.Persistence.Config
                      Spectrum.Executor.EventSource.Persistence.LedgerHistory
                      Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
+                     Spectrum.Executor.EventSink.Pipe
+                     Spectrum.Executor.EventSink.Types
+                     Spectrum.Executor.EventSink.Handlers.Pools
+                     Spectrum.Executor.EventSink.Handlers.Orders
+                     Spectrum.Executor.EventSink.Data.OrderEvent
+                     Spectrum.Executor.EventSink.Data.PoolEvent
 
     build-depends:  bytestring
                   , aeson
