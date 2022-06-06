@@ -7,6 +7,17 @@ import RIO ( (&), MonadReader, (<&>), fromMaybe, ($>) )
 
 import Data.ByteString.Short (toShort)
 
+import Control.Monad.Trans.Control
+  ( MonadBaseControl )
+import Control.Monad.IO.Class
+  ( MonadIO )
+import Control.Monad.Catch
+  ( MonadThrow )
+import Control.Monad
+  ( join )
+import Control.Monad.Trans.Resource
+  ( MonadResource )
+
 import Streamly.Prelude as S
 
 import System.Logging.Hlog
@@ -44,15 +55,12 @@ import Spectrum.Executor.EventSource.Data.TxEvent
 import Spectrum.Executor.EventSource.Data.TxContext
 import Spectrum.LedgerSync.Data.LedgerUpdate
   ( LedgerUpdate(RollForward, RollBackward) )
-import Ouroboros.Consensus.Block (Point)
+import Ouroboros.Consensus.Block
+  ( Point )
 import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
-import qualified Data.Set as Set
-import Control.Monad.Trans.Control (MonadBaseControl)
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad (join)
-import Spectrum.Executor.EventSource.Persistence.Config (LedgerStoreConfig)
-import Control.Monad.Trans.Resource (MonadResource)
+  ( BlockLinks(BlockLinks, txIds, prevPoint) )
+import Spectrum.Executor.EventSource.Persistence.Config
+  ( LedgerStoreConfig )
 
 newtype EventSource s m = EventSource
   { upstream :: s m (TxEvent 'LedgerTx)
@@ -149,7 +157,7 @@ streamUnappliedTxs Logging{..} LedgerHistory{..} point = join $ S.fromEffect $ d
       if knownPoint
         then infoM ("Rolling back to point " <> show point) $> rollbackOne tip
         else errorM ("An attempt to roll back to an unknown point " <> show point) $> mempty
-    Nothing  -> pure mempty
+    Nothing -> pure mempty
 
 seekToBeginning
   :: Monad m
