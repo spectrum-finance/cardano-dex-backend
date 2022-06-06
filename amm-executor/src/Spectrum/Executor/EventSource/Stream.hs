@@ -47,12 +47,18 @@ import Spectrum.Context
 import Spectrum.Executor.Config
   ( EventSourceConfig (EventSourceConfig, startAt) )
 import Spectrum.Executor.Types
-  ( ConcretePoint (ConcretePoint), toPoint, fromPoint, ConcretePoint (slot), ConcreteHash (ConcreteHash) )
+  ( ConcretePoint (ConcretePoint)
+  , toPoint
+  , fromPoint
+  , ConcretePoint (slot)
+  , ConcreteHash (ConcreteHash)
+  )
 import Spectrum.Executor.EventSource.Persistence.LedgerHistory
   ( LedgerHistory (..), mkLedgerHistory )
 import Spectrum.Executor.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx, UnappliedTx) )
 import Spectrum.Executor.EventSource.Data.TxContext
+  ( TxCtx(LedgerTx) )
 import Spectrum.LedgerSync.Data.LedgerUpdate
   ( LedgerUpdate(RollForward, RollBackward) )
 import Ouroboros.Consensus.Block
