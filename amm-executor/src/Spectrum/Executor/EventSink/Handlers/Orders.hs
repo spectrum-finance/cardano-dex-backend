@@ -49,4 +49,4 @@ parseOrder out =
     (Just (OnChain _ swap'), _, _)    -> Just . OnChain out $ AnyOrder (swapPoolId swap') (SwapAction swap')
     (_, Just (OnChain _ deposit'), _) -> Just . OnChain out $ AnyOrder (depositPoolId deposit') (DepositAction deposit')
     (_, _, Just (OnChain _ redeem'))  -> Just . OnChain out $ AnyOrder (redeemPoolId redeem') (RedeemAction redeem')
-    _                     -> Nothing
+    _                                 -> Nothing

@@ -1,4 +1,4 @@
-module Spectrum.Executor.EventSource.Persistence.Exception
+module Spectrum.Common.Persistence.Exception
   ( StorageDeserializationFailed(..)
   ) where
 

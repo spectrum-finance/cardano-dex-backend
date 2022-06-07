@@ -20,7 +20,7 @@ import qualified Data.Text as T
 
 import Spectrum.LedgerSync.Config
   ( LedgerSyncConfig )
-import Spectrum.Executor.Types
+import Spectrum.Executor.EventSource.Types
   ( ConcretePoint )
 import Spectrum.Executor.EventSource.Persistence.Config
     ( LedgerStoreConfig )

@@ -8,7 +8,7 @@ import Data.Aeson
 
 import Ledger
   ( TxId )
-import Spectrum.Executor.Types
+import Spectrum.Executor.EventSource.Types
   ( ConcretePoint )
 
 data BlockLinks = BlockLinks

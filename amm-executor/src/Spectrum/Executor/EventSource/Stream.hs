@@ -46,7 +46,7 @@ import Spectrum.Context
   ( HasType, askContext )
 import Spectrum.Executor.Config
   ( EventSourceConfig (EventSourceConfig, startAt) )
-import Spectrum.Executor.Types
+import Spectrum.Executor.EventSource.Types
   ( ConcretePoint (ConcretePoint)
   , toPoint
   , fromPoint

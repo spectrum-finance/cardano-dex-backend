@@ -1,6 +1,6 @@
 {-# LANGUAGE DerivingVia #-}
 
-module Spectrum.Executor.Types
+module Spectrum.Executor.EventSource.Types
   ( ConcretePoint(..)
   , ConcreteHash(..)
   , toPoint
