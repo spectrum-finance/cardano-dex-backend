@@ -45,12 +45,12 @@ data LedgerHistory m = LedgerHistory
   }
 
 mkLedgerHistory
-  :: (MonadIO f, MonadIO m, MonadThrow m)
+  :: (MonadIO f, MonadResource f, MonadIO m, MonadThrow m)
   => MakeLogging f m
   -> LedgerStoreConfig
-  -> ResourceT f (LedgerHistory m)
+  -> f (LedgerHistory m)
 mkLedgerHistory MakeLogging{..} LedgerStoreConfig{..} = do
-  logging <- lift $ forComponent "PoolRepository"
+  logging <- forComponent "PoolRepository"
   (_, db) <- Rocks.openBracket storePath
               Rocks.defaultOptions
                 { Rocks.createIfMissing = createIfMissing

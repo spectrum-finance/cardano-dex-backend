@@ -69,21 +69,22 @@ import Spectrum.Executor.Config
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 
-data Env m = Env
+data Env r m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
   , eventSourceConfig  :: !EventSourceConfig
   , lederHistoryConfig :: !LedgerStoreConfig
   , networkParams      :: !NetworkParameters
-  , mkLogging          :: !(MakeLogging m m)
+  , mkLogging          :: !(MakeLogging r m)
+  , mkLogging'         :: !(MakeLogging m m)
   } deriving stock (Generic)
 
-type Wire a = ResourceT IO a
+type Wire = ResourceT App 
 
 newtype App a = App
-  { unApp :: ReaderT (Env App) IO a
+  { unApp :: ReaderT (Env Wire App) IO a
   } deriving newtype
     ( Functor, Applicative, Monad
-    , MonadReader (Env App)
+    , MonadReader (Env Wire App)
     , MonadIO
     , MonadSTM, MonadST
     , MonadAsync, MonadThread, MonadFork
@@ -99,10 +100,11 @@ runApp args = do
   let
     env =
       Env ledgerSyncConfig eventSourceConfig ledgerStoreConfig nparams
-        $ translateMakeLogging (App . lift) mkLogging
+        (translateMakeLogging (lift . App . lift) mkLogging)
+        (translateMakeLogging (App . lift) mkLogging)
   runContext env (runResourceT wireApp)
 
-wireApp :: ResourceT App ()
+wireApp :: Wire ()
 wireApp = lift interceptSigTerm >> do
   env <- lift ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
@@ -110,7 +112,7 @@ wireApp = lift interceptSigTerm >> do
   ds    <- mkEventSource lsync
   lift $ S.drain $ upstream ds
 
-runContext :: Env App -> App a -> IO a
+runContext :: Env Wire App -> App a -> IO a
 runContext env app = runReaderT (unApp app) env
 
 interceptSigTerm :: App ()

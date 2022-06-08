@@ -3,9 +3,11 @@ module Spectrum.Executor.EventSource.Stream
   , mkEventSource
   ) where
 
-import RIO ( (&), MonadReader, (<&>), fromMaybe, ($>), MonadTrans (lift) )
+import RIO
+  ( (&), MonadReader, (<&>), fromMaybe, ($>) )
 
-import Data.ByteString.Short (toShort)
+import Data.ByteString.Short
+  ( toShort )
 
 import Control.Monad.Trans.Control
   ( MonadBaseControl )
@@ -16,7 +18,7 @@ import Control.Monad.Catch
 import Control.Monad
   ( join )
 import Control.Monad.Trans.Resource
-  ( MonadResource, ResourceT )
+  ( MonadResource )
 
 import Streamly.Prelude as S
 
@@ -67,32 +69,37 @@ import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
   ( BlockLinks(BlockLinks, txIds, prevPoint) )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
+import Spectrum.HigherKind
+  ( LiftK (liftK) )
 
 newtype EventSource s m ctx = EventSource
   { upstream :: s m (TxEvent ctx)
   }
 
 mkEventSource
-  :: forall m s env.
-    ( IsStream s
+  :: forall f m s env.
+    ( Monad f
+    , MonadResource f
+    , LiftK m f
+    , IsStream s
     , Monad (s m)
     , MonadAsync m
-    , MonadReader env m
-    , HasType (MakeLogging m m) env
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
     , HasType EventSourceConfig env
     , HasType LedgerStoreConfig env
     )
   => LedgerSync m
-  -> ResourceT m (EventSource s m 'LedgerCtx)
+  -> f (EventSource s m 'LedgerCtx)
 mkEventSource lsync = do
-  mklog@MakeLogging{..}      <- lift askContext
-  EventSourceConfig{startAt} <- lift askContext
-  lhcong                     <- lift askContext
+  mklog@MakeLogging{..}      <- askContext
+  EventSourceConfig{startAt} <- askContext
+  lhcong                     <- askContext
 
-  logging     <- lift $ forComponent "EventSource"
+  logging     <- forComponent "EventSource"
   persistence <- mkLedgerHistory mklog lhcong
 
-  lift $ seekToBeginning logging persistence lsync startAt
+  liftK $ seekToBeginning logging persistence lsync startAt
   pure $ EventSource $ upstream' logging persistence lsync
 
 upstream'
