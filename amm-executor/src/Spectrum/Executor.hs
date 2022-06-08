@@ -43,7 +43,7 @@ import Control.Monad.Base
 import Control.Monad.Class.MonadThrow
   ( MonadThrow, MonadMask, MonadCatch )
 import Control.Monad.Trans.Resource
-  ( MonadResource )
+  ( MonadResource, ResourceT, runResourceT, MonadUnliftIO )
 import Control.Monad.Trans.Class
   ( MonadTrans(lift) )
 import qualified Control.Monad.Catch as MC
@@ -77,17 +77,18 @@ data Env m = Env
   , mkLogging          :: !(MakeLogging m m)
   } deriving stock (Generic)
 
+type Wire a = ResourceT IO a
+
 newtype App a = App
   { unApp :: ReaderT (Env App) IO a
-  } deriving anyclass MonadResource
-    deriving newtype
+  } deriving newtype
     ( Functor, Applicative, Monad
     , MonadReader (Env App)
     , MonadIO
     , MonadSTM, MonadST
     , MonadAsync, MonadThread, MonadFork
     , MonadThrow, MC.MonadThrow, MonadCatch, MonadMask
-    , MonadBase IO, MonadBaseControl IO
+    , MonadBase IO, MonadBaseControl IO, MonadUnliftIO
     )
 
 runApp :: [String] -> IO ()
@@ -99,15 +100,15 @@ runApp args = do
     env =
       Env ledgerSyncConfig eventSourceConfig ledgerStoreConfig nparams
         $ translateMakeLogging (App . lift) mkLogging
-  runContext env wireApp
+  runContext env (runResourceT wireApp)
 
-wireApp :: App ()
-wireApp = interceptSigTerm >> do
-  env <- ask
+wireApp :: ResourceT App ()
+wireApp = lift interceptSigTerm >> do
+  env <- lift ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
-  lsync <- mkLedgerSync (runContext env) tr
+  lsync <- lift $ mkLedgerSync (runContext env) tr
   ds    <- mkEventSource lsync
-  S.drain $ upstream ds
+  lift $ S.drain $ upstream ds
 
 runContext :: Env App -> App a -> IO a
 runContext env app = runReaderT (unApp app) env

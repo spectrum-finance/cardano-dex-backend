@@ -11,15 +11,15 @@ import RIO
   , readIORef
   , writeIORef
   , (<&>)
-  , isJust
+  , isJust, MonadTrans (lift)
   )
 
 import qualified Data.Map as Map
 
 import Control.Monad.IO.Class
-  ( MonadIO (liftIO) )
+  ( MonadIO )
 import Control.Monad.Trans.Resource
-  ( MonadResource )
+  ( MonadResource, ResourceT )
 
 import System.Logging.Hlog
   ( Logging (..), MakeLogging (..) )
@@ -33,6 +33,7 @@ import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig (..) )
 import Spectrum.Common.Persistence.Serialization (serialize, deserializeM)
+import Control.Monad.Catch (MonadThrow)
 
 data LedgerHistory m = LedgerHistory
   { setTip      :: ConcretePoint -> m ()
@@ -44,13 +45,13 @@ data LedgerHistory m = LedgerHistory
   }
 
 mkLedgerHistory
-  :: (MonadIO f, MonadResource f, MonadIO m)
+  :: (MonadIO f, MonadIO m, MonadThrow m)
   => MakeLogging f m
   -> LedgerStoreConfig
-  -> f (LedgerHistory m)
+  -> ResourceT f (LedgerHistory m)
 mkLedgerHistory MakeLogging{..} LedgerStoreConfig{..} = do
-  logging <- forComponent "PoolRepository"
-  db      <- Rocks.open storePath
+  logging <- lift $ forComponent "PoolRepository"
+  (_, db) <- Rocks.openBracket storePath
               Rocks.defaultOptions
                 { Rocks.createIfMissing = createIfMissing
                 }
@@ -58,12 +59,12 @@ mkLedgerHistory MakeLogging{..} LedgerStoreConfig{..} = do
     readopts  = Rocks.defaultReadOptions
     writeopts = Rocks.defaultWriteOptions
   pure $ attachLogging logging LedgerHistory
-    { setTip = liftIO . Rocks.put db writeopts lastPointKey . serialize
-    , getTip = liftIO $ Rocks.get db readopts lastPointKey >>= mapM deserializeM
+    { setTip = Rocks.put db writeopts lastPointKey . serialize
+    , getTip = Rocks.get db readopts lastPointKey >>= mapM deserializeM
     , putBlock = \point blk -> Rocks.put db writeopts (serialize point) (serialize blk)
-    , getBlock = \point -> liftIO $ Rocks.get db readopts (serialize point) >>= mapM deserializeM
-    , pointExists = \point -> liftIO $ Rocks.get db readopts (serialize point) <&> isJust
-    , dropBlock = \point -> liftIO $ do
+    , getBlock = \point -> Rocks.get db readopts (serialize point) >>= mapM deserializeM
+    , pointExists = \point -> Rocks.get db readopts (serialize point) <&> isJust
+    , dropBlock = \point -> do
         let pkey = serialize point
         exists <- Rocks.get db readopts pkey <&> isJust
         if exists
@@ -72,27 +73,27 @@ mkLedgerHistory MakeLogging{..} LedgerStoreConfig{..} = do
     }
 
 -- | Runtime-only storage primarily for tests.
-mkRuntimeLedgerHistory :: MonadIO m => MakeLogging m m -> m (LedgerHistory m)
+mkRuntimeLedgerHistory :: (MonadIO m, MonadThrow m) => MakeLogging m m -> m (LedgerHistory m)
 mkRuntimeLedgerHistory MakeLogging{..} = do
-  store   <- liftIO $ newIORef mempty
+  store   <- newIORef mempty
   logging <- forComponent "LedgerHistory"
   pure $ attachLogging logging LedgerHistory
-    { setTip = \p -> liftIO $ do
+    { setTip = \p -> do
         s <- readIORef store
         writeIORef store $ Map.insert lastPointKey (serialize p) s
-    , getTip = liftIO $ do
+    , getTip = do
         s <- readIORef store
         mapM deserializeM $ Map.lookup lastPointKey s
-    , putBlock = \point blk -> liftIO $ do
+    , putBlock = \point blk -> do
         s <- readIORef store
         writeIORef store $ Map.insert (serialize point) (serialize blk) s
-    , getBlock = \point -> liftIO $ do
+    , getBlock = \point -> do
         s <- readIORef store
         mapM deserializeM $ Map.lookup (serialize point) s
-    , pointExists = \point -> liftIO $ do
+    , pointExists = \point -> do
         s <- readIORef store
         pure $ Map.member (serialize point) s
-    , dropBlock = \point -> liftIO $ do
+    , dropBlock = \point -> do
         s <- readIORef store
         let
           pkey   = serialize point

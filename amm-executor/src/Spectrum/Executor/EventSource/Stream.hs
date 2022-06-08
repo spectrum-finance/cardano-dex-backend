@@ -3,7 +3,7 @@ module Spectrum.Executor.EventSource.Stream
   , mkEventSource
   ) where
 
-import RIO ( (&), MonadReader, (<&>), fromMaybe, ($>) )
+import RIO ( (&), MonadReader, (<&>), fromMaybe, ($>), MonadTrans (lift) )
 
 import Data.ByteString.Short (toShort)
 
@@ -16,7 +16,7 @@ import Control.Monad.Catch
 import Control.Monad
   ( join )
 import Control.Monad.Trans.Resource
-  ( MonadResource )
+  ( MonadResource, ResourceT )
 
 import Streamly.Prelude as S
 
@@ -77,23 +77,22 @@ mkEventSource
     ( IsStream s
     , Monad (s m)
     , MonadAsync m
-    , MonadResource m
     , MonadReader env m
     , HasType (MakeLogging m m) env
     , HasType EventSourceConfig env
     , HasType LedgerStoreConfig env
     )
   => LedgerSync m
-  -> m (EventSource s m 'LedgerCtx)
+  -> ResourceT m (EventSource s m 'LedgerCtx)
 mkEventSource lsync = do
-  mklog@MakeLogging{..}      <- askContext
-  EventSourceConfig{startAt} <- askContext
-  lhcong                     <- askContext
+  mklog@MakeLogging{..}      <- lift askContext
+  EventSourceConfig{startAt} <- lift askContext
+  lhcong                     <- lift askContext
 
-  logging     <- forComponent "EventSource"
+  logging     <- lift $ forComponent "EventSource"
   persistence <- mkLedgerHistory mklog lhcong
 
-  seekToBeginning logging persistence lsync startAt
+  lift $ seekToBeginning logging persistence lsync startAt
   pure $ EventSource $ upstream' logging persistence lsync
 
 upstream'
