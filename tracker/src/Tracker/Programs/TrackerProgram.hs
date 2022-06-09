@@ -73,6 +73,7 @@ process TrackerService{..} Logging{..} orderProd poolProd = do
 
     confirmedPoolEvents = mkPoolEvents $ parseOnChainEntity utxos
   _ <- infoM ("confirmedPoolEvents in batch: "  ++ (show (length confirmedPoolEvents)))
+  _ <- infoM ("confirmedPoolEvents in batch: "  ++ (show (confirmedPoolEvents)))
   _ <- infoM ("confirmedOrderEvents in batch: " ++ (show (length confirmedOrderEvents)))
   unless (null confirmedOrderEvents) (produce orderProd (S.fromList confirmedOrderEvents))
   unless (null confirmedPoolEvents) (produce poolProd (S.fromList confirmedPoolEvents))

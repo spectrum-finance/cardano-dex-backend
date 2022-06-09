@@ -48,7 +48,7 @@ getOutputs' TrackerServiceConfig{..} logging@Logging{..} TrackerCache{..} explor
   let
     newMinIndex = if null items then unGix minIndex else (unGix. globalIndex . last $ items) + 1
   _        <- infoM $ "Going to put new Min index is " ++ show newMinIndex
-  _        <- putMinIndex $ Gix newMinIndex
+  _        <- putMinIndex minIndex
   pure items
 
 getUnspentOutputsRetry
