@@ -48,8 +48,8 @@ wire = runResourceT $ do
     networkId      = C.Testnet (C.NetworkMagic 1097911063)
   poolsConnector <- mkPoolsConnector loggingMaker nodeSocketsConfigs epochSlots networkId
   cardanoNetwork <- mkCardanoNetwork loggingMaker C.AlonzoEra poolsConnector
+  transactions   <- mkTransactions loggingMaker cardanoNetwork networkId walletOutputs vault txAssemblyConfig
   let
-    transactions   = mkTransactions cardanoNetwork networkId walletOutputs vault txAssemblyConfig
     poolAction     = mkPoolActions (PaymentPubKeyHash executorPkh)
   ordersExecutor <- mkOrdersExecutor poolAction loggingMaker poolsResolver transactions
   processor      <- mkProcessor ordersExecutor loggingMaker consumer
