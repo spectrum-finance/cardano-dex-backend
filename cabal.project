@@ -289,7 +289,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 02ff7f8fad61402899a85e7725cee668fe4a828f
+  tag: 68a7d24729017f27bd09872bacb5c5ca85c84ba9
   subdir:
     cardano-tx
     ergo-hs-common
