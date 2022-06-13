@@ -43,7 +43,7 @@ import Control.Monad.Base
 import Control.Monad.Class.MonadThrow
   ( MonadThrow, MonadMask, MonadCatch )
 import Control.Monad.Trans.Resource
-  ( MonadResource, ResourceT, runResourceT, MonadUnliftIO )
+  ( ResourceT, runResourceT, MonadUnliftIO )
 import Control.Monad.Trans.Class
   ( MonadTrans(lift) )
 import qualified Control.Monad.Catch as MC
@@ -69,16 +69,14 @@ import Spectrum.Executor.Config
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 
-data Env r m = Env
+data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
   , eventSourceConfig  :: !EventSourceConfig
   , lederHistoryConfig :: !LedgerStoreConfig
   , networkParams      :: !NetworkParameters
-  , mkLogging          :: !(MakeLogging r m)
+  , mkLogging          :: !(MakeLogging f m)
   , mkLogging'         :: !(MakeLogging m m)
   } deriving stock (Generic)
-
-type Wire = ResourceT App 
 
 newtype App a = App
   { unApp :: ReaderT (Env Wire App) IO a
@@ -91,6 +89,8 @@ newtype App a = App
     , MonadThrow, MC.MonadThrow, MonadCatch, MonadMask
     , MonadBase IO, MonadBaseControl IO, MonadUnliftIO
     )
+
+type Wire = ResourceT App 
 
 runApp :: [String] -> IO ()
 runApp args = do
@@ -105,18 +105,18 @@ runApp args = do
   runContext env (runResourceT wireApp)
 
 wireApp :: Wire ()
-wireApp = lift interceptSigTerm >> do
-  env <- lift ask
+wireApp = interceptSigTerm >> do
+  env <- ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
   lsync <- lift $ mkLedgerSync (runContext env) tr
   ds    <- mkEventSource lsync
-  lift $ S.drain $ upstream ds
+  lift . S.drain . upstream $ ds
 
 runContext :: Env Wire App -> App a -> IO a
 runContext env app = runReaderT (unApp app) env
 
-interceptSigTerm :: App ()
+interceptSigTerm :: Wire ()
 interceptSigTerm =
-    liftIO $ void $ installHandler softwareTermination handler Nothing
+    lift $ liftIO $ void $ installHandler softwareTermination handler Nothing
   where
     handler = CatchOnce $ raiseSignal keyboardSignal

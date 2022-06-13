@@ -34,6 +34,7 @@ import qualified ErgoDex.Amm.Pool as Core
 import Spectrum.Executor.Types (PoolStateId)
 import CardanoTx.Models (FullTxOut(FullTxOut, fullTxOutRef))
 import Control.Monad.Catch (MonadThrow)
+import Data.Aeson (FromJSON)
 
 data Pools m = Pools
   { getPrediction      :: PoolStateId -> m (Maybe (Traced (Predicted Pool)))
@@ -47,7 +48,7 @@ data Pools m = Pools
   }
 
 mkPools
-  :: (MonadIO f, MonadResource f, MonadIO m, MonadThrow m)
+  :: forall f m. (MonadIO f, MonadResource f, MonadIO m, MonadThrow m)
   => MakeLogging f m
   -> PoolStoreConfig
   -> f (Pools m)
@@ -58,28 +59,27 @@ mkPools MakeLogging{..} PoolStoreConfig{..} = do
                 { Rocks.createIfMissing = createIfMissing
                 }
   let
-    readopts  = Rocks.defaultReadOptions
-    writeopts = Rocks.defaultWriteOptions
+    get :: FromJSON a => ByteString -> m (Maybe a)
+    get = (=<<) (mapM deserializeM) . Rocks.get db Rocks.defaultReadOptions
+    put = Rocks.put db Rocks.defaultWriteOptions
   pure $ attachLogging logging Pools
-    { getPrediction =
-        \sid -> Rocks.get db readopts (mkPredictedKey sid) >>= mapM deserializeM
-    , getLastPredicted =
-        \pid -> Rocks.get db readopts (mkLastPredictedKey pid) >>= mapM deserializeM
-    , getLastConfirmed =
-        \pid -> Rocks.get db readopts (mkLastConfirmedKey pid) >>= mapM deserializeM
-    , getLastUnconfirmed =
-        \pid -> Rocks.get db readopts (mkLastUnconfirmedKey pid) >>= mapM deserializeM
+    { getPrediction = get . mkPredictedKey
+    , getLastPredicted = get . mkLastPredictedKey
+    , getLastConfirmed = get . mkLastConfirmedKey
+    , getLastUnconfirmed = get . mkLastUnconfirmedKey
     , putPredicted =
         \tpp@(Traced pp@(Predicted (OnChain FullTxOut{..} Core.Pool{..})) _) -> do
-          Rocks.put db writeopts (mkPredictedKey fullTxOutRef) (serialize tpp)
-          Rocks.put db writeopts (mkLastPredictedKey poolId) (serialize pp)
+          put (mkPredictedKey fullTxOutRef) (serialize tpp)
+          put (mkLastPredictedKey poolId) (serialize pp)
     , putConfirmed =
         \cp@(Confirmed (OnChain _ Core.Pool{..})) ->
-          Rocks.put db writeopts (mkLastConfirmedKey poolId) (serialize cp)
+          put (mkLastConfirmedKey poolId) (serialize cp)
     , putUnconfirmed =
         \up@(Unconfirmed (OnChain _ Core.Pool{..})) ->
-          Rocks.put db writeopts (mkLastUnconfirmedKey poolId) (serialize up)
-    , invalidate = \pid sid -> undefined
+          put (mkLastUnconfirmedKey poolId) (serialize up)
+    , invalidate = \pid sid -> do
+      pred <- get @(Traced (Predicted Pool)) $ mkPredictedKey sid
+      undefined 
     }
 
 attachLogging :: Monad m => Logging m -> Pools m -> Pools m
