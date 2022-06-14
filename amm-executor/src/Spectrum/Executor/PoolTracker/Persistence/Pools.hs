@@ -90,14 +90,14 @@ mkPools MakeLogging{..} PoolStoreConfig{..} = do
           (\((Predicted (OnChain FullTxOut{..} _))) ->
             if fullTxOutRef == sid
               then delete (mkPredictedKey sid) >> delete (mkLastPredictedKey pid)
-              else pure ())
+              else pure () )
           predM
         unconfirmedM <- get @(Unconfirmed Pool) $ mkLastUnconfirmedKey pid
         mapM_
           (\((Unconfirmed (OnChain FullTxOut{..} _))) ->
             if fullTxOutRef == sid
-              then delete (mkLastUnconfirmedKey pid)
-              else pure ())
+              then delete $ mkLastUnconfirmedKey pid
+              else pure () )
           unconfirmedM
         confirmedM <- get @(Confirmed Pool) $ mkLastConfirmedKey pid
         mapM_ (\((Confirmed (OnChain FullTxOut{..} Core.Pool{..}))) ->
@@ -110,7 +110,7 @@ mkPools MakeLogging{..} PoolStoreConfig{..} = do
                 put (mkLastConfirmedKey poolId) (serialize prevConfirmedPool)
               Nothing ->
                 delete (mkLastConfirmedKey poolId)
-          else pure ()) confirmedM
+          else pure () ) confirmedM
     }
 
 attachLogging :: Monad m => Logging m -> Pools m -> Pools m

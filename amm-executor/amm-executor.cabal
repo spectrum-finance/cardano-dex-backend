@@ -101,6 +101,7 @@ library
                      Spectrum.Executor.PoolTracker.Service
                      Spectrum.Common.Persistence.Exception
                      Spectrum.Common.Persistence.Serialization
+                     Spectrum.Common.Streaming.Class
 
     build-depends:  bytestring
                   , aeson

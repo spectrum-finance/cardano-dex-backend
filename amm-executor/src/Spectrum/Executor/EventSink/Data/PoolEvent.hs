@@ -1,11 +1,12 @@
 module Spectrum.Executor.EventSink.Data.PoolEvent
-  ( PoolEvent(..)
-  , type NewPoolEvent
+  ( NewPool(..)
+  , DiscardedPool(..)
   ) where
 
-import qualified Spectrum.Executor.Data.PoolState as State
+import Spectrum.Executor.Types (PoolStateId)
+import Spectrum.Executor.Data.PoolState (Pool)
+import ErgoDex.Amm.Pool (PoolId)
 
-data PoolEvent st p where
-  NewPool :: p ->  PoolEvent 'State.New p
+newtype NewPool st = NewPool (st Pool)
 
-type NewPoolEvent p = PoolEvent 'State.New p
+data DiscardedPool = DiscardedPool PoolId PoolStateId

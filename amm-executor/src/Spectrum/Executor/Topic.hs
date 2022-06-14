@@ -4,7 +4,7 @@ module Spectrum.Executor.Topic
   ) where
 
 newtype ReadTopic s m a = ReadTopic
-  { subscribe :: s m a
+  { upstream :: s m a
   }
 
 newtype WriteTopic m a = WriteTopic
