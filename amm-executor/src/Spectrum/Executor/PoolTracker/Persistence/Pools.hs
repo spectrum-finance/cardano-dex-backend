@@ -64,44 +64,53 @@ mkPools MakeLogging{..} PoolStoreConfig{..} = do
     put = Rocks.put db Rocks.defaultWriteOptions
     delete = Rocks.delete db Rocks.defaultWriteOptions
   pure $ attachLogging logging Pools
-    { getPrediction = get . mkPredictedKey
-    , getLastPredicted = get . mkLastPredictedKey
-    , getLastConfirmed = get . mkLastConfirmedKey
+    { getPrediction      = get . mkPredictedKey
+    , getLastPredicted   = get . mkLastPredictedKey
+    , getLastConfirmed   = get . mkLastConfirmedKey
     , getLastUnconfirmed = get . mkLastUnconfirmedKey
+
     , putPredicted =
         \tpp@(Traced pp@(Predicted (OnChain FullTxOut{..} Core.Pool{..})) _) -> do
           put (mkPredictedKey fullTxOutRef) (serialize tpp)
           put (mkLastPredictedKey poolId) (serialize pp)
+
     , putConfirmed =
         \cp@(Confirmed (OnChain FullTxOut{..} Core.Pool{..})) -> do
           currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ poolId
-          put (mkPrevConfirmedKey poolId fullTxOutRef) (serialize currentLastConfirmed)
+          put (mkPrevConfirmedKey fullTxOutRef) (serialize currentLastConfirmed)
           put (mkLastConfirmedKey poolId) (serialize cp)
+
     , putUnconfirmed =
         \up@(Unconfirmed (OnChain _ Core.Pool{..})) ->
           put (mkLastUnconfirmedKey poolId) (serialize up)
+
     , invalidate = \pid sid -> do
         predM <- get @(Predicted Pool) $ mkLastPredictedKey pid
-        _     <- (\((Predicted (OnChain FullTxOut{..} _))) ->
-          if fullTxOutRef == sid
-          then delete (mkPredictedKey sid) >> delete (mkLastPredictedKey pid)
-          else pure ()) `traverse` predM
+        mapM_
+          (\((Predicted (OnChain FullTxOut{..} _))) ->
+            if fullTxOutRef == sid
+              then delete (mkPredictedKey sid) >> delete (mkLastPredictedKey pid)
+              else pure ())
+          predM
         unconfirmedM <- get @(Unconfirmed Pool) $ mkLastUnconfirmedKey pid
-        _     <- (\((Unconfirmed (OnChain FullTxOut{..} _))) ->
-          if fullTxOutRef == sid
-          then delete (mkLastUnconfirmedKey pid)
-          else pure ()) `traverse` unconfirmedM
+        mapM_
+          (\((Unconfirmed (OnChain FullTxOut{..} _))) ->
+            if fullTxOutRef == sid
+              then delete (mkLastUnconfirmedKey pid)
+              else pure ())
+          unconfirmedM
         confirmedM <- get @(Confirmed Pool) $ mkLastConfirmedKey pid
-        void $ (\((Confirmed (OnChain FullTxOut{..} Core.Pool{..}))) ->
+        mapM_ (\((Confirmed (OnChain FullTxOut{..} Core.Pool{..}))) ->
           if fullTxOutRef == sid
           then do
-            prevConfPoolM <- get @(Confirmed Pool) (mkPrevConfirmedKey poolId fullTxOutRef)
+            prevConfPoolM <- get @(Confirmed Pool) $ mkPrevConfirmedKey fullTxOutRef
             case prevConfPoolM of
               Just prevConfirmedPool ->
-                delete (mkPrevConfirmedKey poolId fullTxOutRef) >> put (mkLastConfirmedKey poolId) (serialize prevConfirmedPool)
+                delete (mkPrevConfirmedKey fullTxOutRef) >>
+                put (mkLastConfirmedKey poolId) (serialize prevConfirmedPool)
               Nothing ->
                 delete (mkLastConfirmedKey poolId)
-          else pure ()) `traverse` confirmedM
+          else pure ()) confirmedM
     }
 
 attachLogging :: Monad m => Logging m -> Pools m -> Pools m
@@ -161,5 +170,5 @@ mkLastUnconfirmedKey (PoolId poolId) = Utf8.fromString $ "unconfirmed:last:" <> 
 mkPredictedKey :: PoolStateId -> ByteString
 mkPredictedKey sid = fromString $ "predicted:prev:" <> show sid
 
-mkPrevConfirmedKey :: PoolId -> PoolStateId -> ByteString
-mkPrevConfirmedKey (PoolId poolId) sid = Utf8.fromString $ "confirmed:prev:" <> show poolId <> show sid
+mkPrevConfirmedKey :: PoolStateId -> ByteString
+mkPrevConfirmedKey sid = Utf8.fromString $ "confirmed:prev:" <> show sid
