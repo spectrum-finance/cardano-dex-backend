@@ -44,8 +44,8 @@ mkPoolTracker
   -> PoolTracker m
 mkPoolTracker pools conf unconf discarded =
   PoolTracker . drain $
-    trackConfirmedPoolUpdates pools conf `S.parallel`
-    trackUnconfirmedPoolUpdates pools unconf `S.parallel`
+    S.parallel (trackConfirmedPoolUpdates pools conf) $
+    S.parallel (trackUnconfirmedPoolUpdates pools unconf) $
     handlePoolRollbacks pools discarded
 
 trackConfirmedPoolUpdates
