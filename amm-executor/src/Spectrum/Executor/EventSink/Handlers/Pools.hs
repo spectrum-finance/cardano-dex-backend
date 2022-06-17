@@ -8,6 +8,7 @@ import RIO
 import Spectrum.Executor.Topic
   ( WriteTopic (..) )
 import Spectrum.Executor.EventSink.Data.PoolEvent
+  ( NewPool(..) )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler )
 import Spectrum.Executor.EventSource.Data.TxEvent
@@ -16,7 +17,7 @@ import Spectrum.Executor.EventSource.Data.Tx
   ( MinimalTx(MinimalLedgerTx), MinimalConfirmedTx (..) )
 import ErgoDex.Class
   ( FromLedger(parseFromLedger) )
-import Spectrum.Executor.Data.PoolState
+import Spectrum.Executor.Data.State
   ( Confirmed(..) )
 
 mkNewPoolsHandler

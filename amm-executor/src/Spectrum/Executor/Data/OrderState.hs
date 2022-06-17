@@ -1,11 +1,17 @@
 module Spectrum.Executor.Data.OrderState
   ( OrderState(..)
+  , OrderInState(..)
   ) where
+
+import Spectrum.Executor.Types (Order)
 
 data OrderState
   = Pending
-  | PreEvaluated
-  | Evaluated
-  | Cancelled
-  | Discarded
+  | Suspended
+  | InProgress
   deriving (Eq, Show)
+
+data OrderInState st where
+  PendingOrder :: Order -> OrderInState 'Pending
+  SuspendedOrder :: Order -> OrderInState 'Suspended
+  InProgressOrder :: Order -> OrderInState 'InProgress
