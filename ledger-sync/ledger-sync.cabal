@@ -36,6 +36,7 @@ common project-config
                         FlexibleContexts
                         FlexibleInstances
                         FunctionalDependencies
+                        UndecidableInstances
                         GADTs
                         GeneralizedNewtypeDeriving
                         InstanceSigs

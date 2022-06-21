@@ -1,7 +1,6 @@
 module Spectrum.Executor.Types
   ( PoolStateId(..)
   , OrderId(..)
-  , poolId
   , poolStateId
   , orderId
   , type Pool
@@ -45,9 +44,6 @@ newtype OrderId = OrderId TxOutRef
   deriving (Generic)
 
 type Pool = OnChain Core.Pool
-
-poolId :: Pool -> PoolId
-poolId (OnChain _ Core.Pool{poolId}) = poolId
 
 poolStateId :: Pool -> PoolStateId
 poolStateId (OnChain FullTxOut{..} _) = PoolStateId fullTxOutRef
