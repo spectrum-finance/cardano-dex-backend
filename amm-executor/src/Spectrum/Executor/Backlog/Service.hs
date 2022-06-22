@@ -33,9 +33,10 @@ mkBacklog
   -> f (Backlog m)
 mkBacklog MakeLogging{..} BacklogConfig{..} = do
   logging     <- forComponent "Pools"
+  -- those queues should be shared with Backlog.Proceess (to make live updates). So maybe worth extracting them into separate module. e.g. BacklogStore
   pendingPQ   <- newIORef PQ.empty  -- ordered by weight; new orders
-  suspendedPQ <- newIORef PQ.empty  -- ordered by weight; failed orders, waiting for retry 
-  toRevisitQ  <- newIORef Seq.empty -- regular queue with timestamps?
+  suspendedPQ <- newIORef PQ.empty  -- ordered by weight; failed orders, waiting for retry (retries are performed with some constant probability, e.g. 5%) 
+  toRevisitQ  <- newIORef Seq.empty -- regular queue; successully submitted orders. Left orders should be re-executed in X minutes. Normally successfully confirmed orders are eliminated from this queue.
 
   (_, db) <- Rocks.openBracket storePath
               Rocks.defaultOptions
