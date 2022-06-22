@@ -6,6 +6,8 @@ module Spectrum.Executor.Types
   , orderId
   , type Pool
   , type Order
+  , OrderWeight(..)
+  , weightOrder
   -- re-exports
   , PoolId(..)
   ) where
@@ -43,3 +45,9 @@ type Order = OnChain Core.AnyOrder
 
 orderId :: Order -> OrderId
 orderId (OnChain FullTxOut{..} _) = OrderId fullTxOutRef
+
+newtype OrderWeight = OrderWeight Integer 
+  deriving newtype (Eq, Ord, Show)
+
+weightOrder :: Order -> OrderWeight
+weightOrder ord = undefined
