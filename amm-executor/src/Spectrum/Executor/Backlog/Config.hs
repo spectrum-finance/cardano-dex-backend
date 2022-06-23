@@ -1,14 +1,28 @@
-module Spectrum.Executor.Backlog.Config
-  ( BacklogConfig(..)
+module Spectrum.Executor.Backlog.Config 
+  ( BacklogServiceConfig (..)
   ) where
 
-import GHC.Generics
-  ( Generic )
-import Dhall
-  ( FromDhall )
+import RIO.Time 
+  ( NominalDiffTime )
+import Dhall 
+  ( FromDhall, Generic )
+import Dhall.Core
+  ( Expr(..) )
+import qualified Dhall as D
+import GHC.Natural 
+  ( naturalToInteger )
 
-data BacklogConfig = BacklogConfig
-  { storePath       :: !FilePath
-  , createIfMissing :: !Bool
-  }
-  deriving (Generic, FromDhall)
+data BacklogServiceConfig = BacklogServiceConfig
+  { orderLifetime :: NominalDiffTime
+  , orderExecTime :: NominalDiffTime
+  , suspendedPropability :: Int 
+  } deriving (Generic, FromDhall)
+
+instance FromDhall NominalDiffTime where
+  autoWith _ = D.Decoder{..}
+    where
+      extract (NaturalLit nat) = pure . fromInteger . naturalToInteger $ nat
+      extract expr             = D.typeError expected expr
+
+      expected = pure Natural
+    
