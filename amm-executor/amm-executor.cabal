@@ -101,8 +101,8 @@ library
                      Spectrum.Executor.PoolTracker.Process
                      Spectrum.Executor.PoolTracker.Service
                      Spectrum.Executor.Backlog.Data.BacklogOrder
-                     Spectrum.Executor.Backlog.Service
-                     Spectrum.Executor.Backlog.Config
+                     Spectrum.Executor.Backlog.Persistence.BacklogStore
+                     Spectrum.Executor.Backlog.Persistence.Config
                      Spectrum.Common.Persistence.Exception
                      Spectrum.Common.Persistence.Serialization
                      Spectrum.Common.Streaming.Class

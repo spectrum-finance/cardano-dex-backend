@@ -1,17 +1,25 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Spectrum.Executor.Data.OrderState
   ( OrderState(..)
   , OrderInState(..)
   ) where
 
-import Spectrum.Executor.Types (Order)
+import Spectrum.Executor.Types (Order, OrderId)
+import RIO.Time (UTCTime)
 
 data OrderState
   = Pending
   | Suspended
   | InProgress
+  | Executed
   deriving (Eq, Show)
 
 data OrderInState st where
-  PendingOrder :: Order -> OrderInState 'Pending
-  SuspendedOrder :: Order -> OrderInState 'Suspended
-  InProgressOrder :: Order -> OrderInState 'InProgress
+  PendingOrder :: Order -> UTCTime -> OrderInState 'Pending
+  SuspendedOrder :: Order -> UTCTime -> OrderInState 'Suspended
+  InProgressOrder :: Order -> UTCTime -> OrderInState 'InProgress
+  ExecutedOrder :: OrderId -> OrderInState 'Executed
+
+deriving instance Show (OrderInState st)
