@@ -80,12 +80,11 @@ refreshQueues BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisi
     atomicModifyIORef'
       toRevisitSeqRef
       (Seq.spanl (\(WeightedOrderWithTimestamp _ _ oTime) -> diffUTCTime currentTime oTime < orderExecTime))
-  _ <- (\order@(WeightedOrderWithTimestamp oId _ oTime) ->
+  mapM_ (\order@(WeightedOrderWithTimestamp oId _ oTime) ->
           if diffUTCTime currentTime oTime < orderLifetime
             then modifyIORef' pendingQueueRef (PQ.insert order)
             else drop oId
-       ) `traverse` revisited2process
-  pure ()
+       ) revisited2process
 
 getMaxWeightedOrder'
   :: forall m. (MonadIO m)
