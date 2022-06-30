@@ -12,6 +12,7 @@ import GHC.Natural (naturalToInteger)
 data BacklogServiceConfig = BacklogServiceConfig
   { orderLifetime :: NominalDiffTime
   , orderExecTime :: NominalDiffTime
+  , pendingPropability :: Int 
   } deriving (Generic, FromDhall)
 
 instance FromDhall NominalDiffTime where

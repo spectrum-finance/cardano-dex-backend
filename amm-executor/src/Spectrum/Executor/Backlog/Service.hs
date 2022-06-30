@@ -13,16 +13,15 @@ import Spectrum.Executor.Types (Order, OrderId)
 
 import System.Logging.Hlog (MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM))
 import Control.Monad.IO.Class
+import System.Random
 import Control.Monad.Trans.Resource ( MonadResource )
 import RIO hiding (drop)
 import Spectrum.Executor.Backlog.Data.BacklogOrder (mkWeightedOrderWithTimestamp, WeightedOrderWithTimestamp (WeightedOrderWithTimestamp), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp))
 import Spectrum.Executor.Backlog.Persistence.BacklogStore (BacklogStore(BacklogStore, exists, get, drop, put, getAll))
 import Prelude hiding (drop)
-import Spectrum.Executor.Backlog.Config (BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime))
+import Spectrum.Executor.Backlog.Config (BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, pendingPropability))
 import RIO.Time (getCurrentTime, diffUTCTime)
 import Spectrum.HigherKind (LiftK(liftK))
-import qualified Data.Maybe
-import Data.Tuple (swap)
 
 data BacklogService m = BacklogService
   { put        :: OrderInState 'Pending -> m ()
@@ -89,26 +88,27 @@ refreshQueues BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisi
   pure ()
 
 getMaxWeightedOrder'
-  :: (MonadIO m)
+  :: forall m. (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
   -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
   -> m (Maybe WeightedOrderWithTimestamp)
-getMaxWeightedOrder' cfg store pendingQueueRef suspendedQueueRef = do
-  maxPendingM   <- atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
+getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
+  randomInt <- randomRIO (0, 100) :: m Int
+  if randomInt > pendingPropability
+    then getMaxPendingOrder pendingQueueRef
+    else getMaxSuspendedOrder cfg store suspendedQueueRef
+
+getMaxPendingOrder
+  :: MonadIO m
+  => IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
+  -> m (Maybe WeightedOrderWithTimestamp)
+getMaxPendingOrder pendingQueueRef = do
+  atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
       Just (order, newQueue) -> (newQueue, Just order)
       Nothing -> (queue, Nothing)
     )
-  maxSuspendedM  <- getMaxSuspendedOrder cfg store suspendedQueueRef
-  case (maxPendingM, maxSuspendedM) of
-    (Just maxPending, Just maxSuspended) ->
-      if maxPending > maxSuspended
-        then modifyIORef suspendedQueueRef (PQ.insert maxSuspended) >> pure maxPendingM
-        else modifyIORef pendingQueueRef (PQ.insert maxPending) >> pure maxSuspendedM
-    (Just _, Nothing) -> pure maxPendingM
-    (Nothing, Just _) -> pure maxSuspendedM
-    _ -> pure Nothing
 
 getMaxSuspendedOrder
   :: (MonadIO m)
