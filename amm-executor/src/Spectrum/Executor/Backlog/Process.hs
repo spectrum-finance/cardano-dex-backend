@@ -8,7 +8,6 @@ import Streamly.Prelude
   ( IsStream )
 
 import Spectrum.Executor.Backlog.Service (BacklogService (BacklogService, put, drop))
-import Spectrum.Executor.EventSource.Stream
 
 import Control.Monad.IO.Class
   ( MonadIO )
@@ -20,7 +19,7 @@ import Spectrum.Executor.Topic
   ( ReadTopic(..) )
 import Spectrum.Common.Streaming.Class
   ( Compile(drain) )
-import Spectrum.Executor.Data.OrderState (OrderInState, OrderState (Pending, Executed))
+import Spectrum.Executor.Data.OrderState (OrderInState (ExecutedOrder, CancelledOrder), OrderState (Pending, Executed, Cancelled))
 import Prelude hiding (drop)
 
 newtype Backlog m = Backlog 
@@ -30,20 +29,21 @@ newtype Backlog m = Backlog
 mkBacklog
   :: ( IsStream s
      , Compile s m
-     , Monad (s m)
      , MonadIO m
      , MonadBaseControl IO m
      , MonadThrow m
+     , MonadFail (s m)
      )
   => BacklogService m
   -> ReadTopic s m (OrderInState 'Pending)
   -> ReadTopic s m (OrderInState 'Executed)
+  -> ReadTopic s m (OrderInState 'Cancelled)
   -> Backlog m
-mkBacklog backlogService pending executed =
+mkBacklog backlogService pending executed cancelled =
   Backlog . drain $
-    S.parallel 
-      (trackPendingOrdersUpdates backlogService pending)
-      (trackExecutedOrdersUpdates backlogService executed) 
+    S.parallel (trackPendingOrdersUpdates backlogService pending) $
+    S.parallel (trackExecutedOrdersUpdates backlogService executed) $
+    trackCancelledOrdersUpdates backlogService cancelled
 
 trackPendingOrdersUpdates
   :: (IsStream s, Monad (s m), Monad m)
@@ -55,10 +55,19 @@ trackPendingOrdersUpdates BacklogService{..} ReadTopic{..} = do
   S.fromEffect (put pendingOrder)
 
 trackExecutedOrdersUpdates
-  :: (IsStream s, Monad (s m), Monad m)
+  :: (IsStream s, Monad m, MonadFail (s m))
   => BacklogService m
   -> ReadTopic s m (OrderInState 'Executed)
   -> s m ()
 trackExecutedOrdersUpdates BacklogService{..} ReadTopic{..} = do
-  executedOrder <- upstream
-  S.fromEffect (drop executedOrder)
+  ExecutedOrder oId <- upstream
+  S.fromEffect $ drop oId
+
+trackCancelledOrdersUpdates
+  :: (IsStream s, Monad m, MonadFail (s m))
+  => BacklogService m
+  -> ReadTopic s m (OrderInState 'Cancelled)
+  -> s m ()
+trackCancelledOrdersUpdates BacklogService{..} ReadTopic{..} = do
+  CancelledOrder oId <- upstream
+  S.fromEffect $ drop oId

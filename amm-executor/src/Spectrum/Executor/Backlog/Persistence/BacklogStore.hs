@@ -19,7 +19,7 @@ import Prelude hiding (drop)
 
 data BacklogStore m = BacklogStore
   { put        :: BacklogOrder -> m ()
-  , isExist    :: BacklogOrder -> m Bool
+  , exists     :: BacklogOrder -> m Bool
   , drop       :: OrderId -> m ()
   , get        :: OrderId -> m (Maybe BacklogOrder)
   , getAll     :: m [BacklogOrder]
@@ -32,10 +32,10 @@ mkBacklogStore
   -> f (BacklogStore m)
 mkBacklogStore MakeLogging{..} BacklogConfig{..} = do
   logging     <- forComponent "BacklogStore"
-  (_, db) <- Rocks.openBracket storePath
-              Rocks.defaultOptions
-                { Rocks.createIfMissing = createIfMissing
-                }
+  (_, db)     <- Rocks.openBracket storePath
+                  Rocks.defaultOptions
+                    { Rocks.createIfMissing = createIfMissing
+                    }
   let
     get :: FromJSON a => ByteString -> m (Maybe a)
     get = (=<<) (mapM deserializeM) . Rocks.get db Rocks.defaultReadOptions
@@ -46,7 +46,7 @@ mkBacklogStore MakeLogging{..} BacklogConfig{..} = do
   pure $ attachLogging logging BacklogStore
     { put = \BacklogOrder{..} ->
         put (serialize . orderId $ backlogOrder) (serialize backlogOrder)
-    , isExist = \BacklogOrder{..} -> exists . serialize . orderId $ backlogOrder
+    , exists = \BacklogOrder{..} -> exists . serialize . orderId $ backlogOrder
     , drop = delete . serialize
     , get = get . serialize
     , getAll = bracket (Rocks.createIter db Rocks.defaultReadOptions) Rocks.releaseIter ((=<<) (mapM deserializeM) . Rocks.iterValues)
@@ -60,9 +60,9 @@ attachLogging Logging{..} BacklogStore{..}=
         r <- put order
         infoM $ "put " <> show order <> " -> " <> show r
         pure r
-    , isExist = \order -> do
+    , exists = \order -> do
         infoM $ "isExist " <> show order
-        r <- isExist order
+        r <- exists order
         infoM $ "isExist " <> show order <> " -> " <> show r
         pure r
     , drop = \oId -> do

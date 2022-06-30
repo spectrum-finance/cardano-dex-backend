@@ -30,6 +30,7 @@ common project-config
                         DeriveGeneric
                         DeriveTraversable
                         DerivingStrategies
+                        UndecidableInstances
                         DoAndIfThenElse
                         EmptyDataDecls
                         ExistentialQuantification
@@ -103,6 +104,7 @@ library
                      Spectrum.Executor.Backlog.Data.BacklogOrder
                      Spectrum.Executor.Backlog.Persistence.BacklogStore
                      Spectrum.Executor.Backlog.Persistence.Config
+                     Spectrum.Executor.Backlog.Config
                      Spectrum.Common.Persistence.Exception
                      Spectrum.Common.Persistence.Serialization
                      Spectrum.Common.Streaming.Class

@@ -4,8 +4,6 @@ module Spectrum.Executor.Backlog.Data.BacklogOrder
   , mkWeightedOrderWithTimestamp
   ) where
 
-import Spectrum.Executor.Data.OrderState
-  ( OrderState )
 import Spectrum.Executor.Types
   ( Order, OrderId, OrderWeight, weightOrder, orderId )
 import RIO.Time (UTCTime)

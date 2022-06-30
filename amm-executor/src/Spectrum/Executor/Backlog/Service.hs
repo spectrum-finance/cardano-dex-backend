@@ -8,15 +8,15 @@ import qualified Data.PQueue.Max as PQ
 import qualified Data.List       as List
 import qualified Data.Sequence   as Seq
 
-import Spectrum.Executor.Data.OrderState (OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder, ExecutedOrder))
-import Spectrum.Executor.Types (Order)
+import Spectrum.Executor.Data.OrderState (OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder))
+import Spectrum.Executor.Types (Order, OrderId)
 
 import System.Logging.Hlog (MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM))
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Resource ( MonadResource )
 import RIO hiding (drop)
 import Spectrum.Executor.Backlog.Data.BacklogOrder (mkWeightedOrderWithTimestamp, WeightedOrderWithTimestamp (WeightedOrderWithTimestamp), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp))
-import Spectrum.Executor.Backlog.Persistence.BacklogStore (BacklogStore(BacklogStore, isExist, get, drop, put, getAll))
+import Spectrum.Executor.Backlog.Persistence.BacklogStore (BacklogStore(BacklogStore, exists, get, drop, put, getAll))
 import Prelude hiding (drop)
 import Spectrum.Executor.Backlog.Config (BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime))
 import RIO.Time (getCurrentTime, diffUTCTime)
@@ -27,7 +27,7 @@ data BacklogService m = BacklogService
   , suspend    :: OrderInState 'Suspended -> m Bool
   , checkLater :: OrderInState 'InProgress -> m Bool
   , tryAcquire :: m (Maybe Order)
-  , drop       :: OrderInState 'Executed -> m ()
+  , drop       :: OrderId -> m ()
   }
 
 mkBacklogService
@@ -49,17 +49,17 @@ mkBacklogService MakeLogging{..} config store@BacklogStore{..} = do
         modifyIORef pendingPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
     , suspend = \(SuspendedOrder order timestamp) -> do
         modifyIORef suspendedPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
-        isExist $ BacklogOrder timestamp order
+        exists $ BacklogOrder timestamp order
     , checkLater = \(InProgressOrder order timestamp) -> do
         modifyIORef toRevisitQ (mkWeightedOrderWithTimestamp order timestamp Seq.<|)
-        isExist $ BacklogOrder timestamp order
+        exists $ BacklogOrder timestamp order
     , tryAcquire = do
         _ <- refreshQueues config store pendingPQ suspendedPQ toRevisitQ
         maxWeightedOrderM <- getMaxWeightedOrder' pendingPQ suspendedPQ
         case maxWeightedOrderM of
           Just (WeightedOrderWithTimestamp oId _ _) -> get oId <&> fmap backlogOrder
           Nothing -> pure Nothing
-    , drop = \(ExecutedOrder oId) -> do
+    , drop = \oId -> do
         _ <- modifyIORef pendingPQ   (PQ.filter (\(WeightedOrderWithTimestamp orderId _ _) -> orderId /= oId))
         _ <- modifyIORef suspendedPQ (PQ.filter (\(WeightedOrderWithTimestamp orderId _ _) -> orderId /= oId))
         _ <- modifyIORef toRevisitQ  (Seq.filter (\(WeightedOrderWithTimestamp orderId _ _) -> orderId /= oId))

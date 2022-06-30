@@ -1,6 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
-
 module Spectrum.Executor.Data.OrderState
   ( OrderState(..)
   , OrderInState(..)
@@ -14,12 +11,14 @@ data OrderState
   | Suspended
   | InProgress
   | Executed
+  | Cancelled
   deriving (Eq, Show)
 
 data OrderInState st where
-  PendingOrder :: Order -> UTCTime -> OrderInState 'Pending
-  SuspendedOrder :: Order -> UTCTime -> OrderInState 'Suspended
+  PendingOrder    :: Order -> UTCTime -> OrderInState 'Pending
+  SuspendedOrder  :: Order -> UTCTime -> OrderInState 'Suspended
   InProgressOrder :: Order -> UTCTime -> OrderInState 'InProgress
-  ExecutedOrder :: OrderId -> OrderInState 'Executed
+  ExecutedOrder   :: OrderId -> OrderInState 'Executed
+  CancelledOrder  :: OrderId -> OrderInState 'Cancelled
 
 deriving instance Show (OrderInState st)
