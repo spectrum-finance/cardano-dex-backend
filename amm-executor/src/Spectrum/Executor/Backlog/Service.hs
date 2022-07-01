@@ -55,19 +55,19 @@ mkBacklogService MakeLogging{..} config store@BacklogStore{..} = do
         modifyIORef toRevisitQ (mkWeightedOrderWithTimestamp order timestamp Seq.<|)
         exists $ BacklogOrder timestamp order
     , tryAcquire = do
-        _ <- refreshQueues config store pendingPQ toRevisitQ
+        _ <- revisitOrders config store pendingPQ toRevisitQ
         getMaxWeightedOrder' config store pendingPQ suspendedPQ
     , drop = dropOrder
     }
 
-refreshQueues
+revisitOrders
   :: (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
   -> IORef (Seq.Seq WeightedOrderWithTimestamp)
   -> m ()
-refreshQueues BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisitSeqRef = do
+revisitOrders BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisitSeqRef = do
   currentTime <- getCurrentTime
   revisited2process <-
     atomicModifyIORef'
