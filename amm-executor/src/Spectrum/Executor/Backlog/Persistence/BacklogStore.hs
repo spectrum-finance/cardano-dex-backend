@@ -20,7 +20,7 @@ import Prelude hiding (drop)
 data BacklogStore m = BacklogStore
   { put        :: BacklogOrder -> m ()
   , exists     :: BacklogOrder -> m Bool
-  , drop       :: OrderId -> m ()
+  , dropOrder  :: OrderId -> m ()
   , get        :: OrderId -> m (Maybe BacklogOrder)
   , getAll     :: m [BacklogOrder]
   }
@@ -47,7 +47,7 @@ mkBacklogStore MakeLogging{..} BacklogConfig{..} = do
     { put = \BacklogOrder{..} ->
         put (serialize . orderId $ backlogOrder) (serialize backlogOrder)
     , exists = \BacklogOrder{..} -> exists . serialize . orderId $ backlogOrder
-    , drop = delete . serialize
+    , dropOrder = delete . serialize
     , get = get . serialize
     , getAll = bracket (Rocks.createIter db Rocks.defaultReadOptions) Rocks.releaseIter ((=<<) (mapM deserializeM) . Rocks.iterValues)
     }
@@ -65,10 +65,10 @@ attachLogging Logging{..} BacklogStore{..}=
         r <- exists order
         infoM $ "isExist " <> show order <> " -> " <> show r
         pure r
-    , drop = \oId -> do
-        infoM $ "drop " <> show oId
-        r <- drop oId
-        infoM $ "drop " <> show oId <> " -> " <> show r
+    , dropOrder = \oId -> do
+        infoM $ "dropOrder " <> show oId
+        r <- dropOrder oId
+        infoM $ "dropOrder " <> show oId <> " -> " <> show r
         pure r
     , get = \oId -> do
         infoM $ "get " <> show oId

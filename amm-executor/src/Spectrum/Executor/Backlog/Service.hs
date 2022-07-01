@@ -17,7 +17,7 @@ import System.Random
 import Control.Monad.Trans.Resource ( MonadResource )
 import RIO hiding (drop)
 import Spectrum.Executor.Backlog.Data.BacklogOrder (mkWeightedOrderWithTimestamp, WeightedOrderWithTimestamp (WeightedOrderWithTimestamp), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp))
-import Spectrum.Executor.Backlog.Persistence.BacklogStore (BacklogStore(BacklogStore, exists, get, drop, put, getAll))
+import Spectrum.Executor.Backlog.Persistence.BacklogStore (BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll))
 import Prelude hiding (drop)
 import Spectrum.Executor.Backlog.Config (BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, pendingPropability))
 import RIO.Time (getCurrentTime, diffUTCTime)
@@ -56,15 +56,8 @@ mkBacklogService MakeLogging{..} config store@BacklogStore{..} = do
         exists $ BacklogOrder timestamp order
     , tryAcquire = do
         _ <- refreshQueues config store pendingPQ toRevisitQ
-        maxWeightedOrderM <- getMaxWeightedOrder' config store pendingPQ suspendedPQ
-        case maxWeightedOrderM of
-          Just (WeightedOrderWithTimestamp oId _ _) -> get oId <&> fmap backlogOrder
-          Nothing -> pure Nothing
-    , drop = \oId -> do
-        _ <- modifyIORef pendingPQ   (PQ.filter (\(WeightedOrderWithTimestamp orderId _ _) -> orderId /= oId))
-        _ <- modifyIORef suspendedPQ (PQ.filter (\(WeightedOrderWithTimestamp orderId _ _) -> orderId /= oId))
-        _ <- modifyIORef toRevisitQ  (Seq.filter (\(WeightedOrderWithTimestamp orderId _ _) -> orderId /= oId))
-        drop oId
+        getMaxWeightedOrder' config store pendingPQ suspendedPQ
+    , drop = dropOrder
     }
 
 refreshQueues
@@ -83,7 +76,7 @@ refreshQueues BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisi
   mapM_ (\order@(WeightedOrderWithTimestamp oId _ oTime) ->
           if diffUTCTime currentTime oTime < orderLifetime
             then modifyIORef' pendingQueueRef (PQ.insert order)
-            else drop oId
+            else dropOrder oId
        ) revisited2process
 
 getMaxWeightedOrder'
@@ -92,29 +85,37 @@ getMaxWeightedOrder'
   -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
   -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
-  -> m (Maybe WeightedOrderWithTimestamp)
+  -> m (Maybe Order)
 getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
   randomInt <- randomRIO (0, 100) :: m Int
   if randomInt > pendingPropability
-    then getMaxPendingOrder pendingQueueRef
+    then getMaxPendingOrder store pendingQueueRef
     else getMaxSuspendedOrder cfg store suspendedQueueRef
 
 getMaxPendingOrder
   :: MonadIO m
-  => IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
-  -> m (Maybe WeightedOrderWithTimestamp)
-getMaxPendingOrder pendingQueueRef = do
-  atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
+  => BacklogStore m
+  -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
+  -> m (Maybe Order)
+getMaxPendingOrder store@BacklogStore{..} pendingQueueRef = do
+  wOrderM <- atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
       Just (order, newQueue) -> (newQueue, Just order)
       Nothing -> (queue, Nothing)
     )
-
+  case wOrderM of 
+    Just (WeightedOrderWithTimestamp oId _ _) -> do
+      orderM <- get oId <&> fmap backlogOrder
+      case orderM of
+        Just _ -> pure orderM
+        Nothing -> getMaxPendingOrder store pendingQueueRef
+    Nothing -> pure Nothing
+  
 getMaxSuspendedOrder
   :: (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
-  -> m (Maybe WeightedOrderWithTimestamp)
+  -> m (Maybe Order)
 getMaxSuspendedOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} suspendedQueueRef = do
   currentTime   <- getCurrentTime
   maxSuspendedM <- atomicModifyIORef suspendedQueueRef (\queue -> case PQ.maxView queue of
@@ -124,8 +125,8 @@ getMaxSuspendedOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} suspend
   case maxSuspendedM of
     Just (WeightedOrderWithTimestamp oId _ oTime) ->
       if diffUTCTime currentTime oTime > orderLifetime
-      then drop oId >> getMaxSuspendedOrder cfg store suspendedQueueRef
-      else pure maxSuspendedM
+      then dropOrder oId >> getMaxSuspendedOrder cfg store suspendedQueueRef
+      else get oId <&> fmap backlogOrder
     Nothing -> pure Nothing
 
 recover
