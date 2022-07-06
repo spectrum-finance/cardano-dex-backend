@@ -104,6 +104,8 @@ library
                      Spectrum.Executor.Backlog.Data.BacklogOrder
                      Spectrum.Executor.Backlog.Persistence.BacklogStore
                      Spectrum.Executor.Backlog.Persistence.Config
+                     Spectrum.Executor.Backlog.Service
+                     Spectrum.Executor.Backlog.Process
                      Spectrum.Executor.Backlog.Config
                      Spectrum.Common.Persistence.Exception
                      Spectrum.Common.Persistence.Serialization
@@ -173,6 +175,7 @@ library
                   , unix == 2.7.2.2
                   , dex-core == 0.1.0.0
                   , rocksdb-haskell == 0.1.0.0
+                  , cardano-dex-contracts
 
 executable amm-executor-app
     default-language: Haskell2010
@@ -185,3 +188,33 @@ executable amm-executor-app
     build-depends:    base >= 4.9 && < 5
                     , amm-executor
                     , rio
+
+test-suite amm-executor-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test
+  other-modules:
+    Tests.Backlog.ServiceTest
+    Tests.Backlog.PersistenceMock
+    Gen.OrdersGen
+    Gen.LoggingGen
+  build-depends:
+    , base  == 4.14.1.0
+    , HUnit == 1.6.2.0
+    , rio
+    , tasty-hunit==0.10.0.3
+    , tasty==1.4.2
+    , tasty-hedgehog==1.1.0.0
+    , amm-executor
+    , containers
+    , hedgehog
+    , text
+    , plutus-ledger-api
+    , plutus-tx
+    , dex-core
+    , cardano-tx
+    , cardano-dex-contracts
+    , plutus-ledger
+    , hlog
+    , ledger-sync
+    , resourcet

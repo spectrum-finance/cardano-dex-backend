@@ -3,7 +3,6 @@ module Spectrum.Executor.Backlog.Service
   , mkBacklogService
   ) where
 
-
 import qualified Data.PQueue.Max as PQ
 import qualified Data.List       as List
 import qualified Data.Sequence   as Seq
@@ -14,12 +13,11 @@ import Spectrum.Executor.Types (Order, OrderId)
 import System.Logging.Hlog (MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM))
 import Control.Monad.IO.Class
 import System.Random
-import Control.Monad.Trans.Resource ( MonadResource )
 import RIO hiding (drop)
 import Spectrum.Executor.Backlog.Data.BacklogOrder (mkWeightedOrderWithTimestamp, WeightedOrderWithTimestamp (WeightedOrderWithTimestamp), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp))
 import Spectrum.Executor.Backlog.Persistence.BacklogStore (BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll))
 import Prelude hiding (drop)
-import Spectrum.Executor.Backlog.Config (BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, pendingPropability))
+import Spectrum.Executor.Backlog.Config (BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, suspendedPropability))
 import RIO.Time (getCurrentTime, diffUTCTime)
 import Spectrum.HigherKind (LiftK(liftK))
 
@@ -32,7 +30,7 @@ data BacklogService m = BacklogService
   }
 
 mkBacklogService
-  :: forall f m. (MonadIO f, MonadResource f, MonadIO m, LiftK m f)
+  :: forall f m. (MonadIO f, MonadIO m, LiftK m f)
   => MakeLogging f m
   -> BacklogServiceConfig
   -> BacklogStore m
@@ -55,7 +53,7 @@ mkBacklogService MakeLogging{..} config store@BacklogStore{..} = do
         modifyIORef toRevisitQ (mkWeightedOrderWithTimestamp order timestamp Seq.<|)
         exists $ BacklogOrder timestamp order
     , tryAcquire = do
-        _ <- revisitOrders config store pendingPQ toRevisitQ
+        revisitOrders config store pendingPQ toRevisitQ
         getMaxWeightedOrder' config store pendingPQ suspendedPQ
     , drop = dropOrder
     }
@@ -88,7 +86,7 @@ getMaxWeightedOrder'
   -> m (Maybe Order)
 getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
   randomInt <- randomRIO (0, 100) :: m Int
-  if randomInt > pendingPropability
+  if randomInt > suspendedPropability
     then getMaxPendingOrder store pendingQueueRef
     else getMaxSuspendedOrder cfg store suspendedQueueRef
 
