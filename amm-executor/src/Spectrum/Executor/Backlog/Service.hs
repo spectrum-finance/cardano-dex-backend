@@ -45,12 +45,12 @@ mkBacklogService MakeLogging{..} config store@BacklogStore{..} = do
   pure $ attachLogging logging BacklogService
     { put = \(PendingOrder order timestamp) -> do
         put $ BacklogOrder timestamp order
-        modifyIORef pendingPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
+        modifyIORef' pendingPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
     , suspend = \(SuspendedOrder order timestamp) -> do
-        modifyIORef suspendedPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
+        modifyIORef' suspendedPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
         exists $ BacklogOrder timestamp order
     , checkLater = \(InProgressOrder order timestamp) -> do
-        modifyIORef toRevisitQ (mkWeightedOrderWithTimestamp order timestamp Seq.<|)
+        modifyIORef' toRevisitQ (mkWeightedOrderWithTimestamp order timestamp Seq.<|)
         exists $ BacklogOrder timestamp order
     , tryAcquire = do
         revisitOrders config store pendingPQ toRevisitQ
