@@ -8,6 +8,8 @@ cradle:
       component: "amm-executor:lib:amm-executor"
     - path: "./amm-executor/app"
       component: "amm-executor:exe:amm-executor-app"
+    - path: "./amm-executor/test"
+      component: "amm-executor:test:amm-executor-test"
     - path: "./pools-resolver/src"
       component: "pools-resolver:lib:pools-resolver"
     - path: "./pools-resolver/app"

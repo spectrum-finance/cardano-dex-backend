@@ -4,21 +4,26 @@ module Spectrum.Executor.Backlog.Data.BacklogOrder
   , mkWeightedOrder
   ) where
 
-import Spectrum.Executor.Data.OrderState
-  ( OrderState )
+import RIO 
+  ( Generic )
+import RIO.Time 
+  ( UTCTime )
+import Data.Aeson.Types 
+  ( ToJSON, FromJSON )
+
 import Spectrum.Executor.Types
   ( Order, OrderId, OrderWeight, weightOrder, orderId )
 
 data BacklogOrder = BacklogOrder
-  { orderState   :: OrderState
-  , backlogOrder :: Order
-  }
+  { orderTimestamp :: UTCTime
+  , backlogOrder   :: Order
+  } deriving (Generic, ToJSON, FromJSON, Show)
 
-data WeightedOrder = WeightedOrder OrderId OrderWeight
+data WeightedOrder = WeightedOrder OrderId OrderWeight UTCTime
   deriving (Eq, Show)
 
-mkWeightedOrder :: Order -> WeightedOrder
+mkWeightedOrder :: Order -> UTCTime -> WeightedOrder
 mkWeightedOrder ord = WeightedOrder (orderId ord) (weightOrder ord)
 
 instance Ord WeightedOrder where
-  compare (WeightedOrder _ xw) (WeightedOrder _ yw) = xw `compare` yw
+  compare (WeightedOrder _ xw _) (WeightedOrder _ yw _) = xw `compare` yw
