@@ -4,8 +4,10 @@ module Spectrum.Executor.Backlog.Persistence.BacklogStore
   ) where
 
 import qualified Database.RocksDB as Rocks
-import RIO                        hiding (drop)
-import Prelude                    hiding (drop)
+
+import RIO     hiding (drop)
+import Prelude hiding (drop)
+
 import Data.Aeson       
   ( FromJSON )
 import Control.Monad.Trans.Resource
@@ -32,7 +34,13 @@ data BacklogStore m = BacklogStore
   }
 
 mkBacklogStore
-  :: forall f m. (MonadIO f, MonadResource f, MonadIO m, MonadThrow m, MonadUnliftIO m)
+  :: forall f m. 
+   ( MonadIO f
+   , MonadResource f
+   , MonadIO m
+   , MonadThrow m
+   , MonadUnliftIO m
+   )
   => MakeLogging f m
   -> BacklogConfig
   -> f (BacklogStore m)
