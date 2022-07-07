@@ -3,33 +3,65 @@
 
 module Gen.OrdersGen where
 
-import Plutus.V1.Ledger.Value
 import qualified Data.Text as T
 import Hedgehog (MonadGen)
-import RIO
+import RIO 
+  ( (<&>) )
+import Hedgehog.Gen (bytes, int)
 import Hedgehog.Range as Range
+
 import qualified PlutusTx
 import qualified Ledger.Ada      as Ada
-import PlutusTx.Builtins.Internal
-import Hedgehog.Gen (bytes, int)
+import PlutusTx.Builtins.Internal 
+  ( BuiltinByteString(..) )
+import Plutus.V1.Ledger.Value
+  ( Value, CurrencySymbol(CurrencySymbol), TokenName(TokenName), AssetClass(AssetClass) )
+import Plutus.V1.Ledger.Value as Value 
+  ( singleton )
 import Ledger
     ( TxId(TxId), TxOutRef(TxOutRef), Address, PubKeyHash (PubKeyHash), Datum (Datum) )
-import Plutus.V1.Ledger.Value    as Value
-import ErgoDex.Types
-import qualified Spectrum.Executor.Types as Spectrum
-import CardanoTx.Models ( FullTxOut (FullTxOut), TxOutDatum (KnownDatum), fullTxOutRef, fullTxOutAddress, fullTxOutValue, fullTxOutDatum )
-import CardanoTx.Value (unionVal)
-import ErgoDex.Contracts.Types
-import ErgoDex.Amm.Orders (AnyOrder (AnyOrder), OrderAction (SwapAction), Swap(..))
+import Ledger.Typed.Scripts.Validators 
+  ( validatorAddress )
+import Plutus.V1.Ledger.Api 
+  ( toBuiltin, ToData (toBuiltinData) )
+
 import qualified ErgoDex.Amm.Orders as Orders
+import ErgoDex.Types 
+  ( ExFeePerToken(..) )
+import CardanoTx.Models 
+  ( FullTxOut (FullTxOut)
+  , TxOutDatum (KnownDatum)
+  , fullTxOutRef
+  , fullTxOutAddress
+  , fullTxOutValue
+  , fullTxOutDatum 
+  )
+import CardanoTx.Value 
+  ( unionVal )
+import ErgoDex.Contracts.Types
+  ( coinAmountValue, Amount(Amount, unAmount), Coin(..) )
+import ErgoDex.Amm.Orders 
+  ( AnyOrder (AnyOrder), OrderAction (SwapAction), Swap(..) )
 import ErgoDex.Contracts.Pool
-import ErgoDex.Amm.Pool (PoolId (PoolId), Pool (Pool), PoolFee (PoolFee), poolReservesY, poolReservesX, poolId, poolCoinX, poolCoinY, unPoolId)
-import Ledger.Typed.Scripts.Validators
-import ErgoDex.Contracts.Proxy.OffChain (swapInstance)
-import Plutus.V1.Ledger.Api (toBuiltin, ToData (toBuiltinData))
+import ErgoDex.Amm.Pool 
+  ( PoolId (PoolId)
+  , Pool (Pool)
+  , PoolFee (PoolFee)
+  , poolReservesY
+  , poolReservesX
+  , poolId
+  , poolCoinX
+  , poolCoinY
+  , unPoolId
+  )
+import ErgoDex.Contracts.Proxy.OffChain 
+  ( swapInstance )
 import qualified ErgoDex.Contracts.Proxy.Swap as Contract
-import qualified ErgoDex.Amm.Orders as Contract
-import ErgoDex.State (OnChain(OnChain))
+import qualified ErgoDex.Amm.Orders           as Contract
+import ErgoDex.State 
+  ( OnChain(OnChain) )
+
+import qualified Spectrum.Executor.Types as Spectrum
 
 genBuiltinByteString :: MonadGen f => Int -> f BuiltinByteString
 genBuiltinByteString s = bytes (Range.singleton s) <&> BuiltinByteString
@@ -47,14 +79,14 @@ genPoolFee = do
 genPool :: MonadGen f => f Pool
 genPool = do
   let range = constant 100 10000000
-  poolId      <- PoolId <$> genCoin
-  poolCoinX   <- genCoin
-  poolCoinY   <- genCoin
-  poolCoinLq  <- genCoin
+  poolId         <- PoolId <$> genCoin
+  poolCoinX      <- genCoin
+  poolCoinY      <- genCoin
+  poolCoinLq     <- genCoin
   poolReservesX  <- Amount . toInteger <$> int range
   poolReservesY  <- Amount . toInteger <$> int range
   let poolLiquidity = Amount (unAmount poolReservesX * unAmount poolReservesY)
-  poolFee <- genPoolFee
+  poolFee        <- genPoolFee
   outCollateral  <- Amount . toInteger <$> int range
   pure $ Pool poolId poolReservesX poolReservesY poolLiquidity poolCoinX poolCoinY poolCoinLq  poolFee outCollateral
 
@@ -76,10 +108,10 @@ genAssetClass = do
 genFullTxOut :: (MonadGen f, Applicative f) => [Value] -> Address -> TxOutDatum -> TxId -> Integer -> f FullTxOut
 genFullTxOut assets address datum txId txOutIndex =
     pure $ FullTxOut 
-    { fullTxOutRef = TxOutRef txId txOutIndex
+    { fullTxOutRef     = TxOutRef txId txOutIndex
     , fullTxOutAddress = address
-    , fullTxOutValue = foldl unionVal mempty assets
-    , fullTxOutDatum = datum
+    , fullTxOutValue   = foldl unionVal mempty assets
+    , fullTxOutDatum   = datum
     }
 
 genExFeePerToken :: MonadGen f => f ExFeePerToken
@@ -132,9 +164,9 @@ genSwapOrder pkh Pool{..} = do
       , baseAmount       = unAmount baseAmount
       , minQuoteAmount   = unAmount quoteAmount
      }
-    values = foldl unionVal (mkAdaValue 1000000) [coinAmountValue (Coin (unCoin poolCoinX)) baseAmount, coinAmountValue (Coin (unCoin poolCoinY)) quoteAmount]
-    swapAddr = validatorAddress swapInstance
-    swapAction = SwapAction swapOrder
+    values       = foldl unionVal (mkAdaValue 1000000) [coinAmountValue (Coin (unCoin poolCoinX)) baseAmount, coinAmountValue (Coin (unCoin poolCoinY)) quoteAmount]
+    swapAddr     = validatorAddress swapInstance
+    swapAction   = SwapAction swapOrder
     swapAnyOrder = AnyOrder poolId swapAction
   txId  <- genTxId
   txOut <- genFullTxOut [values] swapAddr (KnownDatum (Datum . toBuiltinData $ swapCfg)) txId 1

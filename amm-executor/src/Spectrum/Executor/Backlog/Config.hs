@@ -2,12 +2,15 @@ module Spectrum.Executor.Backlog.Config
   ( BacklogServiceConfig (..)
   ) where
 
-import RIO.Time (NominalDiffTime)
-import Dhall (FromDhall, Generic)
+import RIO.Time 
+  ( NominalDiffTime )
+import Dhall 
+  ( FromDhall, Generic )
 import Dhall.Core
   ( Expr(..) )
 import qualified Dhall as D
-import GHC.Natural (naturalToInteger)
+import GHC.Natural 
+  ( naturalToInteger )
 
 data BacklogServiceConfig = BacklogServiceConfig
   { orderLifetime :: NominalDiffTime

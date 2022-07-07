@@ -12,20 +12,28 @@ module Spectrum.Executor.Types
   , PoolId(..)
   ) where
 
+import GHC.Generics 
+  ( Generic )
+import Data.Aeson 
+  ( FromJSON, ToJSON )
+
+import Ledger
+  ( TxOutRef )
+
 import ErgoDex.State
   ( OnChain (OnChain) )
 import qualified ErgoDex.Amm.Pool as Core
 import qualified ErgoDex.Amm.Orders as Core
-
-import Ledger
-  ( TxOutRef )
-import CardanoTx.Models (FullTxOut(fullTxOutRef, FullTxOut))
-import ErgoDex.Amm.Pool (PoolId(..))
-import GHC.Generics (Generic)
-import Data.Aeson (FromJSON, ToJSON)
-import ErgoDex.Amm.Orders (OrderAction(SwapAction, DepositAction, RedeemAction), Swap (Swap), Deposit (Deposit), Redeem (Redeem))
-import ErgoDex.Types (retagAmount, unExFee, getAmount, assetAmountRawValue, exFeePerTokenDen, exFeePerTokenNum)
-import ErgoDex.Contracts.Types
+import CardanoTx.Models 
+  ( FullTxOut(fullTxOutRef, FullTxOut) )
+import ErgoDex.Amm.Pool 
+  ( PoolId(..) )
+import ErgoDex.Amm.Orders 
+  ( OrderAction(SwapAction, DepositAction, RedeemAction), Swap (Swap), Deposit (Deposit), Redeem (Redeem) )
+import ErgoDex.Types 
+  ( unExFee, exFeePerTokenDen, exFeePerTokenNum )
+import ErgoDex.Contracts.Types 
+  ( Amount(unAmount) )
 
 newtype PoolStateId = PoolStateId
   { unPoolStateId :: TxOutRef

@@ -3,23 +3,32 @@ module Spectrum.Executor.Backlog.Service
   , mkBacklogService
   ) where
 
+import           Prelude         hiding (drop)
 import qualified Data.PQueue.Max as PQ
 import qualified Data.List       as List
 import qualified Data.Sequence   as Seq
-
-import Spectrum.Executor.Data.OrderState (OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder))
-import Spectrum.Executor.Types (Order, OrderId)
-
-import System.Logging.Hlog (MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM))
 import Control.Monad.IO.Class
 import System.Random
-import RIO hiding (drop)
-import Spectrum.Executor.Backlog.Data.BacklogOrder (mkWeightedOrderWithTimestamp, WeightedOrderWithTimestamp (WeightedOrderWithTimestamp), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp))
-import Spectrum.Executor.Backlog.Persistence.BacklogStore (BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll))
-import Prelude hiding (drop)
-import Spectrum.Executor.Backlog.Config (BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, suspendedPropability))
-import RIO.Time (getCurrentTime, diffUTCTime)
-import Spectrum.HigherKind (LiftK(liftK))
+import RIO
+  ( (<&>), atomicModifyIORef, modifyIORef', newIORef, IORef )
+import RIO.Time 
+  ( getCurrentTime, diffUTCTime )
+
+import System.Logging.Hlog 
+  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
+
+import Spectrum.HigherKind 
+  ( LiftK(liftK) )
+import Spectrum.Executor.Backlog.Data.BacklogOrder 
+  ( mkWeightedOrder, WeightedOrder (WeightedOrder), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp) )
+import Spectrum.Executor.Backlog.Persistence.BacklogStore 
+  ( BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll) )
+import Spectrum.Executor.Backlog.Config 
+  ( BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, suspendedPropability) )
+import Spectrum.Executor.Data.OrderState 
+  ( OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder) )
+import Spectrum.Executor.Types 
+  ( Order, OrderId )
 
 data BacklogService m = BacklogService
   { put        :: OrderInState 'Pending -> m ()
@@ -45,12 +54,12 @@ mkBacklogService MakeLogging{..} config store@BacklogStore{..} = do
   pure $ attachLogging logging BacklogService
     { put = \(PendingOrder order timestamp) -> do
         put $ BacklogOrder timestamp order
-        modifyIORef' pendingPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
+        modifyIORef' pendingPQ (PQ.insert $ mkWeightedOrder order timestamp)
     , suspend = \(SuspendedOrder order timestamp) -> do
-        modifyIORef' suspendedPQ (PQ.insert $ mkWeightedOrderWithTimestamp order timestamp)
+        modifyIORef' suspendedPQ (PQ.insert $ mkWeightedOrder order timestamp)
         exists $ BacklogOrder timestamp order
     , checkLater = \(InProgressOrder order timestamp) -> do
-        modifyIORef' toRevisitQ (mkWeightedOrderWithTimestamp order timestamp Seq.<|)
+        modifyIORef' toRevisitQ (mkWeightedOrder order timestamp Seq.<|)
         exists $ BacklogOrder timestamp order
     , tryAcquire = do
         revisitOrders config store pendingPQ toRevisitQ
@@ -62,18 +71,18 @@ revisitOrders
   :: (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
-  -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
-  -> IORef (Seq.Seq WeightedOrderWithTimestamp)
+  -> IORef (PQ.MaxQueue WeightedOrder)
+  -> IORef (Seq.Seq WeightedOrder)
   -> m ()
 revisitOrders BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisitSeqRef = do
-  currentTime <- getCurrentTime
+  currentTime       <- getCurrentTime
   revisited2process <-
     atomicModifyIORef
       toRevisitSeqRef
-      (Seq.spanl (\(WeightedOrderWithTimestamp _ _ oTime) -> diffUTCTime currentTime oTime < orderExecTime))
-  mapM_ (\order@(WeightedOrderWithTimestamp oId _ oTime) ->
+      (Seq.spanl (\(WeightedOrder _ _ oTime) -> diffUTCTime currentTime oTime < orderExecTime))
+  mapM_ (\order@(WeightedOrder oId _ oTime) ->
           if diffUTCTime currentTime oTime < orderLifetime
-            then modifyIORef pendingQueueRef (PQ.insert order)
+            then modifyIORef' pendingQueueRef (PQ.insert order)
             else dropOrder oId
        ) revisited2process
 
@@ -81,8 +90,8 @@ getMaxWeightedOrder'
   :: forall m. (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
-  -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
-  -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
+  -> IORef (PQ.MaxQueue WeightedOrder)
+  -> IORef (PQ.MaxQueue WeightedOrder)
   -> m (Maybe Order)
 getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
   randomInt <- randomRIO (0, 100) :: m Int
@@ -94,7 +103,7 @@ getMaxPendingOrder
   :: MonadIO m
   => BacklogServiceConfig
   -> BacklogStore m
-  -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
+  -> IORef (PQ.MaxQueue WeightedOrder)
   -> m (Maybe Order)
 getMaxPendingOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} pendingQueueRef = do
   currentTime   <- getCurrentTime
@@ -103,7 +112,7 @@ getMaxPendingOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} pendingQu
       Nothing -> (queue, Nothing)
     )
   case wOrderM of 
-    Just (WeightedOrderWithTimestamp oId _ oTime) -> do
+    Just (WeightedOrder oId _ oTime) -> do
       if diffUTCTime currentTime oTime > orderLifetime
       then dropOrder oId >> getMaxPendingOrder cfg store pendingQueueRef
       else get oId <&> fmap backlogOrder
@@ -113,7 +122,7 @@ getMaxSuspendedOrder
   :: (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
-  -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
+  -> IORef (PQ.MaxQueue WeightedOrder)
   -> m (Maybe Order)
 getMaxSuspendedOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} suspendedQueueRef = do
   currentTime   <- getCurrentTime
@@ -122,7 +131,7 @@ getMaxSuspendedOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} suspend
       Nothing -> (queue, Nothing)
     )
   case maxSuspendedM of
-    Just (WeightedOrderWithTimestamp oId _ oTime) ->
+    Just (WeightedOrder oId _ oTime) ->
       if diffUTCTime currentTime oTime > orderLifetime
       then dropOrder oId >> getMaxSuspendedOrder cfg store suspendedQueueRef
       else get oId <&> fmap backlogOrder
@@ -132,16 +141,16 @@ recover
   :: (MonadIO m)
   => BacklogStore m
   -> BacklogServiceConfig
-  -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
+  -> IORef (PQ.MaxQueue WeightedOrder)
   -> m ()
 recover BacklogStore{..} BacklogServiceConfig{..} pendingQueueRef = do
   ordersInDb  <- getAll
   currentTime <- getCurrentTime
   let
     filteredOrders = List.filter (\BacklogOrder{..} -> diffUTCTime currentTime orderTimestamp < orderExecTime) ordersInDb
-  modifyIORef
+  modifyIORef'
     pendingQueueRef
-    (\queue -> foldr (\BacklogOrder{..} -> PQ.insert (mkWeightedOrderWithTimestamp backlogOrder orderTimestamp)) queue filteredOrders)
+    (\queue -> foldr (\BacklogOrder{..} -> PQ.insert (mkWeightedOrder backlogOrder orderTimestamp)) queue filteredOrders)
 
 attachLogging :: Monad m => Logging m -> BacklogService m -> BacklogService m
 attachLogging Logging{..} BacklogService{..}=

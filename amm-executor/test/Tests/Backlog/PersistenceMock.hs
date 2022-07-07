@@ -1,12 +1,23 @@
 {-# LANGUAGE RecordWildCards #-}
 module Tests.Backlog.PersistenceMock where
 
-import Spectrum.Executor.Backlog.Persistence.BacklogStore
-import Spectrum.Executor.Types (OrderId, orderId)
-import Spectrum.Executor.Backlog.Data.BacklogOrder (BacklogOrder (BacklogOrder, backlogOrder))
 import RIO
-    ( MonadIO, (<&>), isJust, modifyIORef, newIORef, readIORef, IORef)
+  ( MonadIO
+  , (<&>)
+  , isJust
+  , modifyIORef
+  , newIORef
+  , readIORef
+  , IORef
+  )
 import qualified Data.Map as Map
+
+import Spectrum.Executor.Backlog.Persistence.BacklogStore
+  ( BacklogStore(..) )
+import Spectrum.Executor.Types 
+  ( OrderId, orderId )
+import Spectrum.Executor.Backlog.Data.BacklogOrder 
+  ( BacklogOrder (BacklogOrder, backlogOrder) )
 
 mkMockStorage :: (MonadIO m, MonadIO i) => i (BacklogStore m)
 mkMockStorage = do

@@ -4,18 +4,24 @@ module Spectrum.Executor.Backlog.Persistence.BacklogStore
   ) where
 
 import qualified Database.RocksDB as Rocks
+import RIO                        hiding (drop)
+import Prelude                    hiding (drop)
+import Data.Aeson       
+  ( FromJSON )
+import Control.Monad.Trans.Resource
+  ( MonadResource )
 
-import Spectrum.Executor.Types (OrderId, orderId)
+import System.Logging.Hlog 
+  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
+
+import Spectrum.Executor.Types 
+  ( OrderId, orderId )
 import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
-import System.Logging.Hlog (MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM))
-import Spectrum.Executor.Backlog.Persistence.Config (BacklogConfig(..))
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Resource
-import Data.Aeson (FromJSON)
-import RIO hiding (drop)
-import Spectrum.Executor.Backlog.Data.BacklogOrder (BacklogOrder (BacklogOrder, backlogOrder))
-import Prelude hiding (drop)
+import Spectrum.Executor.Backlog.Persistence.Config 
+  ( BacklogConfig(..) )
+import Spectrum.Executor.Backlog.Data.BacklogOrder 
+  ( BacklogOrder (BacklogOrder, backlogOrder) )
 
 data BacklogStore m = BacklogStore
   { put        :: BacklogOrder -> m ()
@@ -44,12 +50,11 @@ mkBacklogStore MakeLogging{..} BacklogConfig{..} = do
     put = Rocks.put db Rocks.defaultWriteOptions
     delete = Rocks.delete @m db Rocks.defaultWriteOptions
   pure $ attachLogging logging BacklogStore
-    { put = \BacklogOrder{..} ->
-        put (serialize . orderId $ backlogOrder) (serialize backlogOrder)
-    , exists = \BacklogOrder{..} -> exists . serialize . orderId $ backlogOrder
+    { put       = \BacklogOrder{..} -> put (serialize . orderId $ backlogOrder) (serialize backlogOrder)
+    , exists    = \BacklogOrder{..} -> exists . serialize . orderId $ backlogOrder
     , dropOrder = delete . serialize
-    , get = get . serialize
-    , getAll = bracket (Rocks.createIter db Rocks.defaultReadOptions) Rocks.releaseIter ((=<<) (mapM deserializeM) . Rocks.iterValues)
+    , get       = get . serialize
+    , getAll    = bracket (Rocks.createIter db Rocks.defaultReadOptions) Rocks.releaseIter ((=<<) (mapM deserializeM) . Rocks.iterValues)
     }
 
 attachLogging :: Monad m => Logging m -> BacklogStore m -> BacklogStore m

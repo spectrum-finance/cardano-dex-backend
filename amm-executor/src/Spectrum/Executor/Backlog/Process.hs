@@ -3,24 +3,25 @@ module Spectrum.Executor.Backlog.Process
   , mkBacklog
   ) where
 
-import qualified Streamly.Prelude as S
-import Streamly.Prelude
-  ( IsStream )
-
-import Spectrum.Executor.Backlog.Service (BacklogService (BacklogService, put, drop))
-
+import Prelude hiding (drop)
 import Control.Monad.IO.Class
   ( MonadIO )
 import Control.Monad.Trans.Control
   ( MonadBaseControl )
 import Control.Monad.Catch
   ( MonadThrow )
+import qualified Streamly.Prelude as S
+import Streamly.Prelude
+  ( IsStream )
+
+import Spectrum.Executor.Backlog.Service (BacklogService (BacklogService, put, drop))
+
 import Spectrum.Executor.Topic
   ( ReadTopic(..) )
 import Spectrum.Common.Streaming.Class
   ( Compile(drain) )
-import Spectrum.Executor.Data.OrderState (OrderInState (ExecutedOrder, CancelledOrder), OrderState (Pending, Executed, Cancelled))
-import Prelude hiding (drop)
+import Spectrum.Executor.Data.OrderState 
+  ( OrderInState (ExecutedOrder, CancelledOrder), OrderState (Pending, Executed, Cancelled) )
 
 newtype Backlog m = Backlog 
   { run :: m ()
