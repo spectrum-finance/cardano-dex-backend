@@ -55,6 +55,6 @@ newtype OrderWeight = OrderWeight Integer
 weightOrder :: Order -> OrderWeight
 weightOrder (OnChain _ Core.AnyOrder{..}) =
   case anyOrderAction of
-    SwapAction Swap{..} -> OrderWeight $ unAmount swapMinQuoteOut * exFeePerTokenNum swapExFee `div` exFeePerTokenDen  swapExFee
+    SwapAction Swap{..}       -> OrderWeight $ unAmount swapMinQuoteOut * exFeePerTokenNum swapExFee `div` exFeePerTokenDen  swapExFee
     DepositAction Deposit{..} -> OrderWeight . unAmount . unExFee $ depositExFee
-    RedeemAction Redeem{..} -> OrderWeight . unAmount . unExFee $ redeemExFee
+    RedeemAction Redeem{..}   -> OrderWeight . unAmount . unExFee $ redeemExFee

@@ -75,8 +75,8 @@ genAssetClass = do
 
 genFullTxOut :: (MonadGen f, Applicative f) => [Value] -> Address -> TxOutDatum -> TxId -> Integer -> f FullTxOut
 genFullTxOut assets address datum txId txOutIndex =
-    pure $ FullTxOut {
-      fullTxOutRef = TxOutRef txId txOutIndex
+    pure $ FullTxOut 
+    { fullTxOutRef = TxOutRef txId txOutIndex
     , fullTxOutAddress = address
     , fullTxOutValue = foldl unionVal mempty assets
     , fullTxOutDatum = datum

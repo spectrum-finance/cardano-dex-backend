@@ -68,12 +68,12 @@ revisitOrders
 revisitOrders BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisitSeqRef = do
   currentTime <- getCurrentTime
   revisited2process <-
-    atomicModifyIORef'
+    atomicModifyIORef
       toRevisitSeqRef
       (Seq.spanl (\(WeightedOrderWithTimestamp _ _ oTime) -> diffUTCTime currentTime oTime < orderExecTime))
   mapM_ (\order@(WeightedOrderWithTimestamp oId _ oTime) ->
           if diffUTCTime currentTime oTime < orderLifetime
-            then modifyIORef' pendingQueueRef (PQ.insert order)
+            then modifyIORef pendingQueueRef (PQ.insert order)
             else dropOrder oId
        ) revisited2process
 
@@ -87,25 +87,26 @@ getMaxWeightedOrder'
 getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
   randomInt <- randomRIO (0, 100) :: m Int
   if randomInt > suspendedPropability
-    then getMaxPendingOrder store pendingQueueRef
+    then getMaxPendingOrder cfg store pendingQueueRef
     else getMaxSuspendedOrder cfg store suspendedQueueRef
 
 getMaxPendingOrder
   :: MonadIO m
-  => BacklogStore m
+  => BacklogServiceConfig
+  -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrderWithTimestamp)
   -> m (Maybe Order)
-getMaxPendingOrder store@BacklogStore{..} pendingQueueRef = do
-  wOrderM <- atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
+getMaxPendingOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} pendingQueueRef = do
+  currentTime   <- getCurrentTime
+  wOrderM       <- atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
       Just (order, newQueue) -> (newQueue, Just order)
       Nothing -> (queue, Nothing)
     )
   case wOrderM of 
-    Just (WeightedOrderWithTimestamp oId _ _) -> do
-      orderM <- get oId <&> fmap backlogOrder
-      case orderM of
-        Just _ -> pure orderM
-        Nothing -> getMaxPendingOrder store pendingQueueRef
+    Just (WeightedOrderWithTimestamp oId _ oTime) -> do
+      if diffUTCTime currentTime oTime > orderLifetime
+      then dropOrder oId >> getMaxPendingOrder cfg store pendingQueueRef
+      else get oId <&> fmap backlogOrder
     Nothing -> pure Nothing
   
 getMaxSuspendedOrder

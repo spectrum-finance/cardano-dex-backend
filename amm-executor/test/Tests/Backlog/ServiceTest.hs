@@ -25,7 +25,7 @@ instance LiftK IO IO where
 
 
 checkBacklogService = testGroup "CheckBacklogService"
-  [ HH.testProperty "try_acquire_of_pending_orders_is_correct" getOrderTest
+  [ HH.testProperty "try_acquire_non_outdated_pending_orders" getOrderTest
   , HH.testProperty "drop_outdated_orders" dropAllOutdatedOrders
   ]
 
