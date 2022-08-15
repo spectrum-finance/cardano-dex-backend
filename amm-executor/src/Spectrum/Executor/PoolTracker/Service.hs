@@ -12,6 +12,7 @@ import Control.Monad.IO.Class
 import System.Logging.Hlog
   ( MakeLogging (MakeLogging, forComponent), Logging (Logging, infoM) )
 
+import qualified ErgoDex.Amm.Pool as Core
 import ErgoDex.Amm.Pool
   ( PoolId )
 import Spectrum.Executor.Data.State
@@ -21,7 +22,7 @@ import Spectrum.Executor.PoolTracker.Data.Traced
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( Pools(..) )
 import Spectrum.Executor.Types
-  ( PoolStateId (PoolStateId), Pool, poolStateId, poolId )
+  ( PoolStateId (PoolStateId), Pool, poolStateId )
 import ErgoDex.State
   ( OnChain(OnChain) )
 
@@ -79,8 +80,8 @@ invalidatePool'
   :: Pools m
   -> Pool
   -> m ()
-invalidatePool' Pools{..} pool =
-  invalidate (poolId pool) (poolStateId pool)
+invalidatePool' Pools{..} pool@(OnChain _ Core.Pool{poolId}) =
+  invalidate poolId (poolStateId pool)
 
 attachLogging :: Monad m => Logging m -> PoolResolver m -> PoolResolver m
 attachLogging Logging{..} PoolResolver{..}=

@@ -34,6 +34,7 @@ common project-config
                         DoAndIfThenElse
                         EmptyDataDecls
                         ExistentialQuantification
+                        LambdaCase
                         FlexibleContexts
                         FlexibleInstances
                         FunctionalDependencies
@@ -107,6 +108,7 @@ library
                      Spectrum.Executor.Backlog.Service
                      Spectrum.Executor.Backlog.Process
                      Spectrum.Executor.Backlog.Config
+                     Spectrum.Executor.OrdersExecutor.Service
                      Spectrum.Common.Persistence.Exception
                      Spectrum.Common.Persistence.Serialization
                      Spectrum.Common.Streaming.Class
@@ -176,6 +178,7 @@ library
                   , dex-core == 0.1.0.0
                   , rocksdb-haskell == 0.1.0.0
                   , cardano-dex-contracts
+                  , submit-api
 
 executable amm-executor-app
     default-language: Haskell2010

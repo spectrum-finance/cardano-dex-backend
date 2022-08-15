@@ -22,8 +22,11 @@ import Control.Monad.Trans.Resource
 import Control.Monad.Catch
   ( MonadThrow )
 
+import qualified ErgoDex.Amm.Pool as Core
+import ErgoDex.State
+  ( OnChain(OnChain) )
 import Spectrum.Executor.Types
-  ( Pool, PoolStateId, poolStateId, poolId, PoolId (PoolId) )
+  ( Pool, PoolStateId, poolStateId, PoolId (PoolId) )
 import Spectrum.Executor.Data.State
   ( Predicted (Predicted), Confirmed (Confirmed), Unconfirmed (Unconfirmed) )
 import Spectrum.Executor.PoolTracker.Data.Traced
@@ -67,20 +70,19 @@ mkPools MakeLogging{..} PoolStoreConfig{..} = do
     , getLastUnconfirmed = get . mkLastUnconfirmedKey
 
     , putPredicted =
-        \tpp@(Traced pp@(Predicted pool) _) -> do
+        \tpp@(Traced pp@(Predicted pool@(OnChain _ Core.Pool{poolId})) _) -> do
           put (mkPredictedKey $ poolStateId pool) (serialize tpp)
-          put (mkLastPredictedKey $ poolId pool) (serialize pp)
+          put (mkLastPredictedKey poolId) (serialize pp)
 
     , putConfirmed =
-        \cp@(Confirmed pool) -> do
-          let pid = poolId pool
-          currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ pid
+        \cp@(Confirmed pool@(OnChain _ Core.Pool{poolId})) -> do
+          currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ poolId
           put (mkPrevConfirmedKey $ poolStateId pool) (serialize currentLastConfirmed)
-          put (mkLastConfirmedKey pid) (serialize cp)
+          put (mkLastConfirmedKey poolId) (serialize cp)
 
     , putUnconfirmed =
-        \up@(Unconfirmed pool) ->
-          put (mkLastUnconfirmedKey $ poolId pool) (serialize up)
+        \up@(Unconfirmed (OnChain _ Core.Pool{poolId})) ->
+          put (mkLastUnconfirmedKey poolId) (serialize up)
 
     , invalidate = \pid sid -> do
         predM <- get @(Predicted Pool) $ mkLastPredictedKey pid
