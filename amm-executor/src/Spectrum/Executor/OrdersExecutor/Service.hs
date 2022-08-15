@@ -3,37 +3,54 @@ module Spectrum.Executor.OrdersExecutor.Service
   , mkOrdersExecutor
   ) where
 
-import SubmitAPI.Service
-import Spectrum.Executor.Backlog.Service (BacklogService (BacklogService, suspend, drop, tryAcquire, checkLater))
+import Prelude hiding (drop)
+import RIO.Time 
+  ( UTCTime, getCurrentTime )
+import RIO
+  ( (&), MonadReader, catch, MonadUnliftIO )
+import qualified RIO.List as List
+import Streamly.Prelude as S
+import Control.Monad.Catch 
+  ( MonadThrow )
+
+import System.Logging.Hlog 
+  ( MakeLogging (MakeLogging, forComponent), Logging (Logging, infoM) )
+
+import CardanoTx.Models 
+  ( TxCandidate, fullTxOutDatum, fullTxOutRef, FullTxOut )
+import qualified CardanoTx.Interop as Interop
+import Cardano.Api 
+  ( Tx )
+import Ouroboros.Network.Subscription.PeerState ()
+
+import qualified ErgoDex.Amm.Orders as Core
+import qualified ErgoDex.Amm.Pool   as Core
+import ErgoDex.Amm.Orders 
+  ( OrderAction (DepositAction, RedeemAction, SwapAction) )
+import ErgoDex.State 
+  ( OnChain(OnChain), Predicted (Predicted), Confirmed (Confirmed) )
+import ErgoDex.Amm.PoolActions 
+  ( PoolActions (PoolActions, runDeposit, runRedeem, runSwap)
+  , OrderExecErr (EmptyPool, PoolNotFoundInFinalTx, PriceTooHigh) 
+  )
+import SubmitAPI.Service 
+  ( Transactions(..) )
+import Core.Throw.Combinators 
+  ( throwMaybe, throwEither )
+
+import Spectrum.Executor.Backlog.Service 
+  ( BacklogService (BacklogService, suspend, drop, tryAcquire, checkLater) )
 import Spectrum.Executor.Types
-    ( Order(..),
-      Pool,
-      orderId )
+    ( Order(..), Pool, orderId )
 import Spectrum.Context
   ( HasType, askContext )
-import RIO
-  ( (&), MonadReader, catch, MonadUnliftIO)
-import qualified ErgoDex.Amm.Orders as Core
-import qualified ErgoDex.Amm.Pool as Core
-import System.Logging.Hlog (MakeLogging (MakeLogging, forComponent), Logging (Logging, infoM))
-import ErgoDex.Amm.Orders (OrderAction (DepositAction, RedeemAction, SwapAction), AnyOrder (AnyOrder, anyOrderPoolId))
-import ErgoDex.State (OnChain(OnChain), Predicted (Predicted), Confirmed (Confirmed))
-import Spectrum.Executor.PoolTracker.Service (PoolResolver (PoolResolver, resolvePool, putPool))
-import ErgoDex.Amm.PoolActions (PoolActions (PoolActions, runDeposit, runRedeem, runSwap), OrderExecErr (EmptyPool, PoolNotFoundInFinalTx, PriceTooHigh))
-import CardanoTx.Models (TxCandidate, fullTxOutDatum, fullTxOutRef, FullTxOut)
-import Core.Throw.Combinators (throwMaybe, throwEither)
-import Control.Monad.Catch (MonadThrow)
-import Streamly.Prelude as S
-import qualified CardanoTx.Interop as Interop
-import Cardano.Api (Tx)
-import qualified RIO.List as List
-import Spectrum.Executor.PoolTracker.Data.Traced (Traced(Traced, prevTxOutRef, tracedState))
-import CardanoTx.ToPlutus (ToPlutus(toPlutus))
-import Spectrum.Executor.Data.OrderState (OrderInState(InProgressOrder, SuspendedOrder))
+import Spectrum.Executor.PoolTracker.Service 
+  ( PoolResolver (PoolResolver, resolvePool, putPool) )
+import Spectrum.Executor.PoolTracker.Data.Traced 
+  ( Traced(Traced, prevTxOutRef, tracedState) )
+import Spectrum.Executor.Data.OrderState 
+  ( OrderInState(InProgressOrder, SuspendedOrder) )
 import qualified Spectrum.Executor.Data.State as State
-import Ouroboros.Network.Subscription.PeerState ()
-import Prelude hiding (drop)
-import RIO.Time (UTCTime, getCurrentTime)
 
 data OrdersExecutor s m = OrdersExecutor
   { run :: s m ()
