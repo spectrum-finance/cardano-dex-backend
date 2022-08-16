@@ -23,7 +23,7 @@ import qualified PlutusTx.Prelude as PlutusTx
 import CardanoTx.Models
   ( FullTxOut (FullTxOut), TxOutDatum (EmptyDatum, KnownDatumHash) )
 import Spectrum.Executor.EventSource.Data.TxContext
-  ( TxCtx(MempoolTx, LedgerTx) )
+  ( TxCtx(MempoolCtx, LedgerCtx) )
 import Ouroboros.Consensus.Cardano.Block
     ( AlonzoEra, EraCrypto, StandardCrypto )
 import Ouroboros.Consensus.Shelley.Ledger (ShelleyHash (unShelleyHash))
@@ -43,7 +43,7 @@ import Data.ByteString.Short (fromShort)
 
 import qualified Ledger.Tx.CardanoAPI as Interop
 import RIO ((<&>))
-import Cardano.Api.Shelley (fromShelleyTxIn, fromShelleyTxOut, CardanoEra (AlonzoEra), ShelleyBasedEra (ShelleyBasedEraAlonzo))
+import Cardano.Api.Shelley (fromShelleyTxIn, fromShelleyTxOut, ShelleyBasedEra (ShelleyBasedEraAlonzo))
 import Data.Foldable (Foldable(toList))
 
 -- | A minimal sufficient representation of an unconfirmed transaction
@@ -62,8 +62,8 @@ data MinimalConfirmedTx = MinimalConfirmedTx
   } deriving (Eq, Show)
 
 data MinimalTx ctx where
-  MinimalMempoolTx :: MinimalUnconfirmedTx -> MinimalTx 'MempoolTx
-  MinimalLedgerTx  :: MinimalConfirmedTx   -> MinimalTx 'LedgerTx
+  MinimalMempoolTx :: MinimalUnconfirmedTx -> MinimalTx 'MempoolCtx
+  MinimalLedgerTx  :: MinimalConfirmedTx   -> MinimalTx 'LedgerCtx
 
 deriving instance Eq (MinimalTx ctx)
 deriving instance Show (MinimalTx ctx)
@@ -71,7 +71,7 @@ deriving instance Show (MinimalTx ctx)
 fromAlonzoLedgerTx
   :: (Crypto crypto, crypto ~ StandardCrypto)
   => ShelleyHash (EraCrypto (AlonzoEra crypto))
-  -> Al.ValidatedTx (AlonzoEra crypto) -> MinimalTx 'LedgerTx
+  -> Al.ValidatedTx (AlonzoEra crypto) -> MinimalTx 'LedgerCtx
 fromAlonzoLedgerTx blockHash vtx =
   let
     body = Al.body vtx

@@ -1,85 +1,64 @@
-{-# LANGUAGE DerivingVia #-}
-
 module Spectrum.Executor.Types
-  ( ConcretePoint(..)
-  , ConcreteHash(..)
-  , toPoint
-  , fromPoint
+  ( PoolStateId(..)
+  , OrderId(..)
+  , poolStateId
+  , orderId
+  , type Pool
+  , type Order
+  , OrderWeight(..)
+  , weightOrder
+  -- re-exports
+  , PoolId(..)
   ) where
 
-import GHC.Generics ( Generic )
+import GHC.Generics 
+  ( Generic )
+import Data.Aeson 
+  ( FromJSON, ToJSON )
 
-import qualified Data.Text as T
+import Ledger
+  ( TxOutRef )
 
-import Data.ByteString.Short
-  ( toShort, fromShort )
-import Data.ByteString.Base16
-  ( encodeBase16 )
-import Data.Aeson
-  ( ToJSON(..), FromJSON(..) )
-import Data.Aeson.Types
-  ( Value(String) )
+import ErgoDex.State
+  ( OnChain (OnChain) )
+import qualified ErgoDex.Amm.Pool as Core
+import qualified ErgoDex.Amm.Orders as Core
+import CardanoTx.Models 
+  ( FullTxOut(fullTxOutRef, FullTxOut) )
+import ErgoDex.Amm.Pool 
+  ( PoolId(..) )
+import ErgoDex.Amm.Orders 
+  ( OrderAction(SwapAction, DepositAction, RedeemAction), Swap (Swap), Deposit (Deposit), Redeem (Redeem) )
+import ErgoDex.Types 
+  ( unExFee, exFeePerTokenDen, exFeePerTokenNum )
+import ErgoDex.Contracts.Types 
+  ( Amount(unAmount) )
 
-
-import qualified Dhall as D
-import Dhall
-  ( FromDhall )
-import Dhall.Core
-  ( Expr(..), Chunks(..) )
-
-import Ouroboros.Consensus.Block
-  ( SlotNo(SlotNo), Point (BlockPoint) )
-import Ouroboros.Network.Block
-  ( HeaderHash, atSlot, withHash )
-import Spectrum.LedgerSync.Protocol.Client
-  ( Block )
-
-import Cardano.Crypto.Hashing
-  ( decodeHash, hashToBytes )
-import Ouroboros.Consensus.HardFork.Combinator.AcrossEras
-  ( getOneEraHash )
-import Ouroboros.Consensus.HardFork.Combinator
-  ( OneEraHash(OneEraHash) )
-import Ouroboros.Consensus.Cardano.Block
-  ( CardanoEras )
-
-data ConcretePoint = ConcretePoint
-  { slot :: SlotNo
-  , hash :: ConcreteHash
-  } deriving (Generic, Eq, Show, FromDhall, ToJSON, FromJSON)
-
-toPoint :: ConcretePoint -> Point Block
-toPoint ConcretePoint{slot, hash=ConcreteHash hash} = BlockPoint{atSlot=slot, withHash=hash}
-
-fromPoint :: Point Block -> ConcretePoint
-fromPoint BlockPoint{atSlot, withHash} = ConcretePoint{slot=atSlot, hash=ConcreteHash withHash}
-
-instance FromDhall SlotNo where
-  autoWith _ = D.Decoder{..}
-    where
-      extract (NaturalLit nat) = pure $ SlotNo $ fromIntegral nat
-      extract expr             = D.typeError expected expr
-
-      expected = pure Natural
-
-newtype ConcreteHash = ConcreteHash (HeaderHash Block)
+newtype PoolStateId = PoolStateId
+  { unPoolStateId :: TxOutRef
+  }
   deriving newtype (Eq, Show)
 
-instance FromDhall ConcreteHash where
-  autoWith _ = D.Decoder{..}
-    where
-      extract (TextLit (Chunks [] t)) = either (D.extractError . T.pack) (pure . ConcreteHash) $ oneEraHashFromString t
-      extract expr                    = D.typeError expected expr
+newtype OrderId = OrderId TxOutRef
+  deriving newtype (Eq, Show, FromJSON, ToJSON, Ord)
+  deriving (Generic)
 
-      expected = pure Text
+type Pool = OnChain Core.Pool
 
-instance ToJSON ConcreteHash where
-  toJSON (ConcreteHash hh) = toJSON . encodeBase16 . fromShort . getOneEraHash $ hh
+poolStateId :: Pool -> PoolStateId
+poolStateId (OnChain FullTxOut{..} _) = PoolStateId fullTxOutRef
 
-instance FromJSON ConcreteHash where
-  parseJSON (String s) = either fail (pure . ConcreteHash) $ oneEraHashFromString s
-  parseJSON _          = fail "Expected a string"
+type Order = OnChain Core.AnyOrder
 
-oneEraHashFromString :: D.Text -> Either String (OneEraHash (CardanoEras crypto))
-oneEraHashFromString =
-  either (const $ Left "Invalid hash") (pure . OneEraHash . toShort . hashToBytes) . decodeHash
+orderId :: Order -> OrderId
+orderId (OnChain FullTxOut{..} _) = OrderId fullTxOutRef
+
+newtype OrderWeight = OrderWeight Integer
+  deriving newtype (Eq, Ord, Show)
+
+weightOrder :: Order -> OrderWeight
+weightOrder (OnChain _ Core.AnyOrder{..}) =
+  case anyOrderAction of
+    SwapAction Swap{..}       -> OrderWeight $ unAmount swapMinQuoteOut * exFeePerTokenNum swapExFee `div` exFeePerTokenDen  swapExFee
+    DepositAction Deposit{..} -> OrderWeight . unAmount . unExFee $ depositExFee
+    RedeemAction Redeem{..}   -> OrderWeight . unAmount . unExFee $ redeemExFee

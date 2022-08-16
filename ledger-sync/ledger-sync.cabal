@@ -36,6 +36,7 @@ common project-config
                         FlexibleContexts
                         FlexibleInstances
                         FunctionalDependencies
+                        UndecidableInstances
                         GADTs
                         GeneralizedNewtypeDeriving
                         InstanceSigs
@@ -90,6 +91,7 @@ library
                   , lens-aeson
                   , rio
                   , bytestring
+                  , mmorph == 1.1.5
                   , generic-lens == 2.2.0.0
                   , containers == 0.6.2.1
                   , stm == 2.5.0.1

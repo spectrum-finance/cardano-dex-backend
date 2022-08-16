@@ -43,7 +43,7 @@ import Control.Monad.Base
 import Control.Monad.Class.MonadThrow
   ( MonadThrow, MonadMask, MonadCatch )
 import Control.Monad.Trans.Resource
-  ( MonadResource )
+  ( ResourceT, runResourceT, MonadUnliftIO )
 import Control.Monad.Trans.Class
   ( MonadTrans(lift) )
 import qualified Control.Monad.Catch as MC
@@ -69,26 +69,28 @@ import Spectrum.Executor.Config
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 
-data Env m = Env
+data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
   , eventSourceConfig  :: !EventSourceConfig
   , lederHistoryConfig :: !LedgerStoreConfig
   , networkParams      :: !NetworkParameters
-  , mkLogging          :: !(MakeLogging m m)
+  , mkLogging          :: !(MakeLogging f m)
+  , mkLogging'         :: !(MakeLogging m m)
   } deriving stock (Generic)
 
 newtype App a = App
-  { unApp :: ReaderT (Env App) IO a
-  } deriving anyclass MonadResource
-    deriving newtype
+  { unApp :: ReaderT (Env Wire App) IO a
+  } deriving newtype
     ( Functor, Applicative, Monad
-    , MonadReader (Env App)
+    , MonadReader (Env Wire App)
     , MonadIO
     , MonadSTM, MonadST
     , MonadAsync, MonadThread, MonadFork
     , MonadThrow, MC.MonadThrow, MonadCatch, MonadMask
-    , MonadBase IO, MonadBaseControl IO
+    , MonadBase IO, MonadBaseControl IO, MonadUnliftIO
     )
+
+type Wire = ResourceT App 
 
 runApp :: [String] -> IO ()
 runApp args = do
@@ -98,22 +100,23 @@ runApp args = do
   let
     env =
       Env ledgerSyncConfig eventSourceConfig ledgerStoreConfig nparams
-        $ translateMakeLogging (App . lift) mkLogging
-  runContext env wireApp
+        (translateMakeLogging (lift . App . lift) mkLogging)
+        (translateMakeLogging (App . lift) mkLogging)
+  runContext env (runResourceT wireApp)
 
-wireApp :: App ()
+wireApp :: Wire ()
 wireApp = interceptSigTerm >> do
   env <- ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
-  lsync <- mkLedgerSync (runContext env) tr
+  lsync <- lift $ mkLedgerSync (runContext env) tr
   ds    <- mkEventSource lsync
-  S.drain $ upstream ds
+  lift . S.drain . upstream $ ds
 
-runContext :: Env App -> App a -> IO a
+runContext :: Env Wire App -> App a -> IO a
 runContext env app = runReaderT (unApp app) env
 
-interceptSigTerm :: App ()
+interceptSigTerm :: Wire ()
 interceptSigTerm =
-    liftIO $ void $ installHandler softwareTermination handler Nothing
+    lift $ liftIO $ void $ installHandler softwareTermination handler Nothing
   where
     handler = CatchOnce $ raiseSignal keyboardSignal

@@ -3,9 +3,11 @@ module Spectrum.Executor.EventSource.Stream
   , mkEventSource
   ) where
 
-import RIO ( (&), MonadReader, (<&>), fromMaybe, ($>) )
+import RIO
+  ( (&), MonadReader, (<&>), fromMaybe, ($>) )
 
-import Data.ByteString.Short (toShort)
+import Data.ByteString.Short
+  ( toShort )
 
 import Control.Monad.Trans.Control
   ( MonadBaseControl )
@@ -46,7 +48,7 @@ import Spectrum.Context
   ( HasType, askContext )
 import Spectrum.Executor.Config
   ( EventSourceConfig (EventSourceConfig, startAt) )
-import Spectrum.Executor.Types
+import Spectrum.Executor.EventSource.Types
   ( ConcretePoint (ConcretePoint)
   , toPoint
   , fromPoint
@@ -58,7 +60,7 @@ import Spectrum.Executor.EventSource.Persistence.LedgerHistory
 import Spectrum.Executor.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx, UnappliedTx) )
 import Spectrum.Executor.EventSource.Data.TxContext
-  ( TxCtx(LedgerTx) )
+  ( TxCtx(LedgerCtx) )
 import Spectrum.LedgerSync.Data.LedgerUpdate
   ( LedgerUpdate(RollForward, RollBackward) )
 import Ouroboros.Consensus.Block
@@ -67,24 +69,28 @@ import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
   ( BlockLinks(BlockLinks, txIds, prevPoint) )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
+import Spectrum.HigherKind
+  ( LiftK (liftK) )
 
-newtype EventSource s m = EventSource
-  { upstream :: s m (TxEvent 'LedgerTx)
+newtype EventSource s m ctx = EventSource
+  { upstream :: s m (TxEvent ctx)
   }
 
 mkEventSource
-  :: forall m s env.
-    ( IsStream s
+  :: forall f m s env.
+    ( Monad f
+    , MonadResource f
+    , LiftK m f
+    , IsStream s
     , Monad (s m)
     , MonadAsync m
-    , MonadResource m
-    , MonadReader env m
-    , HasType (MakeLogging m m) env
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
     , HasType EventSourceConfig env
     , HasType LedgerStoreConfig env
     )
   => LedgerSync m
-  -> m (EventSource s m)
+  -> f (EventSource s m 'LedgerCtx)
 mkEventSource lsync = do
   mklog@MakeLogging{..}      <- askContext
   EventSourceConfig{startAt} <- askContext
@@ -93,7 +99,7 @@ mkEventSource lsync = do
   logging     <- forComponent "EventSource"
   persistence <- mkLedgerHistory mklog lhcong
 
-  seekToBeginning logging persistence lsync startAt
+  liftK $ seekToBeginning logging persistence lsync startAt
   pure $ EventSource $ upstream' logging persistence lsync
 
 upstream'
@@ -101,7 +107,7 @@ upstream'
   => Logging m
   -> LedgerHistory m
   -> LedgerSync m
-  -> s m (TxEvent 'LedgerTx)
+  -> s m (TxEvent 'LedgerCtx)
 upstream' logging@Logging{..} persistence LedgerSync{..}
   = S.repeatM pull >>= processUpdate logging persistence
   & S.trace (infoM . show)
@@ -117,7 +123,7 @@ processUpdate
   => Logging m
   -> LedgerHistory m
   -> LedgerUpdate Block
-  -> s m (TxEvent 'LedgerTx)
+  -> s m (TxEvent 'LedgerCtx)
 processUpdate
   _
   LedgerHistory{..}
@@ -142,11 +148,11 @@ streamUnappliedTxs
   => Logging m
   -> LedgerHistory m
   -> Point Block
-  -> s m (TxEvent 'LedgerTx)
+  -> s m (TxEvent 'LedgerCtx)
 streamUnappliedTxs Logging{..} LedgerHistory{..} point = join $ S.fromEffect $ do
   knownPoint <- pointExists $ fromPoint point
   let
-    rollbackOne :: ConcretePoint -> s m (TxEvent 'LedgerTx)
+    rollbackOne :: ConcretePoint -> s m (TxEvent 'LedgerCtx)
     rollbackOne pt = do
       block <- S.fromEffect $ getBlock pt
       case block of

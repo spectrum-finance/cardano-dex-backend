@@ -5,13 +5,13 @@ module Spectrum.Executor.EventSource.Data.TxEvent
 import Spectrum.Executor.EventSource.Data.Tx
   ( MinimalTx )
 import Spectrum.Executor.EventSource.Data.TxContext
-  ( TxCtx(MempoolTx, LedgerTx) )
+  ( TxCtx(MempoolCtx, LedgerCtx) )
 import qualified Ledger as P
 
 data TxEvent ctx where
-  PendingTx   :: MinimalTx 'MempoolTx -> TxEvent 'MempoolTx
-  AppliedTx   :: MinimalTx 'LedgerTx  -> TxEvent 'LedgerTx
-  UnappliedTx :: P.TxId -> TxEvent 'LedgerTx
+  PendingTx   :: MinimalTx 'MempoolCtx -> TxEvent 'MempoolCtx
+  AppliedTx   :: MinimalTx 'LedgerCtx  -> TxEvent 'LedgerCtx
+  UnappliedTx :: P.TxId -> TxEvent 'LedgerCtx
 
 deriving instance Eq (TxEvent ctx)
 deriving instance Show (TxEvent ctx)

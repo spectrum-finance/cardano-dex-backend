@@ -18,8 +18,6 @@ import Control.Monad.Class.MonadST
   ( MonadST )
 import Control.Monad.Class.MonadAsync
   ( MonadAsync )
-import Control.Monad.Trans.Resource
-  ( MonadResource )
 import Control.Monad.Class.MonadFork
   ( MonadFork (forkIO) )
 
@@ -58,6 +56,8 @@ import Spectrum.LedgerSync.Protocol.ChainSync
   ( mkChainSyncClient )
 import Spectrum.LedgerSync.Protocol.Client
   ( mkClient, connectClient, Block )
+import Control.Monad.IO.Class (MonadIO)
+import Spectrum.HigherKind (FunctorK(..))
 
 data LedgerSync m = LedgerSync
   { pull    :: m (LedgerUpdate Block)
@@ -65,13 +65,21 @@ data LedgerSync m = LedgerSync
   , seekTo  :: Point Block -> m ()
   }
 
+instance FunctorK LedgerSync where
+  fmapK trans LedgerSync{..} =
+    LedgerSync
+      { pull    = trans pull
+      , tryPull = trans tryPull
+      , seekTo  = trans . seekTo
+      }
+
 mkLedgerSync
   :: forall m env.
     ( MonadAsync m
     , MonadFork m
     , MonadMask m
     , MonadST m
-    , MonadResource m
+    , MonadIO m
     , MonadReader env m
     , HasType LedgerSyncConfig env
     , HasType NetworkParameters env
@@ -91,7 +99,7 @@ mkLedgerSync unliftIO tr = do
     chainSyncClient = mkChainSyncClient (naturalToInt maxInFlight) outQ inQ
     client          = mkClient unliftIO slotsPerEpoch chainSyncClient
     versions        = NodeToClientVersionData networkMagic
-  
+
   infoM @String "Connecting Node Client"
   void $ forkIO $ connectClient (natTracer unliftIO tr) client versions nodeSocketPath
   infoM @String "LedgerSync initialized successfully"
