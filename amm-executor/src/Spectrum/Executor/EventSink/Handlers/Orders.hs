@@ -12,7 +12,7 @@ import Spectrum.Executor.EventSink.Types
 import Spectrum.Executor.EventSource.Data.Tx
   ( MinimalTx(MinimalLedgerTx), MinimalConfirmedTx (..) )
 import Spectrum.Executor.EventSink.Data.OrderEvent
-  ( PendingOrderEvent, OrderEvent (PendingOrder) )
+  ( PendingOrder(..) )
 import Spectrum.Executor.Topic
   ( WriteTopic (..) )
 import ErgoDex.Amm.Orders
@@ -28,18 +28,21 @@ import ErgoDex.State
   ( OnChain (OnChain) )
 import ErgoDex.Class
   ( FromLedger(parseFromLedger) )
+import Spectrum.Executor.Data.State
+  ( Confirmed(..) )
+import Spectrum.Executor.Types (Order)
 
 mkPendingOrdersHandler
   :: Monad m
-  => WriteTopic m (PendingOrderEvent (OnChain AnyOrder))
+  => WriteTopic m (PendingOrder Confirmed)
   -> EventHandler m ctx
 mkPendingOrdersHandler WriteTopic{..} = \case 
   AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) ->
-    foldl process (pure Nothing) (txOutputs <&> parseOrder)
+    foldl process (pure Nothing) (txOutputs <&> parseOrder <&> (<&> Confirmed))
       where process _ ordM = mapM publish $ ordM <&> PendingOrder
   _ -> pure Nothing
 
-parseOrder :: FullTxOut -> Maybe (OnChain AnyOrder)
+parseOrder :: FullTxOut -> Maybe Order
 parseOrder out =
   let
     swap    = parseFromLedger @Swap out

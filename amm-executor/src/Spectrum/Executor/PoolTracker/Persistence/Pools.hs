@@ -4,11 +4,13 @@ module Spectrum.Executor.PoolTracker.Persistence.Pools
   ) where
 
 import RIO
-  ( IsString(fromString), ByteString, void )
+  ( IsString(fromString), ByteString )
 
 import qualified Database.RocksDB as Rocks
 
 import qualified Data.ByteString.UTF8 as Utf8
+import Data.Aeson
+  ( FromJSON )
 
 import System.Logging.Hlog
   ( MakeLogging(..), Logging (Logging, infoM) )
@@ -17,24 +19,22 @@ import Control.Monad.IO.Class
   ( MonadIO )
 import Control.Monad.Trans.Resource
   ( MonadResource )
+import Control.Monad.Catch
+  ( MonadThrow )
 
-import ErgoDex.Amm.Pool
-  ( PoolId (PoolId) )
+import qualified ErgoDex.Amm.Pool as Core
 import ErgoDex.State
-  ( OnChain (OnChain) )
-import Spectrum.Executor.Data.PoolState
-  ( Predicted (Predicted), Confirmed (Confirmed), Unconfirmed (Unconfirmed), Pool )
+  ( OnChain(OnChain) )
+import Spectrum.Executor.Types
+  ( Pool, PoolStateId, poolStateId, PoolId (PoolId) )
+import Spectrum.Executor.Data.State
+  ( Predicted (Predicted), Confirmed (Confirmed), Unconfirmed (Unconfirmed) )
 import Spectrum.Executor.PoolTracker.Data.Traced
   ( Traced (Traced) )
 import Spectrum.Executor.PoolTracker.Persistence.Config
   ( PoolStoreConfig(..) )
 import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
-import qualified ErgoDex.Amm.Pool as Core
-import Spectrum.Executor.Types (PoolStateId)
-import CardanoTx.Models (FullTxOut(FullTxOut, fullTxOutRef))
-import Control.Monad.Catch (MonadThrow)
-import Data.Aeson (FromJSON)
 
 data Pools m = Pools
   { getPrediction      :: PoolStateId -> m (Maybe (Traced (Predicted Pool)))
@@ -70,46 +70,46 @@ mkPools MakeLogging{..} PoolStoreConfig{..} = do
     , getLastUnconfirmed = get . mkLastUnconfirmedKey
 
     , putPredicted =
-        \tpp@(Traced pp@(Predicted (OnChain FullTxOut{..} Core.Pool{..})) _) -> do
-          put (mkPredictedKey fullTxOutRef) (serialize tpp)
+        \tpp@(Traced pp@(Predicted pool@(OnChain _ Core.Pool{poolId})) _) -> do
+          put (mkPredictedKey $ poolStateId pool) (serialize tpp)
           put (mkLastPredictedKey poolId) (serialize pp)
 
     , putConfirmed =
-        \cp@(Confirmed (OnChain FullTxOut{..} Core.Pool{..})) -> do
+        \cp@(Confirmed pool@(OnChain _ Core.Pool{poolId})) -> do
           currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ poolId
-          put (mkPrevConfirmedKey fullTxOutRef) (serialize currentLastConfirmed)
+          put (mkPrevConfirmedKey $ poolStateId pool) (serialize currentLastConfirmed)
           put (mkLastConfirmedKey poolId) (serialize cp)
 
     , putUnconfirmed =
-        \up@(Unconfirmed (OnChain _ Core.Pool{..})) ->
+        \up@(Unconfirmed (OnChain _ Core.Pool{poolId})) ->
           put (mkLastUnconfirmedKey poolId) (serialize up)
 
     , invalidate = \pid sid -> do
         predM <- get @(Predicted Pool) $ mkLastPredictedKey pid
         mapM_
-          (\((Predicted (OnChain FullTxOut{..} _))) ->
-            if fullTxOutRef == sid
+          (\((Predicted pool)) ->
+            if poolStateId pool == sid
               then delete (mkPredictedKey sid) >> delete (mkLastPredictedKey pid)
               else pure () )
           predM
         unconfirmedM <- get @(Unconfirmed Pool) $ mkLastUnconfirmedKey pid
         mapM_
-          (\((Unconfirmed (OnChain FullTxOut{..} _))) ->
-            if fullTxOutRef == sid
+          (\((Unconfirmed pool)) ->
+            if poolStateId pool == sid
               then delete $ mkLastUnconfirmedKey pid
               else pure () )
           unconfirmedM
         confirmedM <- get @(Confirmed Pool) $ mkLastConfirmedKey pid
-        mapM_ (\((Confirmed (OnChain FullTxOut{..} Core.Pool{..}))) ->
-          if fullTxOutRef == sid
+        mapM_ (\(Confirmed pool) ->
+          if poolStateId pool == sid
           then do
-            prevConfPoolM <- get @(Confirmed Pool) $ mkPrevConfirmedKey fullTxOutRef
+            prevConfPoolM <- get @(Confirmed Pool) $ mkPrevConfirmedKey sid
             case prevConfPoolM of
               Just prevConfirmedPool ->
-                delete (mkPrevConfirmedKey fullTxOutRef) >>
-                put (mkLastConfirmedKey poolId) (serialize prevConfirmedPool)
+                delete (mkPrevConfirmedKey sid) >>
+                put (mkLastConfirmedKey pid) (serialize prevConfirmedPool)
               Nothing ->
-                delete (mkLastConfirmedKey poolId)
+                delete (mkLastConfirmedKey pid)
           else pure () ) confirmedM
     }
 
@@ -159,13 +159,13 @@ attachLogging Logging{..} Pools{..} =
     }
 
 mkLastPredictedKey :: PoolId -> ByteString
-mkLastPredictedKey (PoolId poolId) = Utf8.fromString $ "predicted:last:" <> show poolId
+mkLastPredictedKey (PoolId pid) = Utf8.fromString $ "predicted:last:" <> show pid
 
 mkLastConfirmedKey :: PoolId -> ByteString
-mkLastConfirmedKey (PoolId poolId) = Utf8.fromString $ "confirmed:last:" <> show poolId
+mkLastConfirmedKey (PoolId pid) = Utf8.fromString $ "confirmed:last:" <> show pid
 
 mkLastUnconfirmedKey :: PoolId -> ByteString
-mkLastUnconfirmedKey (PoolId poolId) = Utf8.fromString $ "unconfirmed:last:" <> show poolId
+mkLastUnconfirmedKey (PoolId pid) = Utf8.fromString $ "unconfirmed:last:" <> show pid
 
 mkPredictedKey :: PoolStateId -> ByteString
 mkPredictedKey sid = fromString $ "predicted:prev:" <> show sid
