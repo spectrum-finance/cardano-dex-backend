@@ -11,7 +11,7 @@ import Spectrum.Prelude ( UnliftIO )
 import GHC.Num ( naturalToInt )
 
 import Control.Monad.Class.MonadSTM
-  ( MonadSTM (..), MonadSTMTx (..), TQueue )
+  ( MonadSTM (..), TQueue )
 import Control.Monad.Class.MonadThrow
   ( MonadThrow (throwIO), MonadMask )
 import Control.Monad.Class.MonadST

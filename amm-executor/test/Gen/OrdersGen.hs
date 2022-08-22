@@ -6,7 +6,7 @@ module Gen.OrdersGen where
 import qualified Data.Text as T
 import Hedgehog (MonadGen)
 import RIO 
-  ( (<&>) )
+  ( (<&>), MonadIO )
 import Hedgehog.Gen (bytes, int)
 import Hedgehog.Range as Range
 
@@ -20,10 +20,10 @@ import Plutus.V1.Ledger.Value as Value
   ( singleton )
 import Ledger
     ( TxId(TxId), TxOutRef(TxOutRef), Address, PubKeyHash (PubKeyHash), Datum (Datum) )
-import Ledger.Typed.Scripts.Validators 
-  ( validatorAddress )
 import Plutus.V1.Ledger.Api 
   ( toBuiltin, ToData (toBuiltinData) )
+import qualified Plutus.Script.Utils.V2.Address  as PV2
+import qualified Plutus.V2.Ledger.Api            as PV2
 
 import qualified ErgoDex.Amm.Orders as Orders
 import ErgoDex.Types 
@@ -54,8 +54,8 @@ import ErgoDex.Amm.Pool
   , poolCoinY
   , unPoolId
   )
-import ErgoDex.Contracts.Proxy.OffChain 
-  ( swapInstance )
+import ErgoDex.PValidators
+  ( swapValidator )
 import qualified ErgoDex.Contracts.Proxy.Swap as Contract
 import qualified ErgoDex.Amm.Orders           as Contract
 import ErgoDex.State 
@@ -133,8 +133,8 @@ mkAdaValue = mkValue mkAdaAssetClass
 genPubKeyHash :: MonadGen f => f PubKeyHash
 genPubKeyHash = genBuiltinByteString 32 <&> PubKeyHash
 
-genSwapOrder :: forall f. (MonadGen f, Applicative f) => PubKeyHash -> Pool -> f Spectrum.Order
-genSwapOrder pkh Pool{..} = do
+genSwapOrder :: forall f. (MonadGen f, Applicative f) => PubKeyHash -> PV2.Validator -> Pool -> f Spectrum.Order
+genSwapOrder pkh swapInstance Pool{..} = do
   let
     baseAmountRange  = constant 1 (fromInteger . unAmount $ poolReservesX)
     quoteAmountRange = constant 1 (fromInteger . unAmount $ poolReservesY)
@@ -165,7 +165,7 @@ genSwapOrder pkh Pool{..} = do
       , minQuoteAmount   = unAmount quoteAmount
      }
     values       = foldl unionVal (mkAdaValue 1000000) [coinAmountValue (Coin (unCoin poolCoinX)) baseAmount, coinAmountValue (Coin (unCoin poolCoinY)) quoteAmount]
-    swapAddr     = validatorAddress swapInstance
+    swapAddr     = PV2.mkValidatorAddress swapInstance
     swapAction   = SwapAction swapOrder
     swapAnyOrder = AnyOrder poolId swapAction
   txId  <- genTxId

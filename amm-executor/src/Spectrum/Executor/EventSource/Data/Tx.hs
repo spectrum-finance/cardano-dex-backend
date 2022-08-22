@@ -4,7 +4,7 @@ module Spectrum.Executor.EventSource.Data.Tx
   ( MinimalUnconfirmedTx(..)
   , MinimalConfirmedTx(..)
   , MinimalTx(..)
-  , fromAlonzoLedgerTx
+  , fromBabbageLedgerTx
   ) where
 
 import qualified Ledger as P
@@ -13,7 +13,7 @@ import qualified Data.Set as Set
 import Data.ByteString.Short (ShortByteString, fromShort)
 import qualified Data.Sequence.Strict as StrictSeq
 
-import qualified Cardano.Ledger.Alonzo.Tx as Al
+import qualified Cardano.Ledger.Babbage.Tx as Al
 
 import qualified Cardano.Protocol.TPraos.BHeader as TPraos
 import qualified Cardano.Crypto.Hash.Class as CC
@@ -25,7 +25,7 @@ import CardanoTx.Models
 import Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(MempoolCtx, LedgerCtx) )
 import Ouroboros.Consensus.Cardano.Block
-    ( AlonzoEra, EraCrypto, StandardCrypto )
+    ( AlonzoEra, EraCrypto, StandardCrypto, BabbageEra)
 import Ouroboros.Consensus.Shelley.Ledger (ShelleyHash (unShelleyHash))
 import qualified Cardano.Ledger.Address as Ledger
 import qualified Cardano.Ledger.AuxiliaryData as Ledger
@@ -43,8 +43,10 @@ import Data.ByteString.Short (fromShort)
 
 import qualified Ledger.Tx.CardanoAPI as Interop
 import RIO ((<&>))
-import Cardano.Api.Shelley (fromShelleyTxIn, fromShelleyTxOut, ShelleyBasedEra (ShelleyBasedEraAlonzo))
+import Cardano.Api.Shelley (fromShelleyTxIn, fromShelleyTxOut, ShelleyBasedEra (ShelleyBasedEraAlonzo, ShelleyBasedEraBabbage))
 import Data.Foldable (Foldable(toList))
+import qualified Crypto.ECC.Ed25519BIP32 as TPraos
+import Cardano.Ledger.Serialization (Sized(sizedValue))
 
 -- | A minimal sufficient representation of an unconfirmed transaction
 data MinimalUnconfirmedTx = MinimalUnconfirmedTx
@@ -68,17 +70,16 @@ data MinimalTx ctx where
 deriving instance Eq (MinimalTx ctx)
 deriving instance Show (MinimalTx ctx)
 
-fromAlonzoLedgerTx
+fromBabbageLedgerTx
   :: (Crypto crypto, crypto ~ StandardCrypto)
-  => ShelleyHash (EraCrypto (AlonzoEra crypto))
-  -> Al.ValidatedTx (AlonzoEra crypto) -> MinimalTx 'LedgerCtx
-fromAlonzoLedgerTx blockHash vtx =
+  => ShelleyHash (EraCrypto (BabbageEra crypto))
+  -> Al.ValidatedTx (BabbageEra crypto) -> MinimalTx 'LedgerCtx
+fromBabbageLedgerTx blockHash vtx =
   let
     body = Al.body vtx
     blockId
       = P.BlockId
       . CC.hashToBytes
-      . TPraos.unHashHeader
       $ unShelleyHash blockHash
     txId
       = P.TxId
@@ -90,7 +91,7 @@ fromAlonzoLedgerTx blockHash vtx =
       $ body
     fromCardanoTxIn tin = P.TxIn (Interop.fromCardanoTxIn (fromShelleyTxIn tin)) Nothing
     fromCardanoTxOut ix tout =
-      Interop.fromCardanoTxOut (fromShelleyTxOut ShelleyBasedEraAlonzo tout) <&> (\P.TxOut{..} ->
+      Interop.fromCardanoTxOut (fromShelleyTxOut ShelleyBasedEraBabbage (sizedValue tout)) <&> (\P.TxOut{..} ->
         FullTxOut
           (P.TxOutRef txId ix)
           txOutAddress

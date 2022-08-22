@@ -1,7 +1,19 @@
 module Spectrum.LedgerSync.Protocol.Client where
 
+import Prelude hiding
+    ( read )
+
+import Cardano.Chain.Slotting
+    ( EpochSlots (..) )
+import Cardano.Ledger.Crypto
+    ( StandardCrypto )
+import Cardano.Network.Protocol.NodeToClient.Trace
+    ( TraceClient (..) )
+import Cardano.Slotting.Slot
+    ( SlotNo )
 import Control.Monad.Class.MonadAsync
     ( MonadAsync )
+import Control.Monad.Class.MonadSTM
 import Control.Monad.Class.MonadST
     ( MonadST )
 import Control.Monad.Class.MonadThrow
@@ -10,8 +22,6 @@ import Control.Monad.IO.Class
     ( MonadIO (..) )
 import Control.Tracer
     ( Tracer (..), contramap, nullTracer )
-import           Control.Monad.Class.MonadSTM
-
 import Data.ByteString.Lazy
     ( ByteString )
 import Data.Kind
@@ -22,16 +32,8 @@ import Data.Proxy
     ( Proxy (..) )
 import Data.Void
     ( Void )
-
-import Cardano.Chain.Slotting
-    ( EpochSlots (..) )
-import Cardano.Ledger.Crypto
-    ( StandardCrypto )
-import Cardano.Network.Protocol.NodeToClient.Trace
-    ( TraceClient (..) )
-
 import Network.Mux
-    ( MuxMode (..), MiniProtocolNum (MiniProtocolNum), MiniProtocolLimits (MiniProtocolLimits, maximumIngressQueue) )
+    ( MuxError (..), MuxMode (..), MiniProtocolLimits (MiniProtocolLimits) )
 import Network.TypedProtocol.Codec
     ( Codec )
 import Network.TypedProtocol.Codec.CBOR
@@ -41,36 +43,49 @@ import Ouroboros.Consensus.Byron.Ledger.Config
 import Ouroboros.Consensus.Cardano
     ( CardanoBlock )
 import Ouroboros.Consensus.Cardano.Block
-    ( CardanoEras, CodecConfig (..) )
+    ( CardanoEras, CodecConfig (..), HardForkApplyTxErr )
+import Ouroboros.Consensus.Ledger.Query
+    ( Query (..) )
+import Ouroboros.Consensus.Ledger.SupportsMempool
+    ( GenTx, GenTxId )
 import Ouroboros.Consensus.Network.NodeToClient
     ( ClientCodecs, Codecs' (..), clientCodecs )
 import Ouroboros.Consensus.Node.NetworkProtocolVersion
     ( SupportedNetworkProtocolVersion (..) )
+import Ouroboros.Consensus.Protocol.Praos.Translate
+    ()
 import Ouroboros.Consensus.Shelley.Ledger.Config
     ( CodecConfig (..) )
+import Ouroboros.Consensus.Shelley.Ledger.SupportsProtocol
+    ()
 import Ouroboros.Network.Block
     ( Point (..), Tip (..) )
 import Ouroboros.Network.Channel
     ( Channel, hoistChannel )
 import Ouroboros.Network.Driver.Simple
-    ( TraceSendRecv, runPipelinedPeer )
+    ( TraceSendRecv, runPeer, runPipelinedPeer )
 import Ouroboros.Network.Mux
-    ( MuxPeer (..), OuroborosApplication (..), RunMiniProtocol (..), ControlMessage, MiniProtocol (..) )
 import Ouroboros.Network.NodeToClient
-    ( LocalAddress
-    , NetworkConnectTracers (..)
-    , NodeToClientVersion (..)
-    , NodeToClientVersionData (..)
-    , connectTo
-    , localSnocket
-    , withIOManager, ConnectionId
-    )
 import Ouroboros.Network.Protocol.ChainSync.ClientPipelined
     ( ChainSyncClientPipelined, chainSyncClientPeerPipelined )
 import Ouroboros.Network.Protocol.ChainSync.Type
     ( ChainSync )
+import Ouroboros.Network.Protocol.Handshake.Type
+    ( HandshakeProtocolError (..) )
 import Ouroboros.Network.Protocol.Handshake.Version
     ( combineVersions, simpleSingletonVersions )
+import Ouroboros.Network.Protocol.LocalStateQuery.Client
+    ( LocalStateQueryClient, localStateQueryClientPeer )
+import Ouroboros.Network.Protocol.LocalStateQuery.Type
+    ( LocalStateQuery )
+import Ouroboros.Network.Protocol.LocalTxMonitor.Client
+    ( LocalTxMonitorClient, localTxMonitorClientPeer )
+import Ouroboros.Network.Protocol.LocalTxMonitor.Type
+    ( LocalTxMonitor )
+import Ouroboros.Network.Protocol.LocalTxSubmission.Client
+    ( LocalTxSubmissionClient, localTxSubmissionClientPeer )
+import Ouroboros.Network.Protocol.LocalTxSubmission.Type
+    ( LocalTxSubmission )
 
 -- | Concrete block type.
 type Block = CardanoBlock StandardCrypto
@@ -185,10 +200,11 @@ codecs epochSlots nodeToClientV =
     clientCodecs cfg (supportedVersions ! nodeToClientV) nodeToClientV
   where
     supportedVersions = supportedNodeToClientVersions (Proxy @Block)
-    cfg = CardanoCodecConfig byron shelley allegra mary alonzo
+    cfg = CardanoCodecConfig byron shelley allegra mary alonzo babbage
       where
         byron   = ByronCodecConfig epochSlots
         shelley = ShelleyCodecConfig
         allegra = ShelleyCodecConfig
         mary    = ShelleyCodecConfig
         alonzo  = ShelleyCodecConfig
+        babbage = ShelleyCodecConfig

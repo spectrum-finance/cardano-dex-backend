@@ -24,7 +24,11 @@ import Test.Tasty.Hedgehog
   ( testProperty )
 import qualified Data.List as List
 
+import qualified Plutus.Script.Utils.V2.Address  as PV2
+
 import ErgoDex.Amm.Orders
+import ErgoDex.PValidators
+  ( swapValidator )
 
 import Spectrum.Executor.Types 
   ( weightOrder, OrderWeight )
@@ -60,7 +64,8 @@ getOrderTest :: Property
 getOrderTest = property $ do
   pkh                             <- forAll genPubKeyHash
   pool                            <- forAll genPool
-  swapOrders                      <- forAll $ Gen.list (Range.linear 0 100) (genSwapOrder pkh pool)
+  swapInstance                    <- swapValidator
+  swapOrders                      <- forAll $ Gen.list (Range.linear 0 100) (genSwapOrder pkh swapInstance pool)
   store                           <- mkMockStorage
   BacklogService{put, tryAcquire} <- liftIO $ mkService cfgForOnlyPendingOrders store
   currentTime                     <- getCurrentTime
@@ -84,7 +89,8 @@ dropAllOutdatedOrders :: Property
 dropAllOutdatedOrders = property $ do
   pkh                                     <- forAll genPubKeyHash
   pool                                    <- forAll genPool
-  swapOrders                              <- forAll $ Gen.list (Range.linear 0 100) (genSwapOrder pkh pool)
+  swapInstance                            <- swapValidator
+  swapOrders                              <- forAll $ Gen.list (Range.linear 0 100) (genSwapOrder pkh swapInstance pool)
   store@BacklogStore{put, getAll}         <- mkMockStorage
   BacklogService{checkLater, tryAcquire}  <- liftIO $ mkService cfgForOnlyPendingOrders store
   currentTime                             <- getCurrentTime
@@ -103,7 +109,8 @@ retryNonExecutedOrders :: Property
 retryNonExecutedOrders = property $ do
   pkh                                    <- forAll genPubKeyHash
   pool                                   <- forAll genPool
-  swapOrders                             <- forAll $ Gen.list (Range.linear 0 100) (genSwapOrder pkh pool)
+  swapInstance                           <- swapValidator
+  swapOrders                             <- forAll $ Gen.list (Range.linear 0 100) (genSwapOrder pkh swapInstance pool)
   store@BacklogStore{put, getAll}        <- mkMockStorage
   BacklogService{checkLater, tryAcquire} <- liftIO $ mkService cfgForOnlyPendingOrders store
   currentTime                            <- getCurrentTime

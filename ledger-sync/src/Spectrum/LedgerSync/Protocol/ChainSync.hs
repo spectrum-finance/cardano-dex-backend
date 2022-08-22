@@ -8,7 +8,7 @@ import RIO
 import Control.Monad
   ( guard )
 import Control.Monad.Class.MonadSTM
-  ( MonadSTM (..), MonadSTMTx (..), TQueue )
+  ( MonadSTM (..), TQueue )
 
 import Network.TypedProtocol.Pipelined
   ( Nat (..), natToInt )

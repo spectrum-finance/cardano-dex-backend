@@ -30,18 +30,21 @@ import Ouroboros.Consensus.Shelley.Ledger
 import Ouroboros.Consensus.HardFork.Combinator
   ( OneEraHash(OneEraHash) )
 import Ouroboros.Consensus.Cardano.Block
-  ( HardForkBlock(BlockAlonzo) )
+  ( HardForkBlock(BlockBabbage) )
 
 import Cardano.Ledger.Alonzo.TxSeq
   ( TxSeq(txSeqTxns) )
 import qualified Cardano.Ledger.Block as Ledger
 import qualified Cardano.Ledger.Shelley.API as TPraos
+import qualified Cardano.Protocol.TPraos.BHeader as TPraos
+import qualified Ouroboros.Consensus.Protocol.Praos.Header as Praos
+import Ouroboros.Consensus.Shelley.Protocol.TPraos
 import qualified Cardano.Crypto.Hash as CC
 
 import Spectrum.LedgerSync.Protocol.Client
   ( Block )
 import Spectrum.Executor.EventSource.Data.Tx
-  ( fromAlonzoLedgerTx )
+  ( fromBabbageLedgerTx )
 import Spectrum.LedgerSync
   ( LedgerSync(..) )
 import Spectrum.Context
@@ -127,13 +130,13 @@ processUpdate
 processUpdate
   _
   LedgerHistory{..}
-  (RollForward (BlockAlonzo (ShelleyBlock (Ledger.Block (TPraos.BHeader hBody _) txs) hHash))) =
+  (RollForward (BlockBabbage (ShelleyBlock (Ledger.Block (Praos.Header hBody _) txs) hHash))) =
     let
       txs'  = txSeqTxns txs
-      point = ConcretePoint (TPraos.bheaderSlotNo hBody) (ConcreteHash ch)
-        where ch = OneEraHash . toShort . CC.hashToBytes . TPraos.unHashHeader . unShelleyHash $ hHash
+      point = ConcretePoint (Praos.hbSlotNo hBody) (ConcreteHash ch)
+        where ch = OneEraHash . toShort . CC.hashToBytes . unShelleyHash $ hHash
     in S.before (setTip point)
-      $ S.fromFoldable txs' & S.map (AppliedTx . fromAlonzoLedgerTx hHash)
+      $ S.fromFoldable txs' & S.map (AppliedTx . fromBabbageLedgerTx hHash)
 processUpdate logging lh (RollBackward point) = streamUnappliedTxs logging lh point
 processUpdate Logging{..} _ upd = S.before (errorM $ "Cannot process update " <> show upd) mempty
 
