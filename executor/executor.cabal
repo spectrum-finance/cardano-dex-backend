@@ -90,13 +90,13 @@ library
                   , bytestring
                   , streamly
                   , plutus-ledger-api -any
-                  , dex-core==0.1.0.0
-                  , submit-api==0.1.0.0
-                  , network-api==0.1.0.0
-                  , wallet-api==0.1.0.0
-                  , cardano-api==1.32.1
-                  , quickblue==0.1.0.0
-                  , plutus-ledger==0.1.0.0
+                  , dex-core
+                  , submit-api
+                  , network-api
+                  , wallet-api
+                  , cardano-api
+                  , quickblue
+                  , plutus-ledger
                   , dhall
                   , plutus-tx
                   , http-conduit

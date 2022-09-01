@@ -1,26 +1,26 @@
 {
-    "haskell-nix": {
+  "haskellNix": {
       "branch": "master",
       "description": "Alternative Haskell Infrastructure for Nixpkgs",
       "homepage": "https://input-output-hk.github.io/haskell.nix",
       "owner": "input-output-hk",
       "repo": "haskell.nix",
-      "rev": "a57f4f77d811490ac1faf309295ed98d8e1ee6b9",
-      "sha256": "1p641igwjwbgxi20g2xp3fhmasm21m2vd9fpha64dqsxymi7c1ac",
+      "rev": "edcaa0f19ba8d7a392852406751deb0fd953e805",
+      "sha256": "0lqv33l46kzfv577pzl4c1zxp5gc75fmyis7mzv4llyrm3jkmwlg",
       "type": "tarball",
-      "url": "https://github.com/input-output-hk/haskell.nix/archive/a57f4f77d811490ac1faf309295ed98d8e1ee6b9.tar.gz",
+      "url": "https://github.com/input-output-hk/haskell.nix/archive/edcaa0f19ba8d7a392852406751deb0fd953e805.tar.gz",
       "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "plutus-apps": {
-        "branch": "main",
-        "description": "The Plutus application platform",
-        "homepage": "",
-        "owner": "input-output-hk",
-        "repo": "plutus-apps",
-        "rev": "c330fc60d0cd174743c95de71e5c404b5008f186",
-        "sha256": "1dz16kzqwwf4nr8rfymzpnr8mvpprwqqh2mhyhknjczljfc0lwgh",
-        "type": "tarball",
-        "url": "https://github.com/input-output-hk/plutus-apps/archive/c330fc60d0cd174743c95de71e5c404b5008f186.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    }
+  },
+  "plutus-apps": {
+      "branch": "main",
+      "description": "The Plutus application platform",
+      "homepage": "",
+      "owner": "input-output-hk",
+      "repo": "plutus-apps",
+      "rev": "eb69d69cb5f4fda6b4994ad737a0e4da98c19d20",
+      "sha256": "0xj039xlw4algivbd6hi26wyglm9qi2n6hmddzvnsw90wjzy9aa6",
+      "type": "tarball",
+      "url": "https://github.com/input-output-hk/plutus-apps/archive/eb69d69cb5f4fda6b4994ad737a0e4da98c19d20.tar.gz",
+      "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+  }
 }
