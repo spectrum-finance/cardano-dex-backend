@@ -50,7 +50,7 @@ mkLedgerHistory
   -> LedgerStoreConfig
   -> f (LedgerHistory m)
 mkLedgerHistory MakeLogging{..} LedgerStoreConfig{..} = do
-  logging <- forComponent "PoolRepository"
+  logging <- forComponent "LedgerHistory"
   (_, db) <- Rocks.openBracket storePath
               Rocks.defaultOptions
                 { Rocks.createIfMissing = createIfMissing
