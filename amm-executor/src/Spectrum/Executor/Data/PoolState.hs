@@ -1,14 +1,13 @@
 module Spectrum.Executor.Data.PoolState
-  ( PoolState(..)
+  ( NewPool(..)
+  , DiscardedPool(..)
   ) where
 
-import Data.Aeson
-  ( ToJSON, FromJSON )
-import GHC.Generics
-  ( Generic )
+import Spectrum.Executor.Types
+  ( PoolStateId, Pool )
+import ErgoDex.Amm.Pool
+  ( PoolId )
 
-data PoolState
-  = New
-  | Consumed
-  | Discarded
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
+newtype NewPool st = NewPool (st Pool)
+
+data DiscardedPool = DiscardedPool PoolId PoolStateId

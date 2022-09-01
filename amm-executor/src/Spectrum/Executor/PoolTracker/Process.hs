@@ -20,7 +20,7 @@ import Spectrum.Executor.Topic
   ( ReadTopic(..) )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( Pools(..) )
-import Spectrum.Executor.EventSink.Data.PoolEvent
+import Spectrum.Executor.Data.PoolState
   ( NewPool(..), DiscardedPool(..) )
 import Spectrum.Common.Streaming.Class
   ( Compile(drain) )

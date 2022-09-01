@@ -11,7 +11,7 @@ import RIO
   , readIORef
   , writeIORef
   , (<&>)
-  , isJust, MonadTrans (lift)
+  , isJust
   )
 
 import qualified Data.Map as Map
@@ -19,7 +19,7 @@ import qualified Data.Map as Map
 import Control.Monad.IO.Class
   ( MonadIO )
 import Control.Monad.Trans.Resource
-  ( MonadResource, ResourceT )
+  ( MonadResource )
 
 import System.Logging.Hlog
   ( Logging (..), MakeLogging (..) )

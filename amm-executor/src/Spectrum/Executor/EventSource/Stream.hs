@@ -35,10 +35,7 @@ import Ouroboros.Consensus.Cardano.Block
 import Cardano.Ledger.Alonzo.TxSeq
   ( TxSeq(txSeqTxns) )
 import qualified Cardano.Ledger.Block as Ledger
-import qualified Cardano.Ledger.Shelley.API as TPraos
-import qualified Cardano.Protocol.TPraos.BHeader as TPraos
 import qualified Ouroboros.Consensus.Protocol.Praos.Header as Praos
-import Ouroboros.Consensus.Shelley.Protocol.TPraos
 import qualified Cardano.Crypto.Hash as CC
 
 import Spectrum.LedgerSync.Protocol.Client

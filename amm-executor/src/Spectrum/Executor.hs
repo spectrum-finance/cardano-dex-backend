@@ -61,7 +61,7 @@ import Control.Tracer
 import System.Logging.Hlog
   ( makeLogging, MakeLogging, translateMakeLogging )
 
-import Streamly.Prelude as S (drain)
+import Streamly.Prelude as S (drain, SerialT)
 
 import Spectrum.LedgerSync.Config
   ( NetworkParameters, LedgerSyncConfig, parseNetworkParameters )
@@ -75,6 +75,10 @@ import Spectrum.Executor.Config
   ( AppConfig(..), loadAppConfig, EventSourceConfig )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
+import Spectrum.Executor.EventSink.Pipe (mkEventSink, pipe)
+import Spectrum.Executor.EventSink.Types (voidEventHandler)
+import Spectrum.Executor.EventSink.Handlers.Pools (mkNewPoolsHandler)
+import Spectrum.Executor.EventSink.Handlers.Orders (mkPendingOrdersHandler)
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
@@ -97,7 +101,7 @@ newtype App a = App
     , MonadBase IO, MonadBaseControl IO, MonadUnliftIO
     )
 
-type Wire = ResourceT App 
+type Wire = ResourceT App
 
 runApp :: [String] -> IO ()
 runApp args = do
@@ -116,8 +120,12 @@ wireApp = interceptSigTerm >> do
   env <- ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
   lsync <- lift $ mkLedgerSync (runContext env) tr
-  ds    <- mkEventSource lsync
-  lift . S.drain . upstream $ ds
+  source <- mkEventSource lsync
+  let
+    poolsHan = mkNewPoolsHandler @App undefined
+    orderHan = mkPendingOrdersHandler @App undefined
+    sink = mkEventSink @SerialT @App [poolsHan, orderHan] voidEventHandler
+  lift . S.drain . pipe sink . upstream $ source
 
 runContext :: Env Wire App -> App a -> IO a
 runContext env app = runReaderT (unApp app) env

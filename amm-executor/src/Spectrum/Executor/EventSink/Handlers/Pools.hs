@@ -7,7 +7,7 @@ import RIO
 
 import Spectrum.Executor.Topic
   ( WriteTopic (..) )
-import Spectrum.Executor.EventSink.Data.PoolEvent
+import Spectrum.Executor.Data.PoolState
   ( NewPool(..) )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler )
