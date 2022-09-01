@@ -119,11 +119,10 @@ library
                   , bytestring
                   , mmorph == 1.1.5
                   , generic-lens == 2.2.0.0
-                  , containers == 0.6.2.1
+                  , containers == 0.6.5.1
                   , strict-containers
                   , stm == 2.5.0.1
                   , text == 1.2.5.0
-                  , hashable == 1.3.0.0
                   , pqueue
                   , utf8-string
                   , binary
@@ -156,18 +155,19 @@ library
                   , cardano-ledger-core
                   , cardano-ledger-shelley
                   , cardano-ledger-shelley-ma
+                  , cardano-ledger-babbage
                   , cardano-protocol-tpraos
                   , cardano-slotting
                   , ouroboros-consensus
                   , ouroboros-consensus-byron
                   , ouroboros-consensus-cardano
                   , ouroboros-consensus-shelley
+                  , ouroboros-consensus-protocol
                   , ouroboros-network
                   , ouroboros-network-framework
                   , typed-protocols
                   , typed-protocols-cborg
                   , network-mux
-                  , iohk-monitoring == 0.2.0.0
                   , plutus-ledger
                   , plutus-ledger-api
                   , plutus-tx
@@ -177,8 +177,9 @@ library
                   , unix == 2.7.2.2
                   , dex-core == 0.1.0.0
                   , rocksdb-haskell == 0.1.0.0
-                  , cardano-dex-contracts
+                  , cardano-dex-contracts-offchain
                   , submit-api
+                  , async
 
 executable amm-executor-app
     default-language: Haskell2010
@@ -202,7 +203,7 @@ test-suite amm-executor-test
     Gen.OrdersGen
     Gen.LoggingGen
   build-depends:
-    , base  == 4.14.1.0
+    , base  == 4.14.3.0
     , HUnit == 1.6.2.0
     , rio
     , tasty-hunit==0.10.0.3
@@ -216,8 +217,9 @@ test-suite amm-executor-test
     , plutus-tx
     , dex-core
     , cardano-tx
-    , cardano-dex-contracts
+    , cardano-dex-contracts-offchain
     , plutus-ledger
+    , plutus-script-utils
     , hlog
     , ledger-sync
     , resourcet

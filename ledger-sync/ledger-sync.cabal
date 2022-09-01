@@ -90,25 +90,25 @@ library
                   , aeson
                   , lens-aeson
                   , rio
-                  , bytestring
-                  , mmorph == 1.1.5
-                  , generic-lens == 2.2.0.0
-                  , containers == 0.6.2.1
-                  , stm == 2.5.0.1
-                  , text == 1.2.5.0
-                  , dex-core == 0.1.0.0
-                  , hashable == 1.3.0.0
+                  , mmorph
+                  , generic-lens
+                  , containers
+                  , stm
+                  , text
+                  , ouroboros-consensus-protocol
+                  , dex-core
+                  , hashable
                   , utf8-string
                   , time
                   , dhall
                   , yaml
                   , transformers
                   , unliftio-core
-                  , io-classes == 0.2.0.0
+                  , io-classes
                   , resourcet
                   , exceptions
                   , profunctors
-                  , core == 0.1.0.0
+                  , core
                   , base16
                   , base58-bytestring
                   , base64
@@ -132,10 +132,11 @@ library
                   , ouroboros-consensus-byron
                   , ouroboros-consensus-cardano
                   , ouroboros-consensus-shelley
+                  , ouroboros-consensus-protocol
                   , ouroboros-network
                   , ouroboros-network-framework
                   , typed-protocols
                   , typed-protocols-cborg
                   , network-mux
-                  , iohk-monitoring == 0.2.0.0
+                  , iohk-monitoring
                   , hlog
