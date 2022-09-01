@@ -7,7 +7,7 @@ import Prelude hiding (drop)
 import RIO.Time 
   ( UTCTime, getCurrentTime )
 import RIO
-  ( (&), MonadReader, catch, MonadUnliftIO, MonadIO )
+  ( (&), MonadReader, catch, MonadUnliftIO )
 import qualified RIO.List as List
 import Streamly.Prelude as S
 import Control.Monad.Catch 
@@ -67,7 +67,7 @@ mkOrdersExecutor
   => BacklogService m
   -> Transactions m era
   -> PoolResolver m
-  -> PoolActions m
+  -> PoolActions
   -> f (OrdersExecutor s m)
 mkOrdersExecutor backlog transactions resolver poolActions = do
   MakeLogging{..} <- askContext
@@ -82,7 +82,7 @@ run'
   -> BacklogService m
   -> Transactions m era
   -> PoolResolver m
-  -> PoolActions m
+  -> PoolActions
   -> s m ()
 run' logging@Logging{..} backlog@BacklogService{..} txs resolver poolActions =
   S.repeatM tryAcquire & S.mapM (\case
@@ -93,12 +93,12 @@ run' logging@Logging{..} backlog@BacklogService{..} txs resolver poolActions =
     )
 
 execute' 
-  :: forall m era. (MonadUnliftIO m, MonadThrow m, MonadIO m) 
+  :: forall m era. (MonadUnliftIO m, MonadThrow m) 
   => Logging m 
   -> BacklogService m 
   -> Transactions m era 
   -> PoolResolver m 
-  -> PoolActions m
+  -> PoolActions
   -> Order 
   -> m ()
 execute' Logging{..} backlog@BacklogService{suspend, drop} txs resolver poolActions order = do
@@ -111,19 +111,20 @@ execute' Logging{..} backlog@BacklogService{suspend, drop} txs resolver poolActi
     )
 
 executeOrder' 
-  :: (MonadIO m, MonadThrow m) 
+  :: (Monad m, MonadThrow m) 
   => BacklogService m 
   -> Transactions m era 
   -> PoolResolver m 
-  -> PoolActions m
+  -> PoolActions
   -> Order 
   -> UTCTime
   -> m ()
 executeOrder' BacklogService{checkLater} Transactions{..} PoolResolver{..} poolActions order@(OnChain _ Core.AnyOrder{..}) executionStartTime = do
   mPool <- resolvePool anyOrderPoolId
-  pool@(OnChain prevPoolOut Core.Pool{poolId})  <- throwMaybe (EmptyPool anyOrderPoolId) mPool
-  orderResult <- runOrder pool order poolActions
-  (txCandidate, Predicted _ predictedPool)      <- throwEither orderResult
+
+  pool@(OnChain prevPoolOut Core.Pool{poolId}) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
+  (txCandidate, Predicted _ predictedPool)     <- throwEither $ runOrder pool order poolActions
+
   tx    <- finalizeTx txCandidate
   pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
   let
@@ -141,13 +142,12 @@ extractPoolTxOut (OnChain poolOutput _) tx =
   List.find (\output -> fullTxOutDatum output == fullTxOutDatum poolOutput) (Interop.extractCardanoTxOutputs tx)
 
 runOrder
-  :: (MonadIO m) 
-  => Pool
+  :: Pool
   -> Order
-  -> PoolActions m
-  -> m (Either OrderExecErr (TxCandidate, Predicted Core.Pool))
+  -> PoolActions
+  -> Either OrderExecErr (TxCandidate, Predicted Core.Pool)
 runOrder (OnChain poolOut pool) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} =
   case anyOrderAction of
-    DepositAction deposit -> runDeposit (Confirmed orderOut deposit) (poolOut, pool)
-    RedeemAction redeem   -> runRedeem (Confirmed orderOut redeem) (poolOut, pool)
-    SwapAction swap       -> runSwap (Confirmed orderOut swap) (poolOut, pool)
+    DepositAction deposit -> runDeposit (OnChain orderOut deposit) (poolOut, pool)
+    RedeemAction redeem   -> runRedeem (OnChain orderOut redeem) (poolOut, pool)
+    SwapAction swap       -> runSwap (OnChain orderOut swap) (poolOut, pool)
