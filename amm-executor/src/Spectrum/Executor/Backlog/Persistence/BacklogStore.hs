@@ -21,7 +21,7 @@ import Spectrum.Executor.Types
 import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
 import Spectrum.Executor.Backlog.Persistence.Config 
-  ( BacklogConfig(..) )
+  ( BacklogStoreConfig(..) )
 import Spectrum.Executor.Backlog.Data.BacklogOrder 
   ( BacklogOrder (BacklogOrder, backlogOrder) )
 
@@ -42,14 +42,14 @@ mkBacklogStore
    , MonadUnliftIO m
    )
   => MakeLogging f m
-  -> BacklogConfig
+  -> BacklogStoreConfig
   -> f (BacklogStore m)
-mkBacklogStore MakeLogging{..} BacklogConfig{..} = do
-  logging     <- forComponent "BacklogStore"
-  (_, db)     <- Rocks.openBracket storePath
-                  Rocks.defaultOptions
-                    { Rocks.createIfMissing = createIfMissing
-                    }
+mkBacklogStore MakeLogging{..} BacklogStoreConfig{..} = do
+  logging <- forComponent "BacklogStore"
+  (_, db) <- Rocks.openBracket storePath
+                Rocks.defaultOptions
+                  { Rocks.createIfMissing = createIfMissing
+                  }
   let
     get :: FromJSON a => ByteString -> m (Maybe a)
     get = (=<<) (mapM deserializeM) . Rocks.get db Rocks.defaultReadOptions

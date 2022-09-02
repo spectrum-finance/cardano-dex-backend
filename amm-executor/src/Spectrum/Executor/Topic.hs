@@ -20,7 +20,9 @@ newtype WriteTopic m a = WriteTopic
 
 data OneToOneTopic s m a = OneToOneTopic (ReadTopic s m a) (WriteTopic m a)
 
-mkOneToOneTopic :: forall s f m a. (IsStream s, MonadAsync m, MonadIO f) => f (OneToOneTopic s m a)
+mkOneToOneTopic
+  :: forall s f m a. (IsStream s, MonadAsync m, MonadIO f)
+  => f (OneToOneTopic s m a)
 mkOneToOneTopic = liftIO $ do
   (inc, outc) <- newChan
   pure $ OneToOneTopic

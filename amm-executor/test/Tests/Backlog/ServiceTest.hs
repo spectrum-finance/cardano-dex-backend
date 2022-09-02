@@ -32,8 +32,8 @@ import ErgoDex.PValidators
 
 import Spectrum.Executor.Types 
   ( weightOrder, OrderWeight )
-import Spectrum.Executor.Backlog.Service 
-  ( BacklogService (BacklogService, tryAcquire, checkLater, put), mkBacklogService )
+import Spectrum.Executor.Backlog.Service
+  ( BacklogService (BacklogService, tryAcquire, checkLater, put), mkBacklogService' )
 import Spectrum.Executor.Backlog.Config 
   ( BacklogServiceConfig (orderLifetime, suspendedPropability, orderExecTime, BacklogServiceConfig) )
 import Spectrum.HigherKind 
@@ -124,7 +124,7 @@ retryNonExecutedOrders = property $ do
   length filtered === length inProgressOrders
 
 mkService :: forall f . (MonadIO f, MonadIO f, LiftK f f) => BacklogServiceConfig -> BacklogStore f -> f (BacklogService f)
-mkService = mkBacklogService mkMakeLogging
+mkService = mkBacklogService' mkMakeLogging
 
 cfgForOnlyPendingOrders :: BacklogServiceConfig
 cfgForOnlyPendingOrders = BacklogServiceConfig

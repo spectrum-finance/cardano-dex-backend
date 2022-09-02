@@ -1,5 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
-module Spectrum.Executor.OrdersExecutor.Service
+module Spectrum.Executor.OrdersExecutor.Process
   ( OrdersExecutor(..)
   , mkOrdersExecutor
   ) where
@@ -11,6 +11,7 @@ import RIO
   ( (&), MonadReader, catch, MonadUnliftIO )
 import qualified RIO.List as List
 import Streamly.Prelude as S
+  ( repeatM, mapM, MonadAsync, IsStream )
 import Control.Monad.Catch
   ( MonadThrow )
 
