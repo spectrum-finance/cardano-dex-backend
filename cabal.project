@@ -2,11 +2,7 @@ index-state: 2022-04-06T00:00:00Z
 
 packages:
   core
-  streaming-kafka
-  tracker
-  executor
   amm-executor
-  pools-resolver
   ledger-sync
 
 package cardano-crypto-praos
