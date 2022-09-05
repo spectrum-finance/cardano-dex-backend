@@ -30,11 +30,12 @@ import Spectrum.Executor.Types (Order)
 import Spectrum.Executor.Data.OrderState
   ( OrderInState(PendingOrder), OrderState(Pending) )
 import RIO.Time (getCurrentTime)
+import Spectrum.Executor.EventSource.Data.TxContext (TxCtx(LedgerCtx))
 
 mkPendingOrdersHandler
   :: MonadIO m
   => WriteTopic m (OrderInState 'Pending)
-  -> EventHandler m ctx
+  -> EventHandler m 'LedgerCtx
 mkPendingOrdersHandler WriteTopic{..} = \case
   AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) ->
     foldl process (pure Nothing) (txOutputs <&> parseOrder)

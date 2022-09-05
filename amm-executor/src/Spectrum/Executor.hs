@@ -117,7 +117,7 @@ import Spectrum.Executor.EventSink.Handlers.Pools
 import Spectrum.Executor.EventSink.Handlers.Orders
   ( mkPendingOrdersHandler )
 import Spectrum.Executor.Topic
-  ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic )
+  ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic, mkNoopTopic )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( mkPools )
 import Spectrum.Executor.PoolTracker.Process as Tracker
@@ -200,34 +200,36 @@ wireApp :: Wire ()
 wireApp = interceptSigTerm >> do
   env@Env{..} <- ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
-  lsync  <- lift $ mkLedgerSync (runContext env) tr
-  source <- mkEventSource lsync
+  lsync   <- lift $ mkLedgerSync (runContext env) tr
+  lsource <- mkEventSource lsync
   OneToOneTopic poolsRd poolsWr   <- mkOneToOneTopic
   OneToOneTopic ordersRd ordersWr <- mkOneToOneTopic
   explorer <- mkExplorer mkLogging explorerConfig
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
-    vault      = mkVault trustStore (keyPass secrets)
+    vault      = mkVault trustStore $ keyPass secrets
   walletOutputs <- mkWalletOutputs' lift mkLogging explorer vault
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
-  let sockPath = SocketPath (nodeSocketPath txSubmitConfig)
+  let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
   validators     <- fetchValidatorsV1
   backlogService <- mkBacklogService
   pools          <- mkPools
   resolver       <- mkPoolResolver pools
   let
-    tracker      = mkPoolTracker pools poolsRd undefined undefined
-    backlog      = mkBacklog backlogService ordersRd undefined undefined
-    transactions = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
-    poolActions  = mkPoolActions (PaymentPubKeyHash executorPkh) validators
+    (upoolRd, _)   = mkNoopTopic
+    (dispoolRd, _) = mkNoopTopic
+    tracker        = mkPoolTracker pools poolsRd upoolRd dispoolRd
+    backlog        = mkBacklog backlogService ordersRd undefined undefined
+    transactions   = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
+    poolActions    = mkPoolActions (PaymentPubKeyHash executorPkh) validators
   executor <- mkOrdersExecutor backlogService transactions resolver poolActions
   let
     poolsHan = mkNewPoolsHandler poolsWr
     orderHan = mkPendingOrdersHandler ordersWr
-    sink     = mkEventSink [poolsHan, orderHan] voidEventHandler
+    lsink    = mkEventSink [poolsHan, orderHan] voidEventHandler
   lift . S.drain $
-    S.parallel (pipe sink . upstream $ source) $
+    S.parallel (pipe lsink . upstream $ lsource) $
     S.parallel (Tracker.run tracker) $
     S.parallel (Backlog.run backlog) $
     Executor.run executor
