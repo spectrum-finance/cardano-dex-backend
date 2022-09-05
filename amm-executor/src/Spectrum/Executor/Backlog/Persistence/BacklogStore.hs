@@ -24,6 +24,7 @@ import Spectrum.Executor.Backlog.Persistence.Config
   ( BacklogStoreConfig(..) )
 import Spectrum.Executor.Backlog.Data.BacklogOrder 
   ( BacklogOrder (BacklogOrder, backlogOrder) )
+import Spectrum.Context (HasType, askContext)
 
 data BacklogStore m = BacklogStore
   { put        :: BacklogOrder -> m ()
@@ -34,17 +35,21 @@ data BacklogStore m = BacklogStore
   }
 
 mkBacklogStore
-  :: forall f m. 
-   ( MonadIO f
-   , MonadResource f
-   , MonadIO m
-   , MonadThrow m
-   , MonadUnliftIO m
-   )
-  => MakeLogging f m
-  -> BacklogStoreConfig
-  -> f (BacklogStore m)
-mkBacklogStore MakeLogging{..} BacklogStoreConfig{..} = do
+  :: forall f m env. 
+    ( MonadIO f
+    , MonadResource f
+    , MonadIO m
+    , MonadThrow m
+    , MonadUnliftIO m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    , HasType BacklogStoreConfig env
+    )
+  => f (BacklogStore m)
+mkBacklogStore = do
+  MakeLogging{..}        <- askContext
+  BacklogStoreConfig{..} <- askContext
+
   logging <- forComponent "BacklogStore"
   (_, db) <- Rocks.openBracket storePath
                 Rocks.defaultOptions
