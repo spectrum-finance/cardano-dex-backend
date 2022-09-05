@@ -35,6 +35,7 @@ import Spectrum.Executor.PoolTracker.Persistence.Config
   ( PoolStoreConfig(..) )
 import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
+import Spectrum.Context (MonadReader, HasType, askContext)
 
 data Pools m = Pools
   { getPrediction      :: PoolStateId -> m (Maybe (Traced (Predicted Pool)))
@@ -48,11 +49,20 @@ data Pools m = Pools
   }
 
 mkPools
-  :: forall f m. (MonadIO f, MonadResource f, MonadIO m, MonadThrow m)
-  => MakeLogging f m
-  -> PoolStoreConfig
-  -> f (Pools m)
-mkPools MakeLogging{..} PoolStoreConfig{..} = do
+  :: forall f m env.
+    ( MonadIO f
+    , MonadResource f
+    , MonadIO m
+    , MonadThrow m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    , HasType PoolStoreConfig env
+    )
+  => f (Pools m)
+mkPools = do
+  PoolStoreConfig{..} <- askContext
+  MakeLogging{..}     <- askContext
+  
   logging <- forComponent "Pools"
   (_, db) <- Rocks.openBracket storePath
               Rocks.defaultOptions

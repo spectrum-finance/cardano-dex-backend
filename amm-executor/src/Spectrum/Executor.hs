@@ -61,7 +61,40 @@ import Control.Tracer
 import System.Logging.Hlog
   ( makeLogging, MakeLogging, translateMakeLogging )
 
-import Streamly.Prelude as S (drain)
+import Streamly.Prelude as S
+  ( drain, parallel )
+
+import Ledger.Tx.CardanoAPI
+  ( fromCardanoPaymentKeyHash )
+import Ledger
+  ( PaymentPubKeyHash(PaymentPubKeyHash) )
+import qualified Cardano.Api as C
+
+import Crypto.Random.Entropy
+  ( getEntropy )
+import Crypto.Random.Types
+  ( MonadRandom(..) )
+
+import NetworkAPI.Service
+  ( mkCardanoNetwork )
+import SubmitAPI.Config
+  ( TxAssemblyConfig )
+import NetworkAPI.Types
+  ( SocketPath(SocketPath) )
+import ErgoDex.Amm.PoolActions
+  ( fetchValidatorsV1, mkPoolActions )
+import WalletAPI.TrustStore
+  ( mkTrustStore )
+import WalletAPI.Vault
+  ( Vault(getPaymentKeyHash), mkVault )
+import WalletAPI.Utxos
+  ( mkWalletOutputs' )
+import Explorer.Service
+  ( mkExplorer )
+import Explorer.Config
+  ( ExplorerConfig )
+import SubmitAPI.Service
+  ( mkTransactions )
 
 import Spectrum.LedgerSync.Config
   ( NetworkParameters, LedgerSyncConfig, parseNetworkParameters )
@@ -72,17 +105,53 @@ import Cardano.Network.Protocol.NodeToClient.Trace
 import Spectrum.Executor.EventSource.Stream
   ( mkEventSource, EventSource (upstream) )
 import Spectrum.Executor.Config
-  ( AppConfig(..), loadAppConfig, EventSourceConfig )
+  ( AppConfig(..), loadAppConfig, EventSourceConfig, TxSubmitConfig(..), Secrets(..) )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
+import Spectrum.Executor.EventSink.Pipe
+  ( mkEventSink, pipe )
+import Spectrum.Executor.EventSink.Types
+  ( voidEventHandler)
+import Spectrum.Executor.EventSink.Handlers.Pools
+  ( mkNewPoolsHandler )
+import Spectrum.Executor.EventSink.Handlers.Orders
+  ( mkPendingOrdersHandler )
+import Spectrum.Executor.Topic
+  ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic, mkNoopTopic )
+import Spectrum.Executor.PoolTracker.Persistence.Pools
+  ( mkPools )
+import Spectrum.Executor.PoolTracker.Process as Tracker
+  ( mkPoolTracker, run )
+import Spectrum.Executor.PoolTracker.Persistence.Config
+  ( PoolStoreConfig )
+import Spectrum.Executor.Backlog.Service
+  ( mkBacklogService )
+import Spectrum.Executor.Backlog.Persistence.Config
+  ( BacklogStoreConfig )
+import Spectrum.Executor.PoolTracker.Service
+  ( mkPoolResolver )
+import Spectrum.Executor.OrdersExecutor.Process as Executor
+  ( mkOrdersExecutor, run )
+import Spectrum.Executor.Backlog.Config
+  ( BacklogServiceConfig )
+import Spectrum.Executor.Backlog.Process as Backlog
+  ( mkBacklog, run, Backlog (run) )
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
   , eventSourceConfig  :: !EventSourceConfig
   , lederHistoryConfig :: !LedgerStoreConfig
+  , pstoreConfig       :: !PoolStoreConfig
+  , backlogConfig      :: !BacklogServiceConfig
+  , backlogStoreConfig :: !BacklogStoreConfig
   , networkParams      :: !NetworkParameters
+  , explorerConfig     :: !ExplorerConfig
+  , txSubmitConfig     :: !TxSubmitConfig
+  , txAssemblyConfig   :: !TxAssemblyConfig
+  , secrets            :: !Secrets
   , mkLogging          :: !(MakeLogging f m)
   , mkLogging'         :: !(MakeLogging m m)
+  , networkId          :: !C.NetworkId
   } deriving stock (Generic)
 
 newtype App a = App
@@ -93,11 +162,11 @@ newtype App a = App
     , MonadIO
     , MonadST
     , MonadThread, MonadFork
-    , MonadThrow, MC.MonadThrow, MonadCatch, MonadMask
+    , MonadThrow, MC.MonadThrow, MonadCatch, MC.MonadCatch, MonadMask, MC.MonadMask
     , MonadBase IO, MonadBaseControl IO, MonadUnliftIO
     )
 
-type Wire = ResourceT App 
+type Wire = ResourceT App
 
 runApp :: [String] -> IO ()
 runApp args = do
@@ -105,19 +174,68 @@ runApp args = do
   nparams       <- parseNetworkParameters nodeConfigPath
   mkLogging     <- makeLogging loggingConfig
   let
+    networkId =
+      if mainnetMode
+        then C.Mainnet
+        else C.Testnet (C.NetworkMagic 1097911063)
     env =
-      Env ledgerSyncConfig eventSourceConfig ledgerStoreConfig nparams
+      Env
+        ledgerSyncConfig
+        eventSourceConfig
+        ledgerStoreConfig
+        pstoreConfig
+        backlogConfig
+        backlogStoreConfig
+        nparams
+        explorerConfig
+        txSubmitConfig
+        txAssemblyConfig
+        secrets
         (translateMakeLogging (lift . App . lift) mkLogging)
         (translateMakeLogging (App . lift) mkLogging)
+        networkId
   runContext env (runResourceT wireApp)
 
 wireApp :: Wire ()
 wireApp = interceptSigTerm >> do
-  env <- ask
+  env@Env{..} <- ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
-  lsync <- lift $ mkLedgerSync (runContext env) tr
-  ds    <- mkEventSource lsync
-  lift . S.drain . upstream $ ds
+  lsync   <- lift $ mkLedgerSync (runContext env) tr
+  lsource <- mkEventSource lsync
+  OneToOneTopic poolsRd poolsWr   <- mkOneToOneTopic
+  OneToOneTopic ordersRd ordersWr <- mkOneToOneTopic
+  explorer <- mkExplorer mkLogging explorerConfig
+  let
+    trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
+    vault      = mkVault trustStore $ keyPass secrets
+  walletOutputs <- mkWalletOutputs' lift mkLogging explorer vault
+  executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
+  let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
+  networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
+  validators     <- fetchValidatorsV1
+  backlogService <- mkBacklogService
+  pools          <- mkPools
+  resolver       <- mkPoolResolver pools
+  let
+    (upoolRd, _)   = mkNoopTopic
+    (dispoolRd, _) = mkNoopTopic
+    tracker        = mkPoolTracker pools poolsRd upoolRd dispoolRd
+    backlog        = mkBacklog backlogService ordersRd undefined undefined
+    transactions   = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
+    poolActions    = mkPoolActions (PaymentPubKeyHash executorPkh) validators
+  executor <- mkOrdersExecutor backlogService transactions resolver poolActions
+  let
+    poolsHan = mkNewPoolsHandler poolsWr
+    orderHan = mkPendingOrdersHandler ordersWr
+    lsink    = mkEventSink [poolsHan, orderHan] voidEventHandler
+  lift . S.drain $
+    S.parallel (pipe lsink . upstream $ lsource) $
+    S.parallel (Tracker.run tracker) $
+    S.parallel (Backlog.run backlog) $
+    Executor.run executor
+
+epochSlots :: C.ConsensusModeParams C.CardanoMode
+epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
 
 runContext :: Env Wire App -> App a -> IO a
 runContext env app = runReaderT (unApp app) env
@@ -127,6 +245,9 @@ interceptSigTerm =
     lift $ liftIO $ void $ installHandler softwareTermination handler Nothing
   where
     handler = CatchOnce $ raiseSignal keyboardSignal
+
+instance MonadRandom App where
+    getRandomBytes = liftIO . getEntropy
 
 newtype WrappedSTM a = WrappedSTM { unwrapSTM :: STM.STM a }
     deriving newtype (Functor, Applicative, Alternative, Monad, MonadPlus, MonadThrow)

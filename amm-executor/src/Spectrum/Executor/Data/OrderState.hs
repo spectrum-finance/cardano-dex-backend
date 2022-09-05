@@ -20,5 +20,4 @@ data OrderInState st where
   InProgressOrder :: Order -> UTCTime -> OrderInState 'InProgress
   ExecutedOrder   :: OrderId -> OrderInState 'Executed
   CancelledOrder  :: OrderId -> OrderInState 'Cancelled
-
 deriving instance Show (OrderInState st)

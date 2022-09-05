@@ -1,5 +1,5 @@
 module Spectrum.Executor.Backlog.Persistence.Config
-  ( BacklogConfig(..)
+  ( BacklogStoreConfig(..)
   ) where
 
 import GHC.Generics
@@ -7,7 +7,7 @@ import GHC.Generics
 import Dhall
   ( FromDhall )
 
-data BacklogConfig = BacklogConfig
+data BacklogStoreConfig = BacklogStoreConfig
   { storePath       :: !FilePath
   , createIfMissing :: !Bool
   }

@@ -4,7 +4,7 @@ module Spectrum.Executor.PoolTracker.Service
   ) where
 
 import RIO
-  ( (<&>), fromMaybe )
+  ( (<&>), fromMaybe, MonadReader )
 
 import Control.Monad.IO.Class
   ( MonadIO )
@@ -25,6 +25,7 @@ import Spectrum.Executor.Types
   ( PoolStateId (PoolStateId), Pool, poolStateId )
 import ErgoDex.State
   ( OnChain(OnChain) )
+import Spectrum.Context (HasType, askContext)
 
 data PoolResolver m = PoolResolver
   { resolvePool    :: PoolId -> m (Maybe Pool)
@@ -33,11 +34,16 @@ data PoolResolver m = PoolResolver
   }
 
 mkPoolResolver
-  :: forall f m. (MonadIO f, MonadIO m)
-  => MakeLogging f m
-  -> Pools m
+  :: forall f m env.
+    ( MonadIO f
+    , MonadIO m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    )
+  => Pools m
   -> f (PoolResolver m)
-mkPoolResolver MakeLogging{..} pools@Pools{..} = do
+mkPoolResolver pools@Pools{..} = do
+  MakeLogging{..} <- askContext
   logging <- forComponent "PoolResolver"
   pure $ attachLogging logging PoolResolver
     { resolvePool    = resolvePool' pools

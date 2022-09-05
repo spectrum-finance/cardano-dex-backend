@@ -2,11 +2,7 @@ index-state: 2022-04-06T00:00:00Z
 
 packages:
   core
-  streaming-kafka
-  tracker
-  executor
   amm-executor
-  pools-resolver
   ledger-sync
 
 package cardano-crypto-praos
@@ -337,7 +333,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: a757b0ed8a65605ee51c2b2ea84b9c587cc5d500
+  tag: 656ff5fc170ad89e3d5068033f42c8dc73bbba10
   subdir:
     cardano-tx
     ergo-hs-common

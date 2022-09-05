@@ -1,16 +1,20 @@
 module Spectrum.Executor.Backlog.Service
   ( BacklogService(..)
   , mkBacklogService
+  , mkBacklogService'
   ) where
 
 import           Prelude         hiding (drop)
 import qualified Data.PQueue.Max as PQ
 import qualified Data.List       as List
 import qualified Data.Sequence   as Seq
+
 import Control.Monad.IO.Class
+  ( MonadIO )
 import System.Random
+  ( randomRIO )
 import RIO
-  ( (<&>), atomicModifyIORef, modifyIORef', newIORef, IORef )
+  ( (<&>), atomicModifyIORef, modifyIORef', newIORef, IORef, MonadReader )
 import RIO.Time 
   ( getCurrentTime, diffUTCTime )
 
@@ -21,14 +25,24 @@ import Spectrum.HigherKind
   ( LiftK(liftK) )
 import Spectrum.Executor.Backlog.Data.BacklogOrder 
   ( mkWeightedOrder, WeightedOrder (WeightedOrder), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp) )
-import Spectrum.Executor.Backlog.Persistence.BacklogStore 
-  ( BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll) )
+import Spectrum.Executor.Backlog.Persistence.BacklogStore
+  ( BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll), mkBacklogStore )
 import Spectrum.Executor.Backlog.Config 
   ( BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, suspendedPropability) )
 import Spectrum.Executor.Data.OrderState 
   ( OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder) )
 import Spectrum.Executor.Types 
   ( Order, OrderId )
+import Spectrum.Context
+  ( HasType, askContext )
+import Spectrum.Executor.Backlog.Persistence.Config
+  ( BacklogStoreConfig )
+import Control.Monad.Trans.Resource
+  ( MonadResource )
+import Control.Monad.Catch
+  ( MonadThrow )
+import Control.Monad.IO.Unlift
+  ( MonadUnliftIO )
 
 data BacklogService m = BacklogService
   { put        :: OrderInState 'Pending -> m ()
@@ -39,12 +53,32 @@ data BacklogService m = BacklogService
   }
 
 mkBacklogService
+  :: forall f m env.
+    ( MonadIO f
+    , MonadResource f
+    , MonadThrow m
+    , MonadUnliftIO m
+    , LiftK m f
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    , HasType BacklogServiceConfig env
+    , HasType BacklogStoreConfig env
+    )
+  => f (BacklogService m)
+mkBacklogService = do
+  mklog       <- askContext
+  config      <- askContext
+  storeConfig <- askContext
+  store       <- mkBacklogStore mklog storeConfig
+  mkBacklogService' mklog config store
+
+mkBacklogService'
   :: forall f m. (MonadIO f, MonadIO m, LiftK m f)
   => MakeLogging f m
   -> BacklogServiceConfig
   -> BacklogStore m
   -> f (BacklogService m)
-mkBacklogService MakeLogging{..} config store@BacklogStore{..} = do
+mkBacklogService' MakeLogging{..} config store@BacklogStore{..} = do
   logging     <- forComponent "BacklogService"
   -- those queues should be shared with Backlog.Proceess (to make live updates). So maybe worth extracting them into separate module. e.g. BacklogStore
   pendingPQ   <- newIORef PQ.empty  -- ordered by weight; new orders
@@ -106,8 +140,8 @@ getMaxPendingOrder
   -> IORef (PQ.MaxQueue WeightedOrder)
   -> m (Maybe Order)
 getMaxPendingOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} pendingQueueRef = do
-  currentTime   <- getCurrentTime
-  wOrderM       <- atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
+  currentTime <- getCurrentTime
+  wOrderM     <- atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
       Just (order, newQueue) -> (newQueue, Just order)
       Nothing -> (queue, Nothing)
     )

@@ -7,7 +7,7 @@ import RIO
 
 import Spectrum.Executor.Topic
   ( WriteTopic (..) )
-import Spectrum.Executor.EventSink.Data.PoolEvent
+import Spectrum.Executor.Data.PoolState
   ( NewPool(..) )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler )
@@ -19,11 +19,13 @@ import ErgoDex.Class
   ( FromLedger(parseFromLedger) )
 import Spectrum.Executor.Data.State
   ( Confirmed(..) )
+import Spectrum.Executor.EventSource.Data.TxContext
+  ( TxCtx(LedgerCtx) )
 
 mkNewPoolsHandler
   :: Monad m
   => WriteTopic m (NewPool Confirmed)
-  -> EventHandler m ctx
+  -> EventHandler m 'LedgerCtx
 mkNewPoolsHandler WriteTopic{..} = \case 
   AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) ->
     foldl process (pure Nothing) (txOutputs <&> parseFromLedger <&> (<&> Confirmed))

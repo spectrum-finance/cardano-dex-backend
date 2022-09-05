@@ -18,20 +18,17 @@ import Spectrum.Executor.Data.State
   ( Confirmed, Unconfirmed )
 import Spectrum.Executor.Topic
   ( ReadTopic(..) )
+import Spectrum.Executor.Data.PoolState
+  ( NewPool(..), DiscardedPool(..) )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( Pools(..) )
-import Spectrum.Executor.EventSink.Data.PoolEvent
-  ( NewPool(..), DiscardedPool(..) )
-import Spectrum.Common.Streaming.Class
-  ( Compile(drain) )
 
-newtype PoolTracker m = PoolTracker
-  { run :: m ()
+newtype PoolTracker s m = PoolTracker
+  { run :: s m ()
   }
 
 mkPoolTracker
   :: ( IsStream s
-     , Compile s m
      , Monad (s m)
      , MonadIO m
      , MonadBaseControl IO m
@@ -41,9 +38,9 @@ mkPoolTracker
   -> ReadTopic s m (NewPool Confirmed)
   -> ReadTopic s m (NewPool Unconfirmed)
   -> ReadTopic s m DiscardedPool
-  -> PoolTracker m
+  -> PoolTracker s m
 mkPoolTracker pools conf unconf discarded =
-  PoolTracker . drain $
+  PoolTracker $
     S.parallel (trackConfirmedPoolUpdates pools conf) $
     S.parallel (trackUnconfirmedPoolUpdates pools unconf) $
     handlePoolRollbacks pools discarded
