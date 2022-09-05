@@ -82,7 +82,7 @@ import SubmitAPI.Config
 import NetworkAPI.Types
   ( SocketPath(SocketPath) )
 import ErgoDex.Amm.PoolActions
-  ( fetchValidatorsV1, mkPoolActions, poolV )
+  ( fetchValidatorsV1, mkPoolActions )
 import WalletAPI.TrustStore
   ( mkTrustStore )
 import WalletAPI.Vault
@@ -115,7 +115,7 @@ import Spectrum.Executor.EventSink.Types
 import Spectrum.Executor.EventSink.Handlers.Pools
   ( mkNewPoolsHandler )
 import Spectrum.Executor.EventSink.Handlers.Orders
-  ( mkPendingOrdersHandler, mkExecutedOrdersHandler )
+  ( mkPendingOrdersHandler, mkEliminatedOrdersHandler )
 import Spectrum.Executor.Topic
   ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic, mkNoopTopic )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
@@ -205,7 +205,7 @@ wireApp = interceptSigTerm >> do
   lsource <- mkEventSource lsync
   OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic
   OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic
-  OneToOneTopic execOrdersRd execOrdersWr <- mkOneToOneTopic
+  OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic
   explorer <- mkExplorer mkLogging explorerConfig
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
@@ -220,17 +220,17 @@ wireApp = interceptSigTerm >> do
   pools          <- mkPools
   resolver       <- mkPoolResolver pools
   let
-    (upoolRd, _)   = mkNoopTopic
-    (dispoolRd, _) = mkNoopTopic
-    tracker        = mkPoolTracker pools newPoolsRd upoolRd dispoolRd
-    backlog        = mkBacklog backlogService newOrdersRd execOrdersRd undefined
-    transactions   = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
-    poolActions    = mkPoolActions (PaymentPubKeyHash executorPkh) validators
+    (uPoolsRd, _)   = mkNoopTopic
+    (disPoolsRd, _) = mkNoopTopic
+    tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
+    backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
+    transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
+    poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
   executor <- mkOrdersExecutor backlogService transactions resolver poolActions
   let
     poolsHan      = mkNewPoolsHandler newPoolsWr
     newOrdersHan  = mkPendingOrdersHandler newOrdersWr
-    execOrdersHan = mkExecutedOrdersHandler (poolV validators) backlogStore execOrdersWr
+    execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
     lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
   lift . S.drain $
     S.parallel (pipe lsink . upstream $ lsource) $

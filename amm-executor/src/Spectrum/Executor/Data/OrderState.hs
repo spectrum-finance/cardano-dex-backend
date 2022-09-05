@@ -10,14 +10,12 @@ data OrderState
   = Pending
   | Suspended
   | InProgress
-  | Executed
-  | Cancelled
+  | Eliminated
   deriving (Eq, Show)
 
 data OrderInState st where
   PendingOrder    :: Order -> UTCTime -> OrderInState 'Pending
   SuspendedOrder  :: Order -> UTCTime -> OrderInState 'Suspended
   InProgressOrder :: Order -> UTCTime -> OrderInState 'InProgress
-  ExecutedOrder   :: OrderId -> OrderInState 'Executed
-  CancelledOrder  :: OrderId -> OrderInState 'Cancelled
+  EliminatedOrder :: OrderId -> OrderInState 'Eliminated
 deriving instance Show (OrderInState st)
