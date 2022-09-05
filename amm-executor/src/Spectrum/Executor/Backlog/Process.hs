@@ -18,8 +18,8 @@ import Spectrum.Executor.Backlog.Service (BacklogService (BacklogService, put, d
 
 import Spectrum.Executor.Topic
   ( ReadTopic(..) )
-import Spectrum.Executor.Data.OrderState 
-  ( OrderInState (ExecutedOrder, CancelledOrder), OrderState (Pending, Executed, Cancelled) )
+import Spectrum.Executor.Data.OrderState
+  ( OrderInState(EliminatedOrder), OrderState(Eliminated, Pending) )
 import RIO ((<&>))
 
 newtype Backlog s m = Backlog 
@@ -35,14 +35,12 @@ mkBacklog
      )
   => BacklogService m
   -> ReadTopic s m (OrderInState 'Pending)
-  -> ReadTopic s m (OrderInState 'Executed)
-  -> ReadTopic s m (OrderInState 'Cancelled)
+  -> ReadTopic s m (OrderInState 'Eliminated)
   -> Backlog s m
-mkBacklog backlogService pending executed cancelled =
+mkBacklog backlogService pending eliminated =
   Backlog $
-    S.parallel (trackPendingOrdersUpdates backlogService pending) $
-    S.parallel (trackExecutedOrdersUpdates backlogService executed) $
-    trackCancelledOrdersUpdates backlogService cancelled
+    S.parallel (trackPendingOrdersUpdates backlogService pending)
+    (trackEliminatedOrdersUpdates backlogService eliminated)
 
 trackPendingOrdersUpdates
   :: (IsStream s, Monad (s m), Monad m)
@@ -53,20 +51,11 @@ trackPendingOrdersUpdates BacklogService{..} ReadTopic{..} = do
   pendingOrder <- upstream
   S.fromEffect $ put pendingOrder
 
-trackExecutedOrdersUpdates
+trackEliminatedOrdersUpdates
   :: (IsStream s, Monad m, Monad (s m))
   => BacklogService m
-  -> ReadTopic s m (OrderInState 'Executed)
+  -> ReadTopic s m (OrderInState 'Eliminated)
   -> s m ()
-trackExecutedOrdersUpdates BacklogService{..} ReadTopic{..} = do
-  oId <- upstream <&> (\case ExecutedOrder oid -> oid) 
-  S.fromEffect $ drop oId
-
-trackCancelledOrdersUpdates
-  :: (IsStream s, Monad m, Monad (s m))
-  => BacklogService m
-  -> ReadTopic s m (OrderInState 'Cancelled)
-  -> s m ()
-trackCancelledOrdersUpdates BacklogService{..} ReadTopic{..} = do
-  oId <- upstream <&> (\case CancelledOrder oid -> oid) 
+trackEliminatedOrdersUpdates BacklogService{..} ReadTopic{..} = do
+  oId <- upstream <&> (\case EliminatedOrder oid -> oid) 
   S.fromEffect $ drop oId

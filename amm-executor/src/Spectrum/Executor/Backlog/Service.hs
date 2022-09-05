@@ -26,7 +26,7 @@ import Spectrum.HigherKind
 import Spectrum.Executor.Backlog.Data.BacklogOrder 
   ( mkWeightedOrder, WeightedOrder (WeightedOrder), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore
-  ( BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll), mkBacklogStore )
+  ( BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll) )
 import Spectrum.Executor.Backlog.Config 
   ( BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, suspendedPropability) )
 import Spectrum.Executor.Data.OrderState 
@@ -35,12 +35,8 @@ import Spectrum.Executor.Types
   ( Order, OrderId )
 import Spectrum.Context
   ( HasType, askContext )
-import Spectrum.Executor.Backlog.Persistence.Config
-  ( BacklogStoreConfig )
 import Control.Monad.Trans.Resource
   ( MonadResource )
-import Control.Monad.Catch
-  ( MonadThrow )
 import Control.Monad.IO.Unlift
   ( MonadUnliftIO )
 
@@ -56,20 +52,17 @@ mkBacklogService
   :: forall f m env.
     ( MonadIO f
     , MonadResource f
-    , MonadThrow m
     , MonadUnliftIO m
     , LiftK m f
     , MonadReader env f
     , HasType (MakeLogging f m) env
     , HasType BacklogServiceConfig env
-    , HasType BacklogStoreConfig env
     )
-  => f (BacklogService m)
-mkBacklogService = do
-  mklog       <- askContext
-  config      <- askContext
-  storeConfig <- askContext
-  store       <- mkBacklogStore mklog storeConfig
+  => BacklogStore m
+  -> f (BacklogService m)
+mkBacklogService store = do
+  mklog  <- askContext
+  config <- askContext
   mkBacklogService' mklog config store
 
 mkBacklogService'

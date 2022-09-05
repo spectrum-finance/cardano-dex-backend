@@ -10,12 +10,7 @@ module Spectrum.Executor.EventSource.Data.Tx
 import qualified Ledger as P
 import qualified Data.Set as Set
 
-import Data.ByteString.Short (ShortByteString, fromShort)
-import qualified Data.Sequence.Strict as StrictSeq
-
 import qualified Cardano.Ledger.Babbage.Tx as Al
-
-import qualified Cardano.Protocol.TPraos.BHeader as TPraos
 import qualified Cardano.Crypto.Hash.Class as CC
 
 import qualified PlutusTx.Prelude as PlutusTx
@@ -25,27 +20,16 @@ import CardanoTx.Models
 import Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(MempoolCtx, LedgerCtx) )
 import Ouroboros.Consensus.Cardano.Block
-    ( AlonzoEra, EraCrypto, StandardCrypto, BabbageEra)
+    ( EraCrypto, StandardCrypto, BabbageEra)
 import Ouroboros.Consensus.Shelley.Ledger (ShelleyHash (unShelleyHash))
-import qualified Cardano.Ledger.Address as Ledger
-import qualified Cardano.Ledger.AuxiliaryData as Ledger
-import qualified Cardano.Ledger.BaseTypes as Ledger
-import qualified Cardano.Ledger.Block as Ledger
-import qualified Cardano.Ledger.Coin as Ledger
-import qualified Cardano.Ledger.Core as Ledger
-import qualified Cardano.Ledger.Credential as Ledger
-import qualified Cardano.Ledger.Era as Ledger
-import qualified Cardano.Ledger.Keys as Ledger
 import qualified Cardano.Ledger.SafeHash as Ledger
 import qualified Cardano.Ledger.TxIn as Ledger
 import Cardano.Ledger.Crypto (Crypto)
-import Data.ByteString.Short (fromShort)
 
 import qualified Ledger.Tx.CardanoAPI as Interop
 import RIO ((<&>))
-import Cardano.Api.Shelley (fromShelleyTxIn, fromShelleyTxOut, ShelleyBasedEra (ShelleyBasedEraAlonzo, ShelleyBasedEraBabbage))
+import Cardano.Api.Shelley (fromShelleyTxIn, fromShelleyTxOut, ShelleyBasedEra (ShelleyBasedEraBabbage))
 import Data.Foldable (Foldable(toList))
-import qualified Crypto.ECC.Ed25519BIP32 as TPraos
 import Cardano.Ledger.Serialization (Sized(sizedValue))
 
 -- | A minimal sufficient representation of an unconfirmed transaction
