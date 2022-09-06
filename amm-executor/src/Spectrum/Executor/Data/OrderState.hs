@@ -10,7 +10,7 @@ data OrderState
   = Pending
   | Suspended
   | InProgress
-  | Eliminated
+  | Eliminated -- Executed | Cancelled
   deriving (Eq, Show)
 
 data OrderInState st where

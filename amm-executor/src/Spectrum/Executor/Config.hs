@@ -55,11 +55,11 @@ data AppConfig = AppConfig
   { ledgerSyncConfig   :: !LedgerSyncConfig
   , eventSourceConfig  :: !EventSourceConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
+  , nodeConfigPath     :: !FilePath
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig
   , backlogConfig      :: !BacklogServiceConfig
   , backlogStoreConfig :: !BacklogStoreConfig
-  , nodeConfigPath     :: !FilePath
   , explorerConfig     :: !ExplorerConfig
   , txSubmitConfig     :: !TxSubmitConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
