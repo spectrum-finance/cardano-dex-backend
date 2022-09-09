@@ -108,7 +108,7 @@ library
                   , resourcet
                   , exceptions
                   , profunctors
-                  , core
+                  , spectrum-prelude
                   , base16
                   , base58-bytestring
                   , base64

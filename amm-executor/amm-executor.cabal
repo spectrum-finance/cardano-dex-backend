@@ -133,7 +133,7 @@ library
                   , resourcet
                   , exceptions
                   , streamly
-                  , core == 0.1.0.0
+                  , spectrum-prelude
                   , base16
                   , base58-bytestring
                   , base64
