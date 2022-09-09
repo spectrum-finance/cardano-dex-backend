@@ -4,6 +4,9 @@ module Spectrum.Prelude.UnliftIO
   ( UnliftIO
   ) where
 
-import Spectrum.HigherKind (type (~>))
+import RIO
+  ( IO )
+import Spectrum.Prelude.HigherKind
+  ( type (~>) )
 
 type UnliftIO m = m ~> IO

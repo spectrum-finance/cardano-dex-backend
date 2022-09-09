@@ -25,17 +25,19 @@ import Streamly.Prelude as S
 import System.Logging.Hlog
   ( MakeLogging(..), Logging(..) )
 
+import qualified Ouroboros.Consensus.Protocol.Praos.Header as Praos
 import Ouroboros.Consensus.Shelley.Ledger
   ( ShelleyBlock(ShelleyBlock), ShelleyHash (unShelleyHash) )
 import Ouroboros.Consensus.HardFork.Combinator
   ( OneEraHash(OneEraHash) )
 import Ouroboros.Consensus.Cardano.Block
   ( HardForkBlock(BlockBabbage) )
+import Ouroboros.Consensus.Block
+  ( Point )
 
 import Cardano.Ledger.Alonzo.TxSeq
   ( TxSeq(txSeqTxns) )
 import qualified Cardano.Ledger.Block as Ledger
-import qualified Ouroboros.Consensus.Protocol.Praos.Header as Praos
 import qualified Cardano.Crypto.Hash as CC
 
 import Spectrum.LedgerSync.Protocol.Client
@@ -44,7 +46,7 @@ import Spectrum.Executor.EventSource.Data.Tx
   ( fromBabbageLedgerTx )
 import Spectrum.LedgerSync
   ( LedgerSync(..) )
-import Spectrum.Context
+import Spectrum.Prelude.Context
   ( HasType, askContext )
 import Spectrum.Executor.Config
   ( EventSourceConfig (EventSourceConfig, startAt) )
@@ -63,13 +65,11 @@ import Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
 import Spectrum.LedgerSync.Data.LedgerUpdate
   ( LedgerUpdate(RollForward, RollBackward) )
-import Ouroboros.Consensus.Block
-  ( Point )
 import Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
   ( BlockLinks(BlockLinks, txIds, prevPoint) )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
-import Spectrum.HigherKind
+import Spectrum.Prelude.HigherKind
   ( LiftK (liftK) )
 
 newtype EventSource s m ctx = EventSource

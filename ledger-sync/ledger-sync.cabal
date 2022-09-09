@@ -74,10 +74,7 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Spectrum.Context
-                     Spectrum.HigherKind
-                     Spectrum.Prelude
-                     Spectrum.LedgerSync
+    exposed-modules: Spectrum.LedgerSync
                      Spectrum.LedgerSync.Config
                      Spectrum.LedgerSync.Exception
                      Spectrum.LedgerSync.Data.LedgerUpdate

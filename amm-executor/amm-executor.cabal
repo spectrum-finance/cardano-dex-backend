@@ -219,6 +219,7 @@ test-suite amm-executor-test
     , plutus-ledger-api
     , plutus-tx
     , dex-core
+    , spectrum-prelude
     , cardano-tx
     , cardano-dex-contracts-offchain
     , plutus-ledger

@@ -24,14 +24,15 @@ import Spectrum.Executor.Backlog.Persistence.Config
   ( BacklogStoreConfig(..) )
 import Spectrum.Executor.Backlog.Data.BacklogOrder 
   ( BacklogOrder (BacklogOrder, backlogOrder) )
-import Spectrum.Context (HasType, askContext)
+import Spectrum.Prelude.Context
+  ( HasType, askContext )
 
 data BacklogStore m = BacklogStore
-  { put        :: BacklogOrder -> m ()
-  , exists     :: BacklogOrder -> m Bool
-  , dropOrder  :: OrderId -> m ()
-  , get        :: OrderId -> m (Maybe BacklogOrder)
-  , getAll     :: m [BacklogOrder]
+  { put       :: BacklogOrder -> m ()
+  , exists    :: BacklogOrder -> m Bool
+  , dropOrder :: OrderId -> m ()
+  , get       :: OrderId -> m (Maybe BacklogOrder)
+  , getAll    :: m [BacklogOrder]
   }
 
 mkBacklogStore

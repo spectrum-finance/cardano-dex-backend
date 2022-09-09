@@ -36,7 +36,7 @@ import Spectrum.Executor.Backlog.Service
   ( BacklogService (BacklogService, tryAcquire, checkLater, put), mkBacklogService' )
 import Spectrum.Executor.Backlog.Config 
   ( BacklogServiceConfig (orderLifetime, suspendedPropability, orderExecTime, BacklogServiceConfig) )
-import Spectrum.HigherKind 
+import Spectrum.Prelude.HigherKind 
   ( LiftK(liftK) )
 import Spectrum.Executor.Data.OrderState 
   ( OrderInState(PendingOrder, InProgressOrder) )

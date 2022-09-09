@@ -25,7 +25,7 @@ import Spectrum.Executor.Types
   ( PoolStateId (PoolStateId), Pool, poolStateId )
 import ErgoDex.State
   ( OnChain(OnChain) )
-import Spectrum.Context (HasType, askContext)
+import Spectrum.Prelude.Context (HasType, askContext)
 
 data PoolResolver m = PoolResolver
   { resolvePool    :: PoolId -> m (Maybe Pool)

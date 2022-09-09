@@ -1,13 +1,17 @@
 {-# LANGUAGE TypeOperators #-}
 
-module Spectrum.HigherKind
+module Spectrum.Prelude.HigherKind
   ( type (~>)
   , FunctorK(..)
   , LiftK(..)
   ) where
 
-import Data.Kind (Type)
-import Control.Monad.Trans.Class (MonadTrans(lift))
+import Data.Kind
+  ( Type )
+import Control.Monad.Trans.Class
+  ( MonadTrans(lift) )
+import Control.Monad
+  ( Monad )
 
 type f ~> g = forall a. f a -> g a
 

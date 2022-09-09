@@ -75,9 +75,11 @@ library
     exposed-modules: Spectrum.Prelude.Context
                      Spectrum.Prelude.HigherKind
                      Spectrum.Prelude.UnliftIO
+                     Spectrum.Prelude.Throw
 
     build-depends:  rio
                   , aeson == 1.5.6.0
-                  , quickblue == 0.1.0.0
-                  , cardano-tx == 0.1.0.0
-                  , dex-core == 0.1.0.0
+                  , unliftio-core
+                  , io-classes
+                  , transformers
+                  , generic-lens

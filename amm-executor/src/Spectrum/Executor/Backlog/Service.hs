@@ -21,7 +21,7 @@ import RIO.Time
 import System.Logging.Hlog 
   ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
 
-import Spectrum.HigherKind 
+import Spectrum.Prelude.HigherKind 
   ( LiftK(liftK) )
 import Spectrum.Executor.Backlog.Data.BacklogOrder 
   ( mkWeightedOrder, WeightedOrder (WeightedOrder), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp) )
@@ -33,7 +33,7 @@ import Spectrum.Executor.Data.OrderState
   ( OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder) )
 import Spectrum.Executor.Types 
   ( Order, OrderId )
-import Spectrum.Context
+import Spectrum.Prelude.Context
   ( HasType, askContext )
 import Control.Monad.Trans.Resource
   ( MonadResource )

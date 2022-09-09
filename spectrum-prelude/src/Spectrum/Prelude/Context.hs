@@ -1,4 +1,4 @@
-module Spectrum.Context
+module Spectrum.Prelude.Context
   ( HasType
   , MonadReader
   , askContext
