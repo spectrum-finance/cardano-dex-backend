@@ -2,6 +2,8 @@ module Spectrum.Executor.Backlog.Config
   ( BacklogServiceConfig (..)
   ) where
 
+import RIO
+  ( Natural )
 import RIO.Time 
   ( NominalDiffTime )
 import Dhall 
@@ -13,9 +15,9 @@ import GHC.Natural
   ( naturalToInteger )
 
 data BacklogServiceConfig = BacklogServiceConfig
-  { orderLifetime :: NominalDiffTime
-  , orderExecTime :: NominalDiffTime
-  , suspendedPropability :: Int 
+  { orderLifetime        :: !NominalDiffTime
+  , orderExecTime        :: !NominalDiffTime
+  , suspendedPropability :: !Natural 
   } deriving (Generic, FromDhall)
 
 instance FromDhall NominalDiffTime where

@@ -39,6 +39,7 @@ import Control.Monad.Trans.Resource
   ( MonadResource )
 import Control.Monad.IO.Unlift
   ( MonadUnliftIO )
+import GHC.Natural (naturalToInt)
 
 data BacklogService m = BacklogService
   { put        :: OrderInState 'Pending -> m ()
@@ -122,7 +123,7 @@ getMaxWeightedOrder'
   -> m (Maybe Order)
 getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
   randomInt <- randomRIO (0, 100) :: m Int
-  if randomInt > suspendedPropability
+  if randomInt > naturalToInt suspendedPropability
     then getMaxPendingOrder cfg store pendingQueueRef
     else getMaxSuspendedOrder cfg store suspendedQueueRef
 
