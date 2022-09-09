@@ -5,11 +5,15 @@ module Spectrum.LedgerSync
 
 import RIO ( (<&>), void )
 
-import Spectrum.Context ( MonadReader, HasType, askContext )
-import Spectrum.Prelude ( UnliftIO )
+import Spectrum.Prelude.Context
+  ( MonadReader, HasType, askContext )
+import Spectrum.Prelude.UnliftIO
+  ( UnliftIO )
 
 import GHC.Num ( naturalToInt )
 
+import Control.Monad.IO.Class
+  ( MonadIO )
 import Control.Monad.Class.MonadSTM
   ( MonadSTM (..), TQueue )
 import Control.Monad.Class.MonadThrow
@@ -56,8 +60,8 @@ import Spectrum.LedgerSync.Protocol.ChainSync
   ( mkChainSyncClient )
 import Spectrum.LedgerSync.Protocol.Client
   ( mkClient, connectClient, Block )
-import Control.Monad.IO.Class (MonadIO)
-import Spectrum.HigherKind (FunctorK(..))
+import Spectrum.Prelude.HigherKind
+  ( FunctorK(..) )
 
 data LedgerSync m = LedgerSync
   { pull    :: m (LedgerUpdate Block)

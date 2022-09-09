@@ -21,7 +21,7 @@ import RIO.Time
 import System.Logging.Hlog 
   ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
 
-import Spectrum.HigherKind 
+import Spectrum.Prelude.HigherKind 
   ( LiftK(liftK) )
 import Spectrum.Executor.Backlog.Data.BacklogOrder 
   ( mkWeightedOrder, WeightedOrder (WeightedOrder), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp) )
@@ -33,12 +33,13 @@ import Spectrum.Executor.Data.OrderState
   ( OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder) )
 import Spectrum.Executor.Types 
   ( Order, OrderId )
-import Spectrum.Context
+import Spectrum.Prelude.Context
   ( HasType, askContext )
 import Control.Monad.Trans.Resource
   ( MonadResource )
 import Control.Monad.IO.Unlift
   ( MonadUnliftIO )
+import GHC.Natural (naturalToInt)
 
 data BacklogService m = BacklogService
   { put        :: OrderInState 'Pending -> m ()
@@ -122,7 +123,7 @@ getMaxWeightedOrder'
   -> m (Maybe Order)
 getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
   randomInt <- randomRIO (0, 100) :: m Int
-  if randomInt > suspendedPropability
+  if randomInt > naturalToInt suspendedPropability
     then getMaxPendingOrder cfg store pendingQueueRef
     else getMaxSuspendedOrder cfg store suspendedQueueRef
 

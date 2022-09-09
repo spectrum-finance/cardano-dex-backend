@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               core
+name:               spectrum-prelude
 version:            0.1.0.0
 
 author:             ErgoLabs
@@ -72,11 +72,14 @@ library
 
     hs-source-dirs: src
     
-    exposed-modules: Core.Throw.Combinators
-                     Core.Types
+    exposed-modules: Spectrum.Prelude.Context
+                     Spectrum.Prelude.HigherKind
+                     Spectrum.Prelude.UnliftIO
+                     Spectrum.Prelude.Throw
 
     build-depends:  rio
                   , aeson == 1.5.6.0
-                  , quickblue == 0.1.0.0
-                  , cardano-tx == 0.1.0.0
-                  , dex-core == 0.1.0.0
+                  , unliftio-core
+                  , io-classes
+                  , transformers
+                  , generic-lens

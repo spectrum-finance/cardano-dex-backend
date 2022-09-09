@@ -1,5 +1,7 @@
 cradle:
   cabal:
+    - path: "./spectrum-prelude/src"
+      component: "spectrum-prelude:lib:spectrum-prelude"
     - path: "./amm-executor/src"
       component: "amm-executor:lib:amm-executor"
     - path: "./amm-executor/app"

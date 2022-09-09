@@ -1,6 +1,15 @@
-module Core.Throw.Combinators where
+module Spectrum.Prelude.Throw
+  ( throwEither
+  , throwMaybe
+  ) where
 
 import RIO
+    ( Applicative(pure)
+    , Maybe(Just)
+    , Either(..)
+    , MonadThrow(..)
+    , Exception
+    )
 
 throwEither :: (MonadThrow f, Exception e) => Either e r -> f r
 throwEither (Left err)    = throwM err

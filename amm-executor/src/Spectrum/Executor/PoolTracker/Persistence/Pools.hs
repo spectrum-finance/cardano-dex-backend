@@ -35,7 +35,8 @@ import Spectrum.Executor.PoolTracker.Persistence.Config
   ( PoolStoreConfig(..) )
 import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
-import Spectrum.Context (MonadReader, HasType, askContext)
+import Spectrum.Prelude.Context
+  ( MonadReader, HasType, askContext )
 
 data Pools m = Pools
   { getPrediction      :: PoolStateId -> m (Maybe (Traced (Predicted Pool)))

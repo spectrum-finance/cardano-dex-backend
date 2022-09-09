@@ -8,20 +8,20 @@ let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = componen
 in
 { mainnetMode = False
 , ledgerSyncConfig =
-    { nodeSocketPath = "/root/cardano-node/ipc/node.socket"
+    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
     , maxInFlight    = 256
     }
 , eventSourceConfig =
     { startAt =
-        { slot = 59190535
-        , hash = "2ba0e86679ddd0015ee5a4f17c093201a2b5e41ca919152af89333b5c8964319"
+        { slot = 2729633
+        , hash = "815dafb374898811dc74069a8df8af7a98a80214203e89acdd6425c2e3db37c7"
         }
     }
 , ledgerStoreConfig =
     { storePath       = "./data/amm-executor"
     , createIfMissing = True
     }
-, nodeConfigPath = "/root/cardano-node/node-conf.json"
+, nodeConfigPath = "/root/cardano-vasil-docker/config/preview/config.json"
 , pstoreConfig =
     { storePath       = "/path"
     , createIfMissing = True
@@ -39,7 +39,7 @@ in
     { explorerUri = "https://testnet-api.quickblue.io"
     }
 , txSubmitConfig =
-    { nodeSocketPath = "/root/cardano-node/ipc/node.socket"
+    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
     }
 , txAssemblyConfig =
     { feePolicy         = FeePolicy.Balance

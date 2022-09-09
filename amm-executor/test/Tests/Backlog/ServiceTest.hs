@@ -9,7 +9,6 @@ import qualified Hedgehog.Gen   as Gen
 import qualified Hedgehog.Range as Range
 import Test.Tasty 
   ( testGroup )
-import Test.Tasty.HUnit 
 import Hedgehog 
   ( (===), forAll, property, Property )
 import Control.Monad.Trans.Resource 
@@ -26,7 +25,6 @@ import qualified Data.List as List
 
 import qualified Plutus.Script.Utils.V2.Address  as PV2
 
-import ErgoDex.Amm.Orders
 import ErgoDex.PValidators
   ( swapValidator )
 
@@ -36,7 +34,7 @@ import Spectrum.Executor.Backlog.Service
   ( BacklogService (BacklogService, tryAcquire, checkLater, put), mkBacklogService' )
 import Spectrum.Executor.Backlog.Config 
   ( BacklogServiceConfig (orderLifetime, suspendedPropability, orderExecTime, BacklogServiceConfig) )
-import Spectrum.HigherKind 
+import Spectrum.Prelude.HigherKind 
   ( LiftK(liftK) )
 import Spectrum.Executor.Data.OrderState 
   ( OrderInState(PendingOrder, InProgressOrder) )

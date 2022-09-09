@@ -52,12 +52,8 @@ let
     modules = [
       {
         packages = {
-          core.package.buildable = false;
-          streaming-kafka.package.buildable = false;
-          tracker.package.buildable = false;
-          executor.package.buildable = false;
+          spectrum-prelude.package.buildable = false;
           amm-executor.package.buildable = false;
-          pools-resolver.package.buildable = false;
           ledger-sync.package.buildable = false;
 
           # Broken due to haddock errors. Refer to https://github.com/input-output-hk/plutus/blob/master/nix/pkgs/haskell/haskell.nix
