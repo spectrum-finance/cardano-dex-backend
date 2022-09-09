@@ -9,7 +9,6 @@ import qualified Hedgehog.Gen   as Gen
 import qualified Hedgehog.Range as Range
 import Test.Tasty 
   ( testGroup )
-import Test.Tasty.HUnit 
 import Hedgehog 
   ( (===), forAll, property, Property )
 import Control.Monad.Trans.Resource 
@@ -26,7 +25,6 @@ import qualified Data.List as List
 
 import qualified Plutus.Script.Utils.V2.Address  as PV2
 
-import ErgoDex.Amm.Orders
 import ErgoDex.PValidators
   ( swapValidator )
 
