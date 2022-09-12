@@ -2,6 +2,7 @@ module Spectrum.Executor.Config
   ( AppConfig(..)
   , EventSourceConfig(..)
   , TxSubmitConfig(..)
+  , NetworkConfig(..)
   , Secrets(..)
   , loadAppConfig
   ) where
@@ -9,6 +10,8 @@ module Spectrum.Executor.Config
 import System.Logging.Hlog
   ( LoggingConfig )
 
+import RIO 
+  ( Natural )
 import GHC.Generics
   ( Generic )
 import Dhall
@@ -38,6 +41,10 @@ import Explorer.Config
   ( ExplorerConfig )
 import WalletAPI.TrustStore (SecretFile, KeyPass)
 
+data NetworkConfig = NetworkConfig
+  { cardanoNetworkId :: !Natural 
+  } deriving (Generic, FromDhall)
+
 data EventSourceConfig = EventSourceConfig
   { startAt :: !ConcretePoint
   } deriving (Generic, FromDhall)
@@ -56,6 +63,7 @@ data AppConfig = AppConfig
   , eventSourceConfig  :: !EventSourceConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
+  , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig
   , backlogConfig      :: !BacklogServiceConfig

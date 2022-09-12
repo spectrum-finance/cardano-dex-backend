@@ -105,7 +105,13 @@ import Cardano.Network.Protocol.NodeToClient.Trace
 import Spectrum.Executor.EventSource.Stream
   ( mkEventSource, EventSource (upstream) )
 import Spectrum.Executor.Config
-  ( AppConfig(..), loadAppConfig, EventSourceConfig, TxSubmitConfig(..), Secrets(..) )
+  ( AppConfig(..)
+  , loadAppConfig
+  , EventSourceConfig
+  , TxSubmitConfig(..)
+  , Secrets(..)
+  , NetworkConfig(..)
+  )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.EventSink.Pipe
@@ -178,7 +184,7 @@ runApp args = do
     networkId =
       if mainnetMode
         then C.Mainnet
-        else C.Testnet (C.NetworkMagic 1097911063)
+        else C.Testnet (C.NetworkMagic (fromIntegral $ cardanoNetworkId networkConfig))
     env =
       Env
         ledgerSyncConfig
