@@ -61,6 +61,9 @@ common project-config
                         ViewPatterns
 
   ghc-options:          -O2
+                        -threaded
+                        -fprof-auto
+                        "-with-rtsopts=-N -p -s -h -i0.1"
                         -Wall
                         -Wcompat
                         -Wincomplete-record-updates
@@ -191,6 +194,8 @@ executable amm-executor-app
 
     ghc-options:      -O2
                       -threaded
+                      -fprof-auto
+                      "-with-rtsopts=-N -p -s -h -i0.1"
 
     build-depends:    base >= 4.9 && < 5
                     , amm-executor

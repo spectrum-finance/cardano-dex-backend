@@ -90,9 +90,9 @@ attachLogging Logging{..} BacklogStore{..}=
         infoM $ "dropOrder " <> show oId <> " -> " <> show r
         pure r
     , get = \oId -> do
-        infoM $ "get " <> show oId
+        infoM $ "get bs" <> show oId
         r <- get oId
-        infoM $ "get " <> show oId <> " -> " <> show r
+        infoM $ "get bs" <> show oId <> " -> " <> show r
         pure r
     , getAll = do
         infoM @String "getAll"

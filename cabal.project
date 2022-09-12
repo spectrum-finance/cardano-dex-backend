@@ -5,6 +5,8 @@ packages:
   amm-executor
   ledger-sync
 
+profiling: true
+
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
@@ -316,7 +318,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-contracts
-  tag: 7ac8d2801e24ee0817a9ab24ecd96f776c011bb6
+  tag: 8c556bf051271b5dbb712ba181c6abeeab85abbf
   subdir:
     cardano-dex-contracts-offchain
 
@@ -333,7 +335,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 656ff5fc170ad89e3d5068033f42c8dc73bbba10
+  tag: 291e9032cbd82ee11668cc6d6aed31bb662d90f3
   subdir:
     cardano-tx
     ergo-hs-common

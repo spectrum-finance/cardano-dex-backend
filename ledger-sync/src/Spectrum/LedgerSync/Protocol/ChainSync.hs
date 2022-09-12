@@ -3,7 +3,7 @@ module Spectrum.LedgerSync.Protocol.ChainSync
   ) where
 
 import RIO
-  ( (<&>), ($>) )
+  ( (<&>), ($>), liftIO )
 
 import Control.Monad
   ( guard )

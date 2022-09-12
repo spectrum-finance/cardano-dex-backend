@@ -8,47 +8,50 @@ let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = componen
 in
 { mainnetMode = False
 , ledgerSyncConfig =
-    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
+    { nodeSocketPath = "/home/bromel/projects/cardano-node/ipc/node.socket"
     , maxInFlight    = 256
     }
 , eventSourceConfig =
     { startAt =
-        { slot = 2729633
-        , hash = "815dafb374898811dc74069a8df8af7a98a80214203e89acdd6425c2e3db37c7"
+        { slot = 4312803
+        , hash = "ceee48a2f0e2f32474795f0a5ac503c627b3ffe7bac4775cdcef576dba9cd877"
         }
+    }
+, networkConfig = 
+    { cardanoNetworkId = 2
     }
 , ledgerStoreConfig =
     { storePath       = "./data/amm-executor"
     , createIfMissing = True
     }
-, nodeConfigPath = "/root/cardano-vasil-docker/config/preview/config.json"
+, nodeConfigPath = "/home/bromel/projects/cardano-dex-backend/config/preview/config.json"
 , pstoreConfig =
-    { storePath       = "/path"
+    { storePath       = "./psStore"
     , createIfMissing = True
     }
 , backlogConfig =
     { orderLifetime        = 10
     , orderExecTime        = 10
-    , suspendedPropability = 5
+    , suspendedPropability = 0
     }
 , backlogStoreConfig =
-    { storePath       = "/path"
+    { storePath       = "./bsStore"
     , createIfMissing = True
     }
 , explorerConfig =
     { explorerUri = "https://testnet-api.quickblue.io"
     }
 , txSubmitConfig =
-    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
+    { nodeSocketPath = "/home/bromel/projects/cardano-node/ipc/node.socket"
     }
 , txAssemblyConfig =
     { feePolicy         = FeePolicy.Balance
     , collateralPolicy  = CollateralPolicy.Cover
-    , deafultChangeAddr = "addr_test1vr007v5nktnksje3gnm4aw4arwrkcl5rvvx4lwa3w8mtzxgf6c2nt"
+    , deafultChangeAddr = "addr_test1qz8q8ymsty33sw7mh4s2wxj2pe4mcrlchxxa37z70l348cyjd3dlf08q9usapw5gt5t8cp8lju7wtwqzk5cj0gxaxyss6w8n66"
     }
 , secrets =
-    { secretFile = "/path/to/secret/file"
-    , keyPass    = "pass"
+    { secretFile = "/home/bromel/projects/cardano-dex-backend/wallet1TS.json"
+    , keyPass    = "secret"
     }
 , loggingConfig =
     { rootLogLevel   = LogLevel.Info

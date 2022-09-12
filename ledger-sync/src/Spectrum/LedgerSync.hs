@@ -97,7 +97,7 @@ mkLedgerSync unliftIO tr = do
   LedgerSyncConfig{nodeSocketPath, maxInFlight} <- askContext
   NetworkParameters{slotsPerEpoch,networkMagic} <- askContext
 
-  Logging{..} <- forComponent "LedgerSync"
+  l@Logging{..} <- forComponent "LedgerSync"
   (outQ, inQ) <- atomically $ (,) <$> newTQueue <*> newTQueue
   let
     chainSyncClient = mkChainSyncClient (naturalToInt maxInFlight) outQ inQ
@@ -108,33 +108,44 @@ mkLedgerSync unliftIO tr = do
   void $ forkIO $ connectClient (natTracer unliftIO tr) client versions nodeSocketPath
   infoM @String "LedgerSync initialized successfully"
   pure LedgerSync
-    { pull    = pull' outQ inQ
+    { pull    = pull' l outQ inQ
     , tryPull = tryPull' outQ inQ
-    , seekTo  = seekTo' outQ inQ
+    , seekTo  = seekTo' l outQ inQ
     }
 
 -- | Set chain sync state to the desired block
 seekTo'
   :: (MonadSTM m, MonadThrow m, StandardHash block)
-  => TQueue m (ChainSyncRequest block)
+  => Logging m
+  -> TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> Point block
   -> m ()
-seekTo' outQ inQ point = do
+seekTo' Logging{..} outQ inQ point = do
   atomically $ writeTQueue outQ $ FindIntersectReq $ FindIntersect [point]
   res <- atomically $ readTQueue inQ
   case res of
-    FindIntersectRes (IntersectionFound _ _) -> pure ()
-    _ -> throwIO $ ChainSyncInitFailed $ "An attempt to seed to an unknown point " <> show point
+    FindIntersectRes (IntersectionFound _ _) -> 
+      infoM @String"IntersectionFound!" >> pure ()
+    _ -> 
+      infoM @String"An attempt to seed to an unknown point" >> (throwIO $ ChainSyncInitFailed $ "An attempt to seed to an unknown point " <> show point)
 
 pull'
   :: MonadSTM m
-  => TQueue m (ChainSyncRequest block)
+  => Logging m
+  -> TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> m (LedgerUpdate block)
-pull' outQ inQ = do
-  atomically $ writeTQueue outQ $ RequestNextReq RequestNext
-  atomically $ readTQueue inQ <&> extractUpdate
+pull' Logging{..} outQ inQ = do
+  let req = RequestNextReq RequestNext
+  infoM @String "Going to pull'"
+  atomically $ writeTQueue outQ req
+  infoM @String "Waiting pull result"
+  result <- atomically $ readTQueue inQ <&> extractUpdate
+  case result of
+    (Update.RollForward _) ->  infoM @String "Pull result: RollForward"
+    (Update.RollBackward _) -> infoM @String "Pull result: RollBackward"
+  pure result
 
 tryPull'
   :: MonadSTM m

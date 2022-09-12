@@ -153,9 +153,9 @@ attachLogging Logging{..} Pools{..} =
         infoM $ "putPredicted " <> show pp <> " -> " <> show r
         pure r
     , putConfirmed = \pp -> do
-        infoM $ "putConfirmed " <> show pp
+        infoM $ "putConfirmed pool " <> show pp
         r <- putConfirmed pp
-        infoM $ "putConfirmed " <> show pp <> " -> " <> show r
+        infoM $ "putConfirmed pool " <> show pp <> " -> " <> show r
         pure r
     , putUnconfirmed = \pp -> do
         infoM $ "putUnconfirmed " <> show pp
