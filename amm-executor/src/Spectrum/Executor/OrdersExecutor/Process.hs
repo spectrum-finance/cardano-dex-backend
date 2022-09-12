@@ -7,13 +7,14 @@ module Spectrum.Executor.OrdersExecutor.Process
 import Prelude hiding (drop)
 import RIO.Time
   ( UTCTime, getCurrentTime )
+import Data.Aeson (encode)
 import RIO
-  ( (&), MonadReader, catch, MonadUnliftIO )
+  ( (&), MonadReader, catch, MonadUnliftIO, MonadIO (liftIO), QSem, waitQSem )
 import qualified RIO.List as List
 import Streamly.Prelude as S
-  ( repeatM, mapM, MonadAsync, IsStream )
+  ( repeatM, mapM, MonadAsync, IsStream, before )
 import Control.Monad.Catch
-  ( MonadThrow )
+  ( MonadThrow, SomeException )
 
 import System.Logging.Hlog
   ( MakeLogging (MakeLogging, forComponent), Logging (Logging, infoM) )
@@ -53,6 +54,7 @@ import Spectrum.Executor.PoolTracker.Data.Traced
 import Spectrum.Executor.Data.OrderState
   ( OrderInState(InProgressOrder, SuspendedOrder) )
 import qualified Spectrum.Executor.Data.State as State
+import Control.Concurrent (threadDelay)
 
 newtype OrdersExecutor s m = OrdersExecutor
   { run :: s m ()
@@ -67,27 +69,29 @@ mkOrdersExecutor
     , HasType (MakeLogging f m) env
     )
   => BacklogService m
+  -> QSem
   -> Transactions m era
   -> PoolResolver m
   -> PoolActions
   -> f (OrdersExecutor s m)
-mkOrdersExecutor backlog transactions resolver poolActions = do
+mkOrdersExecutor backlog syncSem transactions resolver poolActions = do
   MakeLogging{..} <- askContext
   logging         <- forComponent "OrdersExecutor"
   pure $ OrdersExecutor
-    { run = run' logging backlog transactions resolver poolActions
+    { run = run' logging syncSem backlog transactions resolver poolActions
     }
 
 run'
   :: forall s m era. (IsStream s, MonadAsync m, MonadUnliftIO m)
   => Logging m
+  -> QSem
   -> BacklogService m
   -> Transactions m era
   -> PoolResolver m
   -> PoolActions
   -> s m ()
-run' logging@Logging{..} backlog@BacklogService{..} txs resolver poolActions =
-  S.repeatM tryAcquire & S.mapM (\case
+run' logging@Logging{..} syncSem backlog@BacklogService{..} txs resolver poolActions =
+  S.before (liftIO $ waitQSem syncSem) $ S.repeatM tryAcquire & S.mapM (\case
       Just order ->
         infoM ("Going to execute order for pool" ++ show order) >> execute' logging backlog txs resolver poolActions order
       Nothing    ->
@@ -103,19 +107,17 @@ execute'
   -> PoolActions
   -> Order
   -> m ()
-execute' Logging{..} backlog@BacklogService{suspend, drop} txs resolver poolActions order = do
+execute' l@Logging{..} backlog@BacklogService{suspend, drop} txs resolver poolActions order = do
   executionStartTime <- getCurrentTime
-  catch (executeOrder' backlog txs resolver poolActions order executionStartTime) (\case
-    PriceTooHigh ->
-      suspend (SuspendedOrder order executionStartTime) >>
-      infoM ("Price too high for order " ++ show order ++ ". Going to suspend")
-    dropErr ->
+  catch (executeOrder' backlog l txs resolver poolActions order executionStartTime) (\case
+    (dropErr :: SomeException) ->
       drop (orderId order) >>
       infoM ("Err " ++ show dropErr ++ " occured for " ++ show order ++ ". Going to drop"))
 
 executeOrder'
   :: (Monad m, MonadThrow m)
   => BacklogService m
+  -> Logging m
   -> Transactions m era
   -> PoolResolver m
   -> PoolActions
@@ -124,6 +126,7 @@ executeOrder'
   -> m ()
 executeOrder'
   BacklogService{checkLater}
+  Logging{..}
   Transactions{..}
   PoolResolver{..}
   poolActions
@@ -133,7 +136,6 @@ executeOrder'
 
     pool@(OnChain prevPoolOut Core.Pool{poolId}) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
     (txCandidate, Predicted _ predictedPool)     <- throwEither $ runOrder pool order poolActions
-
     tx    <- finalizeTx txCandidate
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
     let

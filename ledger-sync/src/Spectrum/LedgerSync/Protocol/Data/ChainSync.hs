@@ -18,10 +18,12 @@ import Ouroboros.Network.Block
 data ChainSyncRequest block
   = FindIntersectReq (FindIntersect block)
   | RequestNextReq RequestNext
-
+  deriving (Generic, Show)
+  
 data ChainSyncResponse block
   = FindIntersectRes (FindIntersectResponse block)
   | RequestNextRes (RequestNextResponse block)
+  deriving (Generic, Show)
 
 data FindIntersect block
   = FindIntersect { points :: [Point block] }

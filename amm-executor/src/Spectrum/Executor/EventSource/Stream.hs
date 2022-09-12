@@ -43,7 +43,7 @@ import qualified Cardano.Crypto.Hash as CC
 import Spectrum.LedgerSync.Protocol.Client
   ( Block )
 import Spectrum.Executor.EventSource.Data.Tx
-  ( fromBabbageLedgerTx )
+  ( fromBabbageLedgerTx, MinimalConfirmedTx (slotNo) )
 import Spectrum.LedgerSync
   ( LedgerSync(..) )
 import Spectrum.Prelude.Context
@@ -71,6 +71,7 @@ import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Prelude.HigherKind
   ( LiftK (liftK) )
+import Debug.Trace (traceM)
 
 newtype EventSource s m ctx = EventSource
   { upstream :: s m (TxEvent ctx)
@@ -110,7 +111,7 @@ upstream'
   -> s m (TxEvent 'LedgerCtx)
 upstream' logging@Logging{..} persistence LedgerSync{..}
   = S.repeatM pull >>= processUpdate logging persistence
-  & S.trace (infoM . show)
+  & S.trace (traceM . show)
 
 processUpdate
   :: forall s m.
@@ -130,10 +131,11 @@ processUpdate
   (RollForward (BlockBabbage (ShelleyBlock (Ledger.Block (Praos.Header hBody _) txs) hHash))) =
     let
       txs'  = txSeqTxns txs
-      point = ConcretePoint (Praos.hbSlotNo hBody) (ConcreteHash ch)
+      slotNo = Praos.hbSlotNo hBody
+      point = ConcretePoint slotNo (ConcreteHash ch)
         where ch = OneEraHash . toShort . CC.hashToBytes . unShelleyHash $ hHash
     in S.before (setTip point)
-      $ S.fromFoldable txs' & S.map (AppliedTx . fromBabbageLedgerTx hHash)
+      $ S.fromFoldable txs' & S.map (AppliedTx . fromBabbageLedgerTx hHash slotNo)
 processUpdate logging lh (RollBackward point) = streamUnappliedTxs logging lh point
 processUpdate Logging{..} _ upd = S.before (errorM $ "Cannot process update " <> show upd) mempty
 

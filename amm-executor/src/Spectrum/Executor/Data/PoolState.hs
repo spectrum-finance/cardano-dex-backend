@@ -10,4 +10,7 @@ import ErgoDex.Amm.Pool
 
 newtype NewPool st = NewPool (st Pool)
 
+instance Show (st Pool) => Show (NewPool st) where
+  show (NewPool a) = show a 
+
 data DiscardedPool = DiscardedPool PoolId PoolStateId
