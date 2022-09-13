@@ -71,6 +71,7 @@ import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Prelude.HigherKind
   ( LiftK (liftK) )
+import Debug.Trace (traceM)
 
 newtype EventSource s m ctx = EventSource
   { upstream :: s m (TxEvent ctx)
@@ -110,7 +111,7 @@ upstream'
   -> s m (TxEvent 'LedgerCtx)
 upstream' logging@Logging{..} persistence LedgerSync{..}
   = S.repeatM pull >>= processUpdate logging persistence
-  & S.trace (infoM . show)
+  & S.trace (traceM . show)
 
 processUpdate
   :: forall s m.

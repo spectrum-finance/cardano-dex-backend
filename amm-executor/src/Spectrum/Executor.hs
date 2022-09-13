@@ -215,9 +215,9 @@ wireApp = interceptSigTerm >> do
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
   lsync   <- lift $ mkLedgerSync (runContext env) tr
   lsource <- mkEventSource lsync
-  OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic :: ResourceT App (OneToOneTopic SerialT App (NewPool Confirmed))
-  OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic :: ResourceT App (OneToOneTopic SerialT App (OrderInState 'Pending))
-  OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic :: ResourceT App (OneToOneTopic SerialT App (OrderInState 'Eliminated))
+  OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic
+  OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic
+  OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic
   explorer <- mkExplorer mkLogging explorerConfig
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
@@ -238,14 +238,17 @@ wireApp = interceptSigTerm >> do
     backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
     transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
     poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
-  -- executor <- mkOrdersExecutor backlogService transactions resolver poolActions
+  executor <- mkOrdersExecutor backlogService transactions resolver poolActions
   let
     poolsHan      = mkNewPoolsHandler newPoolsWr
     newOrdersHan  = mkPendingOrdersHandler newOrdersWr
     execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
-    lsink         = (mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler) :: EventSink SerialT App 'LedgerCtx
+    lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
   lift . S.drain $
-    S.parallel (Backlog.run backlog) (pipe lsink . upstream $ lsource)
+    S.parallel (pipe lsink . upstream $ lsource) $
+    S.parallel (Tracker.run tracker) $
+    S.parallel (Backlog.run backlog) $
+    Executor.run executor
 
 epochSlots :: C.ConsensusModeParams C.CardanoMode
 epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
