@@ -139,6 +139,7 @@ pull'
 pull' Logging{..} outQ inQ = do
   infoM @String "Going to pull'"
   atomically $ writeTQueue outQ $ RequestNextReq RequestNext
+  infoM @String "Waiting pull result"
   result <- atomically $ readTQueue inQ <&> extractUpdate
   case result of
     (Update.RollForward _) ->  infoM @String "Pull result: RollForward"
