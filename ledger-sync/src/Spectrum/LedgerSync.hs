@@ -137,8 +137,9 @@ pull'
   -> TQueue m (ChainSyncResponse block)
   -> m (LedgerUpdate block)
 pull' Logging{..} outQ inQ = do
+  let req = RequestNextReq RequestNext
   infoM @String "Going to pull'"
-  atomically $ writeTQueue outQ $ RequestNextReq RequestNext
+  atomically $ writeTQueue outQ req
   infoM @String "Waiting pull result"
   result <- atomically $ readTQueue inQ <&> extractUpdate
   case result of

@@ -209,9 +209,9 @@ wireApp = interceptSigTerm >> do
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
   lsync   <- lift $ mkLedgerSync (runContext env) tr
   lsource <- mkEventSource lsync
-  OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic
-  OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic
-  OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic
+  -- OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic
+  -- OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic
+  -- OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic
   explorer <- mkExplorer mkLogging explorerConfig
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
@@ -221,28 +221,27 @@ wireApp = interceptSigTerm >> do
   let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
   validators     <- fetchValidatorsV1
-  backlogStore   <- mkBacklogStore
-  backlogService <- mkBacklogService backlogStore
-  pools          <- mkPools
-  resolver       <- mkPoolResolver pools
+  -- backlogStore   <- mkBacklogStore
+  -- backlogService <- mkBacklogService backlogStore
+  -- pools          <- mkPools
+  -- resolver       <- mkPoolResolver pools
   let
-    (uPoolsRd, _)   = mkNoopTopic
-    (disPoolsRd, _) = mkNoopTopic
-    tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
-    backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
+    -- (uPoolsRd, _)   = mkNoopTopic
+    -- (disPoolsRd, _) = mkNoopTopic
+    -- tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
+    -- backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
     transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
     poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
-  executor <- mkOrdersExecutor backlogService transactions resolver poolActions
-  let
-    poolsHan      = mkNewPoolsHandler newPoolsWr
-    newOrdersHan  = mkPendingOrdersHandler newOrdersWr
-    execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
-    lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
-  lift . S.drain $
-    S.parallel (pipe lsink . upstream $ lsource) $
-    S.parallel (Tracker.run tracker) $
-    S.parallel (Backlog.run backlog) $
-    Executor.run executor
+  -- executor <- mkOrdersExecutor backlogService transactions resolver poolActions
+  -- let
+  --   poolsHan      = mkNewPoolsHandler newPoolsWr
+  --   newOrdersHan  = mkPendingOrdersHandler newOrdersWr
+  --   execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
+  --   lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
+  lift . S.drain $ (upstream $ lsource)
+    -- S.parallel (Tracker.run tracker) $
+    -- S.parallel (Backlog.run backlog) $
+    -- Executor.run executor
 
 epochSlots :: C.ConsensusModeParams C.CardanoMode
 epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
