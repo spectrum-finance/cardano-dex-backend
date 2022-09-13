@@ -7,11 +7,11 @@ module Spectrum.Executor.Topic
   ) where
 
 import Control.Concurrent.Chan.Unagi.NoBlocking
-  ( newChan, readChan, writeChan, Next (Next, Pending) )
+  ( newChan, readChan, writeChan, Next (Next, Pending), Stream (tryReadNext), streamChan, tryReadChan, Element (tryRead) )
 import RIO
   ( MonadIO(..), MonadTrans (lift) )
 import Streamly.Prelude as S
-  ( IsStream, MonadAsync, repeatM, nil )
+  ( IsStream, MonadAsync, repeatM, nil, fromPure, fromEffect )
 
 newtype ReadTopic s m a = ReadTopic
   { upstream :: s m a
@@ -29,8 +29,15 @@ mkOneToOneTopic
 mkOneToOneTopic = liftIO $ do
   (inc, outc) <- newChan
   pure $ OneToOneTopic
-    (ReadTopic . S.repeatM . liftIO $ readChan (liftIO $ print "test") outc)
+    (ReadTopic . S.repeatM . liftIO $ read outc)
     (WriteTopic $ liftIO . writeChan inc)
+  where
+    read chan = do
+      elem <- liftIO $ tryReadChan chan
+      a    <- liftIO $ tryRead elem
+      case a of
+        Just b  -> pure b
+        Nothing -> read chan
 
 mkNoopTopic
   :: forall s m a. (IsStream s, Applicative m)
