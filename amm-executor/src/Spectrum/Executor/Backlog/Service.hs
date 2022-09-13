@@ -78,7 +78,7 @@ mkBacklogService' MakeLogging{..} config store@BacklogStore{..} = do
   pendingPQ   <- newIORef PQ.empty  -- ordered by weight; new orders
   suspendedPQ <- newIORef PQ.empty  -- ordered by weight; failed orders, waiting for retry (retries are performed with some constant probability, e.g. 5%) 
   toRevisitQ  <- newIORef Seq.empty -- regular queue; successully submitted orders. Left orders should be re-executed in X minutes. Normally successfully confirmed orders are eliminated from this queue.
-  _           <- liftK $ recover store config pendingPQ
+  _           <- liftK $ recover logging store config pendingPQ
   pure $ attachLogging logging BacklogService
     { put = \(PendingOrder order timestamp) -> do
         put $ BacklogOrder timestamp order
@@ -167,15 +167,19 @@ getMaxSuspendedOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} suspend
 
 recover
   :: (MonadIO m)
-  => BacklogStore m
+  => Logging m 
+  -> BacklogStore m
   -> BacklogServiceConfig
   -> IORef (PQ.MaxQueue WeightedOrder)
   -> m ()
-recover BacklogStore{..} BacklogServiceConfig{..} pendingQueueRef = do
+recover Logging{..} BacklogStore{..} BacklogServiceConfig{..} pendingQueueRef = do
   ordersInDb  <- getAll
+  _           <- infoM ("Orders in db length: " ++ show (length ordersInDb))
   currentTime <- getCurrentTime
+  _           <- infoM ("Current time" ++ show currentTime)
   let
     filteredOrders = List.filter (\BacklogOrder{..} -> diffUTCTime currentTime orderTimestamp < orderExecTime) ordersInDb
+  _           <- infoM ("Filtered orders length: " ++ show (length filteredOrders))
   modifyIORef'
     pendingQueueRef
     (\queue -> foldr (\BacklogOrder{..} -> PQ.insert (mkWeightedOrder backlogOrder orderTimestamp)) queue filteredOrders)
