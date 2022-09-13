@@ -235,7 +235,7 @@ wireApp = interceptSigTerm >> do
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
-    -- backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
+    backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
     transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
     poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
   -- executor <- mkOrdersExecutor backlogService transactions resolver poolActions
@@ -245,8 +245,7 @@ wireApp = interceptSigTerm >> do
     execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
     lsink         = (mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler) :: EventSink SerialT App 'LedgerCtx
   lift . S.drain $
-    S.parallel (pipe lsink . upstream $ lsource) $
-    (Tracker.run tracker)
+    S.parallel (pipe lsink . upstream $ lsource) (Backlog.run backlog)
 
 epochSlots :: C.ConsensusModeParams C.CardanoMode
 epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
