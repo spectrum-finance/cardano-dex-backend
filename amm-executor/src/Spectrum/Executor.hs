@@ -230,7 +230,7 @@ wireApp = interceptSigTerm >> do
   backlogStore   <- mkBacklogStore
   backlogService <- mkBacklogService backlogStore
   pools          <- mkPools
-  -- resolver       <- mkPoolResolver pools
+  resolver       <- mkPoolResolver pools
   let
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic

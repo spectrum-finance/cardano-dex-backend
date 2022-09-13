@@ -30,7 +30,7 @@ mkOneToOneTopic = liftIO $ do
   (inc, outc) <- newChan
   pure $ OneToOneTopic
     (ReadTopic . S.repeatM . liftIO $ readChan (pure ()) outc)
-    (WriteTopic $ liftIO . writeChan inc)
+    (WriteTopic $ (\_ -> pure ()))
 
 mkNoopTopic
   :: forall s m a. (IsStream s, Applicative m)
