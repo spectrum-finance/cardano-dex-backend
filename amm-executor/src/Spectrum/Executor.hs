@@ -112,10 +112,12 @@ import Spectrum.Executor.Config
   , Secrets(..)
   , NetworkConfig(..)
   )
+import Spectrum.Executor.EventSource.Data.TxContext
+  ( TxCtx(LedgerCtx) )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.EventSink.Pipe
-  ( mkEventSink, pipe )
+  ( mkEventSink, pipe, EventSink )
 import Spectrum.Executor.EventSink.Types
   ( voidEventHandler)
 import Spectrum.Executor.EventSink.Handlers.Pools
@@ -143,6 +145,10 @@ import Spectrum.Executor.Backlog.Config
 import Spectrum.Executor.Backlog.Process as Backlog
   ( mkBacklog, run, Backlog (run) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore (mkBacklogStore)
+import Streamly.Internal.Data.Stream.Serial (SerialT(SerialT))
+import Spectrum.Executor.Data.PoolState (NewPool)
+import Spectrum.Executor.Data.State (Confirmed)
+import Spectrum.Executor.Data.OrderState (OrderInState, OrderState (Pending, Eliminated))
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
@@ -209,9 +215,9 @@ wireApp = interceptSigTerm >> do
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
   lsync   <- lift $ mkLedgerSync (runContext env) tr
   lsource <- mkEventSource lsync
-  -- OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic
-  -- OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic
-  -- OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic
+  OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic :: ResourceT App (OneToOneTopic SerialT App (NewPool Confirmed))
+  OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic :: ResourceT App (OneToOneTopic SerialT App (OrderInState 'Pending))
+  OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic :: ResourceT App (OneToOneTopic SerialT App (OrderInState 'Eliminated))
   explorer <- mkExplorer mkLogging explorerConfig
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
@@ -221,8 +227,8 @@ wireApp = interceptSigTerm >> do
   let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
   validators     <- fetchValidatorsV1
-  -- backlogStore   <- mkBacklogStore
-  -- backlogService <- mkBacklogService backlogStore
+  backlogStore   <- mkBacklogStore
+  backlogService <- mkBacklogService backlogStore
   -- pools          <- mkPools
   -- resolver       <- mkPoolResolver pools
   let
@@ -233,12 +239,12 @@ wireApp = interceptSigTerm >> do
     transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
     poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
   -- executor <- mkOrdersExecutor backlogService transactions resolver poolActions
-  -- let
-  --   poolsHan      = mkNewPoolsHandler newPoolsWr
-  --   newOrdersHan  = mkPendingOrdersHandler newOrdersWr
-  --   execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
-  --   lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
-  lift . S.drain $ (upstream $ lsource)
+  let
+    poolsHan      = mkNewPoolsHandler newPoolsWr
+    newOrdersHan  = mkPendingOrdersHandler newOrdersWr
+    execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
+    lsink         = (mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler) :: EventSink SerialT App 'LedgerCtx
+  lift . S.drain $ (pipe lsink . upstream $ lsource)
     -- S.parallel (Tracker.run tracker) $
     -- S.parallel (Backlog.run backlog) $
     -- Executor.run executor
