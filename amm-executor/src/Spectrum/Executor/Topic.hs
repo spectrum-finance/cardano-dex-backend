@@ -29,7 +29,7 @@ mkOneToOneTopic
 mkOneToOneTopic = liftIO $ do
   (inc, outc) <- newChan
   pure $ OneToOneTopic
-    (ReadTopic . S.repeatM . liftIO $ readChan (liftIO $ print "test") outc)
+    (ReadTopic . S.repeatM . liftIO $ readChan (liftIO $ pure @IO ()) outc)
     (WriteTopic $ liftIO . writeChan inc)
 
 mkNoopTopic
