@@ -7,9 +7,9 @@ module Spectrum.Executor.Topic
   ) where
 
 import Control.Concurrent.Chan.Unagi.NoBlocking
-  ( newChan, readChan, writeChan )
+  ( newChan, readChan, writeChan, Next (Next, Pending) )
 import RIO
-  ( MonadIO(..) )
+  ( MonadIO(..), MonadTrans (lift) )
 import Streamly.Prelude as S
   ( IsStream, MonadAsync, repeatM, nil )
 
@@ -29,8 +29,8 @@ mkOneToOneTopic
 mkOneToOneTopic = liftIO $ do
   (inc, outc) <- newChan
   pure $ OneToOneTopic
-    (ReadTopic . S.repeatM . liftIO $ readChan (pure ()) outc)
-    (WriteTopic $ (\_ -> pure ()))
+    (ReadTopic . S.repeatM . liftIO $ readChan (liftIO $ print "test") outc)
+    (WriteTopic $ liftIO . writeChan inc)
 
 mkNoopTopic
   :: forall s m a. (IsStream s, Applicative m)
