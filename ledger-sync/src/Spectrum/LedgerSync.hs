@@ -108,7 +108,7 @@ mkLedgerSync unliftIO tr = do
   void $ forkIO $ connectClient (natTracer unliftIO tr) client versions nodeSocketPath
   infoM @String "LedgerSync initialized successfully"
   pure LedgerSync
-    { pull    = pull' outQ inQ
+    { pull    = pull' l outQ inQ
     , tryPull = tryPull' outQ inQ
     , seekTo  = seekTo' l outQ inQ
     }
@@ -132,12 +132,18 @@ seekTo' Logging{..} outQ inQ point = do
 
 pull'
   :: MonadSTM m
-  => TQueue m (ChainSyncRequest block)
+  => Logging m
+  -> TQueue m (ChainSyncRequest block)
   -> TQueue m (ChainSyncResponse block)
   -> m (LedgerUpdate block)
-pull' outQ inQ = do
+pull' Logging{..} outQ inQ = do
+  infoM @String "Going to pull'"
   atomically $ writeTQueue outQ $ RequestNextReq RequestNext
-  atomically $ readTQueue inQ <&> extractUpdate
+  result <- atomically $ readTQueue inQ <&> extractUpdate
+  case result of
+    (Update.RollForward _) ->  infoM @String "Pull result: RollForward"
+    (Update.RollBackward _) -> infoM @String "Pull result: RollBackward"
+  pure result
 
 tryPull'
   :: MonadSTM m

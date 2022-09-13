@@ -22,6 +22,7 @@ data ChainSyncRequest block
 data ChainSyncResponse block
   = FindIntersectRes (FindIntersectResponse block)
   | RequestNextRes (RequestNextResponse block)
+  deriving (Generic, Show)
 
 data FindIntersect block
   = FindIntersect { points :: [Point block] }
