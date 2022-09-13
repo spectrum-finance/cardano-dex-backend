@@ -109,7 +109,7 @@ upstream'
   -> LedgerSync m
   -> s m (TxEvent 'LedgerCtx)
 upstream' logging@Logging{..} persistence LedgerSync{..}
-  = S.repeatM (pull >>= (\event -> infoM ("event: " ++ show event) >> pure event)) >>= processUpdate logging persistence
+  = S.repeatM pull >>= processUpdate logging persistence
   & S.trace (infoM . show)
 
 processUpdate
