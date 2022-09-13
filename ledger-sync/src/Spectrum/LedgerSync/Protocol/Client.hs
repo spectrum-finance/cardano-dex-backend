@@ -117,7 +117,7 @@ connectClient tr mkClient' vData addr = liftIO $ withIOManager $ \iocp -> do
   where
     versions = combineVersions
       [ simpleSingletonVersions v vData $ mkClient' v
-      | v <- [NodeToClientV_10] -- todo: add v11, v12, v13
+      | v <- [NodeToClientV_13, NodeToClientV_12, NodeToClientV_11, NodeToClientV_10] -- todo: add v11, v12, v13
       ]
     tracers = NetworkConnectTracers
       { nctMuxTracer       = nullTracer
