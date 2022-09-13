@@ -229,12 +229,12 @@ wireApp = interceptSigTerm >> do
   validators     <- fetchValidatorsV1
   backlogStore   <- mkBacklogStore
   backlogService <- mkBacklogService backlogStore
-  -- pools          <- mkPools
+  pools          <- mkPools
   -- resolver       <- mkPoolResolver pools
   let
-    -- (uPoolsRd, _)   = mkNoopTopic
-    -- (disPoolsRd, _) = mkNoopTopic
-    -- tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
+    (uPoolsRd, _)   = mkNoopTopic
+    (disPoolsRd, _) = mkNoopTopic
+    tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
     -- backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
     transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
     poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
@@ -244,10 +244,9 @@ wireApp = interceptSigTerm >> do
     newOrdersHan  = mkPendingOrdersHandler newOrdersWr
     execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
     lsink         = (mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler) :: EventSink SerialT App 'LedgerCtx
-  lift . S.drain $ (pipe lsink . upstream $ lsource)
-    -- S.parallel (Tracker.run tracker) $
-    -- S.parallel (Backlog.run backlog) $
-    -- Executor.run executor
+  lift . S.drain $
+    S.parallel (pipe lsink . upstream $ lsource) $
+    (Tracker.run tracker)
 
 epochSlots :: C.ConsensusModeParams C.CardanoMode
 epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
