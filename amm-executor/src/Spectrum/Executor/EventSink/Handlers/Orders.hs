@@ -4,9 +4,9 @@ module Spectrum.Executor.EventSink.Handlers.Orders
   ) where
 
 import RIO
-  ( (<&>), MonadIO )
+  ( (<&>), MonadIO (liftIO), foldM, QSem, signalQSem )
 import RIO.Time
-  ( getCurrentTime )
+  ( getCurrentTime, secondsToNominalDiffTime, addUTCTime, diffUTCTime )
 
 import qualified Ledger as P
 import qualified Data.Set as Set
@@ -40,41 +40,71 @@ import Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore
   ( BacklogStore (BacklogStore, get) )
+import Spectrum.LedgerSync.Config (NetworkParameters(NetworkParameters, systemStart))
+import Cardano.Api (SlotNo(unSlotNo))
+import Cardano.Slotting.Time (SystemStart(getSystemStart))
+import Spectrum.Executor.Backlog.Config (BacklogServiceConfig(BacklogServiceConfig, orderLifetime))
+import System.Logging.Hlog (Logging (Logging, infoM))
 
 mkPendingOrdersHandler
   :: MonadIO m
   => WriteTopic m (OrderInState 'Pending)
+  -> QSem
+  -> Logging m
+  -> BacklogServiceConfig
+  -> NetworkParameters
   -> EventHandler m 'LedgerCtx
-mkPendingOrdersHandler WriteTopic{..} = \case
-  AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) ->
-    foldl process (pure Nothing) (txOutputs <&> parseOrder)
+mkPendingOrdersHandler WriteTopic{..} syncSem logging@Logging{..} BacklogServiceConfig{..} NetworkParameters{..} = \case
+  AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) -> do
+    currentTime <- getCurrentTime
+    let
+       slotsTime = secondsToNominalDiffTime . fromIntegral $ unSlotNo slotNo
+       txTime    = addUTCTime slotsTime (getSystemStart systemStart)
+    if (diffUTCTime currentTime txTime > orderLifetime)
+      then infoM ("Tx is outdated : " ++ show txId) >> pure Nothing
+      else (parseOrder logging `traverse` txOutputs) >>= foldM (process txTime) Nothing           
       where
-        process _ ordM = do
-          ts <- getCurrentTime
-          mapM publish $ ordM <&> flip PendingOrder ts
+        process oTime _ ordM = mapM (\order -> liftIO (signalQSem syncSem) >> publish order) (ordM <&> flip PendingOrder oTime)
   _ -> pure Nothing
 
-parseOrder :: FullTxOut -> Maybe Order
-parseOrder out =
+parseOrder :: (MonadIO m) => Logging m -> FullTxOut -> m (Maybe Order)
+parseOrder Logging{..} out =
   let
     swap    = parseFromLedger @Swap out
     deposit = parseFromLedger @Deposit out
     redeem  = parseFromLedger @Redeem out
   in case (swap, deposit, redeem) of
-    (Just (OnChain _ swap'), _, _)    -> Just . OnChain out $ AnyOrder (swapPoolId swap') (SwapAction swap')
-    (_, Just (OnChain _ deposit'), _) -> Just . OnChain out $ AnyOrder (depositPoolId deposit') (DepositAction deposit')
-    (_, _, Just (OnChain _ redeem'))  -> Just . OnChain out $ AnyOrder (redeemPoolId redeem') (RedeemAction redeem')
-    _                                 -> Nothing
+    (Just (OnChain _ swap'), _, _)    -> do
+      infoM ("Swap order: " ++ show swap)
+      pure $ Just . OnChain out $ AnyOrder (swapPoolId swap') (SwapAction swap')
+    (_, Just (OnChain _ deposit'), _) -> do
+      infoM ("Deposit order: " ++ show deposit)
+      pure $  Just . OnChain out $ AnyOrder (depositPoolId deposit') (DepositAction deposit')
+    (_, _, Just (OnChain _ redeem'))  -> do
+      infoM ("Redeem order: " ++ show redeem)
+      pure $  Just . OnChain out $ AnyOrder (redeemPoolId redeem') (RedeemAction redeem')
+    _                                 -> do
+      infoM ("Order not found in: " ++ show out)
+      pure $ Nothing
 
 mkEliminatedOrdersHandler
-  :: Monad m
+  :: MonadIO m
   => BacklogStore m
+  -> BacklogServiceConfig
+  -> NetworkParameters
   -> WriteTopic m (OrderInState 'Eliminated)
   -> EventHandler m 'LedgerCtx
-mkEliminatedOrdersHandler BacklogStore{..} WriteTopic{..} = \case
+mkEliminatedOrdersHandler BacklogStore{..} BacklogServiceConfig{..} NetworkParameters{..} WriteTopic{..} = \case
   AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) -> do
-      outs <- mapM tryProcessInputOrder (Set.toList txInputs)
-      pure $ foldl (const id) Nothing outs
+      currentTime <- getCurrentTime
+      let
+        slotsTime = secondsToNominalDiffTime . fromIntegral $ unSlotNo slotNo
+        txTime    = addUTCTime slotsTime (getSystemStart systemStart)
+      if diffUTCTime currentTime txTime > orderLifetime
+      then pure Nothing
+      else do
+        outs <- mapM tryProcessInputOrder (Set.toList txInputs)
+        pure $ foldl (const id) Nothing outs
     where
       tryProcessInputOrder txin = do
           let orderId = OrderId $ P.txInRef txin

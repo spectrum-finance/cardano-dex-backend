@@ -64,7 +64,7 @@ mkBacklogStore = do
     put = Rocks.put db Rocks.defaultWriteOptions
     delete = Rocks.delete @m db Rocks.defaultWriteOptions
   pure $ attachLogging logging BacklogStore
-    { put       = \BacklogOrder{..} -> put (serialize . orderId $ backlogOrder) (serialize backlogOrder)
+    { put       = \order@BacklogOrder{..} -> put (serialize . orderId $ backlogOrder) (serialize order)
     , exists    = \BacklogOrder{..} -> exists . serialize . orderId $ backlogOrder
     , dropOrder = delete . serialize
     , get       = get . serialize

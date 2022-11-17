@@ -17,6 +17,9 @@ in
         , hash = "815dafb374898811dc74069a8df8af7a98a80214203e89acdd6425c2e3db37c7"
         }
     }
+, networkConfig = 
+    { cardanoNetworkId = 2
+    }
 , ledgerStoreConfig =
     { storePath       = "./data/amm-executor"
     , createIfMissing = True

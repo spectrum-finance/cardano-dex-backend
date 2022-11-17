@@ -8,7 +8,7 @@ module Spectrum.Executor
   ) where
 
 import RIO
-  ( ReaderT (..), MonadReader (ask), MonadIO (liftIO), void, Alternative (..), MonadPlus (..) )
+  ( ReaderT (..), MonadReader (ask), MonadIO (liftIO), void, Alternative (..), MonadPlus (..), newQSem )
 import RIO.List
   ( headMaybe )
 
@@ -59,7 +59,7 @@ import qualified Control.Monad.Catch as MC
 import Control.Tracer
   ( stdoutTracer, Contravariant (contramap) )
 import System.Logging.Hlog
-  ( makeLogging, MakeLogging, translateMakeLogging )
+  ( makeLogging, MakeLogging (forComponent), translateMakeLogging )
 
 import Streamly.Prelude as S
   ( drain, parallel )
@@ -105,11 +105,19 @@ import Cardano.Network.Protocol.NodeToClient.Trace
 import Spectrum.Executor.EventSource.Stream
   ( mkEventSource, EventSource (upstream) )
 import Spectrum.Executor.Config
-  ( AppConfig(..), loadAppConfig, EventSourceConfig, TxSubmitConfig(..), Secrets(..) )
+  ( AppConfig(..)
+  , loadAppConfig
+  , EventSourceConfig
+  , TxSubmitConfig(..)
+  , Secrets(..)
+  , NetworkConfig(..)
+  )
+import Spectrum.Executor.EventSource.Data.TxContext
+  ( TxCtx(LedgerCtx) )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.EventSink.Pipe
-  ( mkEventSink, pipe )
+  ( mkEventSink, pipe, EventSink )
 import Spectrum.Executor.EventSink.Types
   ( voidEventHandler)
 import Spectrum.Executor.EventSink.Handlers.Pools
@@ -136,7 +144,16 @@ import Spectrum.Executor.Backlog.Config
   ( BacklogServiceConfig )
 import Spectrum.Executor.Backlog.Process as Backlog
   ( mkBacklog, run, Backlog (run) )
-import Spectrum.Executor.Backlog.Persistence.BacklogStore (mkBacklogStore)
+import Spectrum.Executor.Backlog.Persistence.BacklogStore 
+  ( mkBacklogStore )
+import Streamly.Internal.Data.Stream.Serial 
+  ( SerialT(SerialT) )
+import Spectrum.Executor.Data.PoolState 
+  ( NewPool )
+import Spectrum.Executor.Data.State 
+  ( Confirmed )
+import Spectrum.Executor.Data.OrderState 
+  ( OrderInState, OrderState (Pending, Eliminated) )
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
@@ -178,7 +195,7 @@ runApp args = do
     networkId =
       if mainnetMode
         then C.Mainnet
-        else C.Testnet (C.NetworkMagic 1097911063)
+        else C.Testnet (C.NetworkMagic (fromIntegral $ cardanoNetworkId networkConfig))
     env =
       Env
         ledgerSyncConfig
@@ -201,11 +218,15 @@ wireApp :: Wire ()
 wireApp = interceptSigTerm >> do
   env@Env{..} <- ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
+  syncSem <- liftIO $ newQSem 1
   lsync   <- lift $ mkLedgerSync (runContext env) tr
   lsource <- mkEventSource lsync
-  OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic
-  OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic
-  OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic
+  poolsHandlerTopic      <- forComponent mkLogging "poolsHandlerTopic"
+  newOrdersHandlerTopic  <- forComponent mkLogging "newOrdersHandlerTopic"
+  elimOrdersHandlerTopic <- forComponent mkLogging "elimOrdersHandlerTopic"
+  OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic poolsHandlerTopic
+  OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic newOrdersHandlerTopic
+  OneToOneTopic elimOrdersRd elimOrdersWr <- mkOneToOneTopic elimOrdersHandlerTopic
   explorer <- mkExplorer mkLogging explorerConfig
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
@@ -226,15 +247,17 @@ wireApp = interceptSigTerm >> do
     backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
     transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
     poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
-  executor <- mkOrdersExecutor backlogService transactions resolver poolActions
+  executor <- mkOrdersExecutor backlogService syncSem transactions resolver poolActions
+  pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
+  poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
   let
-    poolsHan      = mkNewPoolsHandler newPoolsWr
-    newOrdersHan  = mkPendingOrdersHandler newOrdersWr
-    execOrdersHan = mkEliminatedOrdersHandler backlogStore elimOrdersWr
+    poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging
+    newOrdersHan  = mkPendingOrdersHandler newOrdersWr syncSem pendingOrdersLogging backlogConfig networkParams
+    execOrdersHan = mkEliminatedOrdersHandler backlogStore backlogConfig networkParams elimOrdersWr
     lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
   lift . S.drain $
-    S.parallel (pipe lsink . upstream $ lsource) $
     S.parallel (Tracker.run tracker) $
+    S.parallel (pipe lsink . upstream $ lsource) $
     S.parallel (Backlog.run backlog) $
     Executor.run executor
 

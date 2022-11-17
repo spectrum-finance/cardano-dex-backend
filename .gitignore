@@ -26,3 +26,7 @@ stack.yaml.lock
 explorer.dhall
 logs/
 data/
+backlogStore/
+psStore/
+wallet1TS.json
+config/

@@ -61,6 +61,7 @@ common project-config
                         ViewPatterns
 
   ghc-options:          -O2
+                        -threaded
                         -Wall
                         -Wcompat
                         -Wincomplete-record-updates
@@ -168,6 +169,7 @@ library
                   , network-mux
                   , plutus-ledger
                   , plutus-ledger-api
+                  , plutus-script-utils
                   , plutus-tx
                   , hlog
                   , random
@@ -208,8 +210,11 @@ test-suite amm-executor-test
   build-depends:
     , base  == 4.14.3.0
     , HUnit == 1.6.2.0
+    , bytestring
+    , aeson
     , rio
     , tasty-hunit==0.10.0.3
+    , base16
     , tasty==1.4.2
     , tasty-hedgehog==1.1.0.0
     , amm-executor
