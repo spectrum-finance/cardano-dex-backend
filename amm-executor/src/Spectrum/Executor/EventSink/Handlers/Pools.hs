@@ -24,13 +24,13 @@ import Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
 import System.Logging.Hlog
   ( Logging(Logging, infoM) )
-import CardanoTx.Models 
+import CardanoTx.Models
   ( FullTxOut (FullTxOut, fullTxOutAddress) )
-import ErgoDex.State 
+import ErgoDex.State
   ( OnChain )
-import ErgoDex.Amm.Pool 
+import ErgoDex.Amm.Pool
   ( Pool )
-import Plutus.Script.Utils.V2.Address 
+import Plutus.Script.Utils.V2.Address
   ( mkValidatorAddress )
 
 mkNewPoolsHandler
@@ -50,12 +50,12 @@ parsePool Logging{..} out@FullTxOut{..} = do
   let
     pool        = parseFromLedger out
     poolAddress = mkValidatorAddress pValidator
-  if (fullTxOutAddress == poolAddress) then
-    case pool of
+  if fullTxOutAddress == poolAddress
+    then case pool of
       Just a    -> do
         infoM ("Pool found in: " ++ show out)
         pure $ Just $ Confirmed a
-      _                                 -> do
+      _         -> do
         infoM ("Pool not found in: " ++ show out)
         pure $ Nothing
   else pure $ Nothing

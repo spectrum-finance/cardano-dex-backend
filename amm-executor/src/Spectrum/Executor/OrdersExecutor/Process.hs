@@ -136,6 +136,7 @@ executeOrder'
 
     pool@(OnChain prevPoolOut Core.Pool{poolId}) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
     (txCandidate, Predicted _ predictedPool)     <- throwEither $ runOrder pool order poolActions
+    infoM ("txCandidate: " ++ show txCandidate)
     tx    <- finalizeTx txCandidate
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
     let

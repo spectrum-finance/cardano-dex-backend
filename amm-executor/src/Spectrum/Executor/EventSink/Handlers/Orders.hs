@@ -64,7 +64,7 @@ mkPendingOrdersHandler WriteTopic{..} syncSem logging@Logging{..} BacklogService
       then infoM ("Tx is outdated : " ++ show txId) >> pure Nothing
       else (parseOrder logging `traverse` txOutputs) >>= foldM (process txTime) Nothing           
       where
-        process oTime _ ordM = (\order -> liftIO (signalQSem syncSem) >> publish order) `mapM` (ordM <&> flip PendingOrder oTime)
+        process oTime _ ordM = mapM (\order -> liftIO (signalQSem syncSem) >> publish order) (ordM <&> flip PendingOrder oTime)
   _ -> pure Nothing
 
 parseOrder :: (MonadIO m) => Logging m -> FullTxOut -> m (Maybe Order)
