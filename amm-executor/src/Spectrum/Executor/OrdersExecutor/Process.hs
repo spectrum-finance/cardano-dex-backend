@@ -9,7 +9,7 @@ import RIO.Time
   ( UTCTime, getCurrentTime )
 import Data.Aeson (encode)
 import RIO
-  ( (&), MonadReader, catch, MonadUnliftIO, MonadIO (liftIO), QSem, waitQSem )
+  ( (&), MonadReader, catch, MonadUnliftIO, MonadIO (liftIO), QSem, waitQSem, (<&>) )
 import qualified RIO.List as List
 import Streamly.Prelude as S
   ( repeatM, mapM, MonadAsync, IsStream, before )
@@ -47,14 +47,25 @@ import Spectrum.Executor.Types
   ( Order, Pool, orderId )
 import Spectrum.Prelude.Context
   ( HasType, askContext )
+import Spectrum.Executor.Config 
+  ( TxRefs (..) )
 import Spectrum.Executor.PoolTracker.Service
   ( PoolResolver (PoolResolver, resolvePool, putPool) )
 import Spectrum.Executor.PoolTracker.Data.Traced
   ( Traced(Traced, prevTxOutRef, tracedState) )
 import Spectrum.Executor.Data.OrderState
-  ( OrderInState(InProgressOrder, SuspendedOrder) )
+  ( OrderInState(InProgressOrder) )
+import Control.Concurrent 
+  ( threadDelay )
+import Explorer.Service 
+  ( Explorer (Explorer, getOutput), getOutput )
+import Data.Maybe 
+  ( catMaybes )
+import Explorer.Class 
+  ( toCardanoTx )
+
+import qualified Ledger.Tx.CardanoAPI as Interop
 import qualified Spectrum.Executor.Data.State as State
-import Control.Concurrent (threadDelay)
 
 newtype OrdersExecutor s m = OrdersExecutor
   { run :: s m ()
@@ -67,33 +78,38 @@ mkOrdersExecutor
     , MonadUnliftIO m
     , MonadReader env f
     , HasType (MakeLogging f m) env
+    , HasType TxRefs env
     )
   => BacklogService m
   -> QSem
   -> Transactions m era
+  -> Explorer m
   -> PoolResolver m
   -> PoolActions
   -> f (OrdersExecutor s m)
-mkOrdersExecutor backlog syncSem transactions resolver poolActions = do
+mkOrdersExecutor backlog syncSem transactions explorer resolver poolActions = do
   MakeLogging{..} <- askContext
+  txRefsCfg       <- askContext
   logging         <- forComponent "OrdersExecutor"
   pure $ OrdersExecutor
-    { run = run' logging syncSem backlog transactions resolver poolActions
+    { run = run' logging syncSem txRefsCfg backlog transactions explorer resolver poolActions
     }
 
 run'
   :: forall s m era. (IsStream s, MonadAsync m, MonadUnliftIO m)
   => Logging m
   -> QSem
+  -> TxRefs
   -> BacklogService m
   -> Transactions m era
+  -> Explorer m
   -> PoolResolver m
   -> PoolActions
   -> s m ()
-run' logging@Logging{..} syncSem backlog@BacklogService{..} txs resolver poolActions =
+run' logging@Logging{..} syncSem txRefs backlog@BacklogService{..} txs explorer resolver poolActions =
   S.before (liftIO $ waitQSem syncSem) $ S.repeatM tryAcquire & S.mapM (\case
       Just order ->
-        infoM ("Going to execute order for pool" ++ show order) >> execute' logging backlog txs resolver poolActions order
+        infoM ("Going to execute order for pool" ++ show order) >> execute' logging txRefs backlog txs explorer resolver poolActions order
       Nothing    ->
         pure ()
     )
@@ -101,15 +117,17 @@ run' logging@Logging{..} syncSem backlog@BacklogService{..} txs resolver poolAct
 execute'
   :: forall m era. (MonadUnliftIO m, MonadThrow m)
   => Logging m
+  -> TxRefs
   -> BacklogService m
   -> Transactions m era
+  -> Explorer m
   -> PoolResolver m
   -> PoolActions
   -> Order
   -> m ()
-execute' l@Logging{..} backlog@BacklogService{suspend, drop} txs resolver poolActions order = do
+execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs explorer resolver poolActions order = do
   executionStartTime <- getCurrentTime
-  catch (executeOrder' backlog l txs resolver poolActions order executionStartTime) (\case
+  catch (executeOrder' backlog l txRefs txs explorer resolver poolActions order executionStartTime) (\case
     (dropErr :: SomeException) ->
       drop (orderId order) >>
       infoM ("Err " ++ show dropErr ++ " occured for " ++ show order ++ ". Going to drop"))
@@ -118,7 +136,9 @@ executeOrder'
   :: (Monad m, MonadThrow m)
   => BacklogService m
   -> Logging m
+  -> TxRefs
   -> Transactions m era
+  -> Explorer m
   -> PoolResolver m
   -> PoolActions
   -> Order
@@ -127,7 +147,9 @@ executeOrder'
 executeOrder'
   BacklogService{checkLater}
   Logging{..}
+  txRefs
   Transactions{..}
+  explorer
   PoolResolver{..}
   poolActions
   order@(OnChain _ Core.AnyOrder{..})
@@ -135,7 +157,7 @@ executeOrder'
     mPool <- resolvePool anyOrderPoolId
 
     pool@(OnChain prevPoolOut Core.Pool{poolId}) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
-    (txCandidate, Predicted _ predictedPool)     <- throwEither $ runOrder pool order poolActions
+    (txCandidate, Predicted _ predictedPool)     <- runOrder txRefs explorer pool order poolActions
     infoM ("txCandidate: " ++ show txCandidate)
     tx    <- finalizeTx txCandidate
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
@@ -154,12 +176,29 @@ extractPoolTxOut (OnChain poolOutput _) tx =
   List.find (\output -> fullTxOutDatum output == fullTxOutDatum poolOutput) (Interop.extractCardanoTxOutputs tx)
 
 runOrder
-  :: Pool
+  :: (MonadThrow m)
+  => TxRefs
+  -> Explorer m
+  -> Pool
   -> Order
   -> PoolActions
-  -> Either OrderExecErr (TxCandidate, Predicted Core.Pool)
-runOrder (OnChain poolOut pool) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} =
+  -> m (TxCandidate, Predicted Core.Pool)
+runOrder TxRefs{..} Explorer{..} (OnChain poolOut pool) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} = do
+  let poolOutRef = Interop.fromCardanoTxIn poolRef
+  poolRefOuput <- getOutput poolOutRef
   case anyOrderAction of
-    DepositAction deposit -> runDeposit (OnChain orderOut deposit) (poolOut, pool)
-    RedeemAction redeem   -> runRedeem (OnChain orderOut redeem) (poolOut, pool)
-    SwapAction swap       -> runSwap (OnChain orderOut swap) (poolOut, pool)
+    DepositAction deposit -> do
+      let depositOutRef = Interop.fromCardanoTxIn depositRef
+      depositRefOut <- getOutput depositOutRef
+      let refInputs = catMaybes [poolRefOuput, depositRefOut] <&> toCardanoTx
+      throwEither $ runDeposit refInputs (OnChain orderOut deposit) (poolOut, pool)
+    RedeemAction redeem   -> do
+      let redeemOutRef = Interop.fromCardanoTxIn redeemRef
+      redeemRefOut <- getOutput redeemOutRef
+      let refInputs = catMaybes [poolRefOuput, redeemRefOut] <&> toCardanoTx
+      throwEither $ runRedeem refInputs (OnChain orderOut redeem) (poolOut, pool)
+    SwapAction swap       -> do
+      let swapOutRef = Interop.fromCardanoTxIn swapRef
+      swapRefOut <- getOutput swapOutRef
+      let refInputs = catMaybes [poolRefOuput, swapRefOut] <&> toCardanoTx
+      throwEither $ runSwap refInputs (OnChain orderOut swap) (poolOut, pool)

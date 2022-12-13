@@ -4,6 +4,7 @@ module Spectrum.Executor.Config
   , TxSubmitConfig(..)
   , NetworkConfig(..)
   , Secrets(..)
+  , TxRefs(..)
   , loadAppConfig
   ) where
 
@@ -21,7 +22,16 @@ import Control.Monad.IO.Class
   ( MonadIO (liftIO) )
 import Data.Maybe
   ( fromMaybe )
+import Dhall
+  ( FromDhall )
+import Dhall.Core
+  ( Expr(..), Chunks(..) )
+import qualified Dhall     as D
 import qualified Data.Text as T
+import Text.Parsec
+
+import Cardano.Api.Shelley 
+  ( TxIn )
 
 import Spectrum.LedgerSync.Config
   ( LedgerSyncConfig )
@@ -40,6 +50,7 @@ import SubmitAPI.Config
 import Explorer.Config
   ( ExplorerConfig )
 import WalletAPI.TrustStore (SecretFile, KeyPass)
+import Spectrum.Common.Parsers (parseTxIn)
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
@@ -53,6 +64,21 @@ data TxSubmitConfig = TxSubmitConfig
   { nodeSocketPath :: !FilePath
   } deriving (Generic, FromDhall)
 
+data TxRefs = TxRefs
+  { swapRef    :: !TxIn
+  , depositRef :: !TxIn 
+  , redeemRef  :: !TxIn
+  , poolRef    :: !TxIn
+  } deriving (Generic, FromDhall)
+
+instance FromDhall TxIn where
+  autoWith _ = D.Decoder{..}
+    where
+      extract (TextLit (Chunks [] t)) = either (D.extractError . T.pack . show) pure $ parse parseTxIn "" (T.unpack t)
+      extract expr                    = D.typeError expected expr
+
+      expected = pure Text
+
 data Secrets = Secrets
   { secretFile :: !SecretFile
   , keyPass    :: !KeyPass
@@ -63,6 +89,7 @@ data AppConfig = AppConfig
   , eventSourceConfig  :: !EventSourceConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
+  , txsInsRefs         :: !TxRefs
   , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig
