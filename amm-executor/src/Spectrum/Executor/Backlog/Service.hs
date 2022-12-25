@@ -15,24 +15,24 @@ import System.Random
   ( randomRIO )
 import RIO
   ( (<&>), atomicModifyIORef, modifyIORef', newIORef, IORef, MonadReader )
-import RIO.Time 
+import RIO.Time
   ( getCurrentTime, diffUTCTime )
 
-import System.Logging.Hlog 
+import System.Logging.Hlog
   ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
 
-import Spectrum.Prelude.HigherKind 
+import Spectrum.Prelude.HigherKind
   ( LiftK(liftK) )
-import Spectrum.Executor.Backlog.Data.BacklogOrder 
+import Spectrum.Executor.Backlog.Data.BacklogOrder
   ( mkWeightedOrder, WeightedOrder (WeightedOrder), BacklogOrder (BacklogOrder, backlogOrder, orderTimestamp) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore
   ( BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll) )
-import Spectrum.Executor.Backlog.Config 
+import Spectrum.Executor.Backlog.Config
   ( BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, suspendedPropability) )
-import Spectrum.Executor.Data.OrderState 
+import Spectrum.Executor.Data.OrderState
   ( OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder) )
-import Spectrum.Executor.Types 
-  ( Order, OrderId )
+import Spectrum.Executor.Types
+  ( OrderId, OrderWithCreationTime (OrderWithCreationTime) )
 import Spectrum.Prelude.Context
   ( HasType, askContext )
 import Control.Monad.Trans.Resource
@@ -45,7 +45,7 @@ data BacklogService m = BacklogService
   { put        :: OrderInState 'Pending -> m ()
   , suspend    :: OrderInState 'Suspended -> m Bool
   , checkLater :: OrderInState 'InProgress -> m Bool
-  , tryAcquire :: m (Maybe Order)
+  , tryAcquire :: m (Maybe OrderWithCreationTime)
   , drop       :: OrderId -> m ()
   }
 
@@ -120,9 +120,9 @@ getMaxWeightedOrder'
   -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrder)
   -> IORef (PQ.MaxQueue WeightedOrder)
-  -> m (Maybe Order)
+  -> m (Maybe OrderWithCreationTime)
 getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
-  randomInt <- randomRIO (0, 100) :: m Int
+  randomInt <- randomRIO (1, 100) :: m Int
   if randomInt > naturalToInt suspendedPropability
     then getMaxPendingOrder cfg store pendingQueueRef
     else getMaxSuspendedOrder cfg store suspendedQueueRef
@@ -132,26 +132,26 @@ getMaxPendingOrder
   => BacklogServiceConfig
   -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrder)
-  -> m (Maybe Order)
+  -> m (Maybe OrderWithCreationTime)
 getMaxPendingOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} pendingQueueRef = do
   currentTime <- getCurrentTime
   wOrderM     <- atomicModifyIORef pendingQueueRef (\queue -> case PQ.maxView queue of
       Just (order, newQueue) -> (newQueue, Just order)
       Nothing -> (queue, Nothing)
     )
-  case wOrderM of 
+  case wOrderM of
     Just (WeightedOrder oId _ oTime) -> do
       if diffUTCTime currentTime oTime > orderLifetime
       then dropOrder oId >> getMaxPendingOrder cfg store pendingQueueRef
-      else get oId <&> fmap backlogOrder
+      else get oId <&> fmap (\order -> OrderWithCreationTime (backlogOrder order) oTime)
     Nothing -> pure Nothing
-  
+
 getMaxSuspendedOrder
   :: (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
   -> IORef (PQ.MaxQueue WeightedOrder)
-  -> m (Maybe Order)
+  -> m (Maybe OrderWithCreationTime)
 getMaxSuspendedOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} suspendedQueueRef = do
   currentTime   <- getCurrentTime
   maxSuspendedM <- atomicModifyIORef suspendedQueueRef (\queue -> case PQ.maxView queue of
@@ -162,7 +162,7 @@ getMaxSuspendedOrder cfg@BacklogServiceConfig{..} store@BacklogStore{..} suspend
     Just (WeightedOrder oId _ oTime) ->
       if diffUTCTime currentTime oTime > orderLifetime
       then dropOrder oId >> getMaxSuspendedOrder cfg store suspendedQueueRef
-      else get oId <&> fmap backlogOrder
+      else get oId <&> fmap (\order -> OrderWithCreationTime (backlogOrder order) oTime)
     Nothing -> pure Nothing
 
 recover

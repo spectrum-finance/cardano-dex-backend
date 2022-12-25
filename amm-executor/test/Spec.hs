@@ -5,10 +5,13 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Tests.Backlog.ServiceTest 
   ( checkBacklogService )
+import Tests.OrdersExecutor.ProcessTest
 
 main :: IO ()
 main = do
   defaultMain tests
 
 tests = testGroup "ExecutorTests"
-  [checkBacklogService]
+  [ checkOrdersExecutor
+  , checkBacklogService
+  ]

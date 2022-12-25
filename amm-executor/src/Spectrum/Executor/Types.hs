@@ -5,6 +5,7 @@ module Spectrum.Executor.Types
   , orderId
   , type Pool
   , type Order
+  , OrderWithCreationTime(..)
   , OrderWeight(..)
   , weightOrder
   -- re-exports
@@ -33,6 +34,7 @@ import ErgoDex.Types
   ( unExFee, exFeePerTokenDen, exFeePerTokenNum )
 import ErgoDex.Contracts.Types 
   ( Amount(unAmount) )
+import RIO.Time (UTCTime)
 
 newtype PoolStateId = PoolStateId
   { unPoolStateId :: TxOutRef
@@ -55,6 +57,9 @@ orderId (OnChain FullTxOut{..} _) = OrderId fullTxOutRef
 
 newtype OrderWeight = OrderWeight Integer
   deriving newtype (Eq, Ord, Show)
+
+data OrderWithCreationTime = OrderWithCreationTime Order UTCTime
+  deriving (Show)
 
 weightOrder :: Order -> OrderWeight
 weightOrder (OnChain _ Core.AnyOrder{..}) =

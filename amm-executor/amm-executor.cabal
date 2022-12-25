@@ -207,8 +207,12 @@ test-suite amm-executor-test
   other-modules:
     Tests.Backlog.ServiceTest
     Tests.Backlog.PersistenceMock
+    Tests.OrdersExecutor.ProcessTest
     Gen.OrdersGen
     Gen.LoggingGen
+    Gen.ConstantsGen
+    Gen.ServicesGen
+    Gen.ExceptionsGen
   build-depends:
     , base  == 4.14.3.0
     , HUnit == 1.6.2.0
@@ -216,21 +220,32 @@ test-suite amm-executor-test
     , aeson
     , rio
     , tasty-hunit==0.10.0.3
-    , base16
+    , submit-api
     , tasty==1.4.2
     , tasty-hedgehog==1.1.0.0
     , amm-executor
     , containers
+    , base16-bytestring
+    , extra
     , hedgehog
     , text
     , plutus-ledger-api
     , plutus-tx
     , dex-core
     , spectrum-prelude
+    , quickblue
     , cardano-tx
+    , cardano-api
+    , streamly
+    , network-api
     , cardano-dex-contracts-offchain
     , plutus-ledger
+    , cardano-ledger-babbage
+    , cardano-ledger-shelley
+    , plutus-core
     , plutus-script-utils
+    , transformers
     , hlog
     , ledger-sync
     , resourcet
+    , wallet-api

@@ -59,7 +59,7 @@ import qualified Control.Monad.Catch as MC
 import Control.Tracer
   ( stdoutTracer, Contravariant (contramap) )
 import System.Logging.Hlog
-  ( makeLogging, MakeLogging (forComponent), translateMakeLogging, Logging (Logging, infoM) )
+  ( makeLogging, MakeLogging (forComponent), translateMakeLogging )
 
 import Streamly.Prelude as S
   ( drain, parallel )
@@ -67,7 +67,7 @@ import Streamly.Prelude as S
 import Ledger.Tx.CardanoAPI
   ( fromCardanoPaymentKeyHash )
 import Ledger
-  ( PaymentPubKeyHash(PaymentPubKeyHash), ScriptHash, Script, unValidatorScript, TxIn )
+  ( PaymentPubKeyHash(PaymentPubKeyHash), Script, unValidatorScript )
 import qualified Cardano.Api as C
 
 import Crypto.Random.Entropy
