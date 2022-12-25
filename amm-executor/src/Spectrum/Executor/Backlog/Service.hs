@@ -84,11 +84,15 @@ mkBacklogService' MakeLogging{..} config store@BacklogStore{..} = do
         put $ BacklogOrder timestamp order
         modifyIORef' pendingPQ (PQ.insert $ mkWeightedOrder order timestamp)
     , suspend = \(SuspendedOrder order timestamp) -> do
-        modifyIORef' suspendedPQ (PQ.insert $ mkWeightedOrder order timestamp)
-        exists $ BacklogOrder timestamp order
+        existsInStore <- exists $ BacklogOrder timestamp order
+        if existsInStore
+          then modifyIORef' suspendedPQ (PQ.insert $ mkWeightedOrder order timestamp) >> pure True
+          else pure False
     , checkLater = \(InProgressOrder order timestamp) -> do
-        modifyIORef' toRevisitQ (mkWeightedOrder order timestamp Seq.<|)
-        exists $ BacklogOrder timestamp order
+        existsInStore <- exists $ BacklogOrder timestamp order
+        if existsInStore
+          then modifyIORef' toRevisitQ (mkWeightedOrder order timestamp Seq.<|) >> pure True
+          else pure False
     , tryAcquire = do
         revisitOrders config store pendingPQ toRevisitQ
         getMaxWeightedOrder' config store pendingPQ suspendedPQ
