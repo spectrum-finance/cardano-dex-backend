@@ -18,7 +18,7 @@ data BacklogServiceConfig = BacklogServiceConfig
   { orderLifetime        :: !NominalDiffTime
   , orderExecTime        :: !NominalDiffTime
   , suspendedPropability :: !Natural 
-  } deriving (Generic, FromDhall)
+  } deriving (Generic, FromDhall, Show)
 
 instance FromDhall NominalDiffTime where
   autoWith _ = D.Decoder{..}

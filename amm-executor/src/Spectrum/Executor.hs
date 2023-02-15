@@ -67,7 +67,7 @@ import Streamly.Prelude as S
 import Ledger.Tx.CardanoAPI
   ( fromCardanoPaymentKeyHash )
 import Ledger
-  ( PaymentPubKeyHash(PaymentPubKeyHash) )
+  ( PaymentPubKeyHash(PaymentPubKeyHash), Script, unValidatorScript )
 import qualified Cardano.Api as C
 
 import Crypto.Random.Entropy
@@ -111,6 +111,7 @@ import Spectrum.Executor.Config
   , TxSubmitConfig(..)
   , Secrets(..)
   , NetworkConfig(..)
+  , TxRefs(..)
   )
 import Spectrum.Executor.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
@@ -154,6 +155,11 @@ import Spectrum.Executor.Data.State
   ( Confirmed )
 import Spectrum.Executor.Data.OrderState 
   ( OrderInState, OrderState (Pending, Eliminated) )
+import Data.Map (Map)
+import ErgoDex.PValidators
+  ( depositValidator, redeemValidator, swapValidator, poolValidator )
+import Plutus.Script.Utils.V2.Scripts (scriptHash)
+import qualified Data.Map as Map
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
@@ -161,6 +167,7 @@ data Env f m = Env
   , lederHistoryConfig :: !LedgerStoreConfig
   , pstoreConfig       :: !PoolStoreConfig
   , backlogConfig      :: !BacklogServiceConfig
+  , txsInsRefs         :: !TxRefs
   , backlogStoreConfig :: !BacklogStoreConfig
   , networkParams      :: !NetworkParameters
   , explorerConfig     :: !ExplorerConfig
@@ -203,6 +210,7 @@ runApp args = do
         ledgerStoreConfig
         pstoreConfig
         backlogConfig
+        txsInsRefs
         backlogStoreConfig
         nparams
         explorerConfig
@@ -240,14 +248,15 @@ wireApp = interceptSigTerm >> do
   backlogService <- mkBacklogService backlogStore
   pools          <- mkPools
   resolver       <- mkPoolResolver pools
+  refScriptsMap  <- mkRefScriptsMap txsInsRefs
   let
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
     backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
-    transactions    = mkTransactions networkService networkId walletOutputs vault txAssemblyConfig
+    transactions    = mkTransactions networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
     poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
-  executor <- mkOrdersExecutor backlogService syncSem transactions resolver poolActions
+  executor <- mkOrdersExecutor backlogService syncSem transactions explorer resolver poolActions
   pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
   poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
   let
@@ -263,6 +272,19 @@ wireApp = interceptSigTerm >> do
 
 epochSlots :: C.ConsensusModeParams C.CardanoMode
 epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
+
+mkRefScriptsMap :: MonadIO f => TxRefs -> f (Map Script C.TxIn)
+mkRefScriptsMap TxRefs{..} = do
+  swapV    <- unValidatorScript <$> swapValidator
+  depositV <- unValidatorScript <$> depositValidator
+  redeemV  <- unValidatorScript <$> redeemValidator
+  poolV    <- unValidatorScript <$> poolValidator
+  pure $ Map.fromList
+    [ (swapV, swapRef)
+    , (depositV, depositRef)
+    , (redeemV, redeemRef)
+    , (poolV, poolRef)
+    ]
 
 runContext :: Env Wire App -> App a -> IO a
 runContext env app = runReaderT (unApp app) env

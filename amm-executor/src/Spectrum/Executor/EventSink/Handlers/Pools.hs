@@ -57,5 +57,5 @@ parsePool Logging{..} out@FullTxOut{..} = do
         pure $ Just $ Confirmed a
       _         -> do
         infoM ("Pool not found in: " ++ show out)
-        pure $ Nothing
-  else pure $ Nothing
+        pure Nothing
+  else pure Nothing

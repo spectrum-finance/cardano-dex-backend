@@ -91,7 +91,8 @@ fromBabbageLedgerTx blockHash slotNo vtx =
           (P.TxOutRef txId ix)
           txOutAddress
           txOutValue
-          (parseDatum txOutDatum))
+          (parseDatum txOutDatum)
+          txOutReferenceScript)
     parseDatum datum = case datum of
       PV2.NoOutputDatum      -> EmptyDatum
       PV2.OutputDatumHash dh -> KnownDatumHash dh
