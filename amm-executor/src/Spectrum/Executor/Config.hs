@@ -55,6 +55,7 @@ import Spectrum.Common.Parsers
   ( parseTxIn )
 import WalletAPI.UtxoStoreConfig 
   ( UtxoStoreConfig )
+import ErgoDex.Amm.PoolActions (PoolActionsConfig)
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
@@ -92,23 +93,24 @@ data Secrets = Secrets
   } deriving (Generic, FromDhall)
 
 data AppConfig = AppConfig
-  { ledgerSyncConfig   :: !LedgerSyncConfig
-  , eventSourceConfig  :: !EventSourceConfig
-  , ledgerStoreConfig  :: !LedgerStoreConfig
-  , nodeConfigPath     :: !FilePath
-  , txsInsRefs         :: !TxRefs
-  , scriptsConfig       :: !ScriptsConfig
-  , networkConfig      :: !NetworkConfig
-  , loggingConfig      :: !LoggingConfig
-  , pstoreConfig       :: !PoolStoreConfig
-  , backlogConfig      :: !BacklogServiceConfig
-  , backlogStoreConfig :: !BacklogStoreConfig
-  , explorerConfig     :: !ExplorerConfig
-  , txSubmitConfig     :: !TxSubmitConfig
-  , txAssemblyConfig   :: !TxAssemblyConfig
-  , secrets            :: !Secrets
-  , mainnetMode        :: !Bool
-  , utxoStoreConfig    :: !UtxoStoreConfig
+  { ledgerSyncConfig        :: !LedgerSyncConfig
+  , eventSourceConfig       :: !EventSourceConfig
+  , ledgerStoreConfig       :: !LedgerStoreConfig
+  , nodeConfigPath          :: !FilePath
+  , txsInsRefs              :: !TxRefs
+  , scriptsConfig           :: !ScriptsConfig
+  , networkConfig           :: !NetworkConfig
+  , loggingConfig           :: !LoggingConfig
+  , pstoreConfig            :: !PoolStoreConfig
+  , backlogConfig           :: !BacklogServiceConfig
+  , backlogStoreConfig      :: !BacklogStoreConfig
+  , explorerConfig          :: !ExplorerConfig
+  , txSubmitConfig          :: !TxSubmitConfig
+  , txAssemblyConfig        :: !TxAssemblyConfig
+  , secrets                 :: !Secrets
+  , mainnetMode             :: !Bool
+  , utxoStoreConfig         :: !UtxoStoreConfig
+  , poolActionsConfig       :: !PoolActionsConfig
   } deriving (Generic, FromDhall)
 
 loadAppConfig :: MonadIO f => Maybe String -> f AppConfig

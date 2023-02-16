@@ -8,41 +8,35 @@ let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = componen
 in
 { mainnetMode = False
 , ledgerSyncConfig =
-    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
+    { nodeSocketPath = "/home/bromel/projects/cardano-node/ipc/node.socket"
     , maxInFlight    = 256
     }
 , eventSourceConfig =
     { startAt =
-        { slot = 2729633
-        , hash = "815dafb374898811dc74069a8df8af7a98a80214203e89acdd6425c2e3db37c7"
+        { slot = 15331607
+        , hash = "bc161262a9855bd19f4ba1563800f317c04ef9ad2361e5c13de2bd06c2e04fa5"
         }
     }
-, networkConfig = 
+, networkConfig =
     { cardanoNetworkId = 2
     }
 , ledgerStoreConfig =
     { storePath       = "./data/amm-executor"
     , createIfMissing = True
     }
-, nodeConfigPath = "/root/cardano-vasil-docker/config/preview/config.json"
+, nodeConfigPath = "/home/bromel/projects/cardano-dex-backend/config/preview/config.json"
 , pstoreConfig =
-    { storePath       = "/path"
+    { storePath       = "./psStore"
     , createIfMissing = True
     }
 , backlogConfig =
-    { orderLifetime        = 10
-    , orderExecTime        = 10
+    { orderLifetime        = 9000
+    , orderExecTime        = 4500
     , suspendedPropability = 5
     }
 , backlogStoreConfig =
-    { storePath       = "/path"
+    { storePath       = "./backlogStore"
     , createIfMissing = True
-    }
-, explorerConfig =
-    { explorerUri = "https://testnet-api.quickblue.io"
-    }
-, txSubmitConfig =
-    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
     }
 , txsInsRefs =
     { swapRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#2"
@@ -52,9 +46,15 @@ in
     }
 , scriptsConfig =
     { swapScriptPath    = "./scripts/swap.uplc"
-    , depositScriptPath = "./scripts/deposut.uplc"
+    , depositScriptPath = "./scripts/deposit.uplc"
     , redeemScriptPath  = "./scripts/redeem.uplc"
     , poolScriptPath    = "./scripts/pool.uplc"
+    }
+, explorerConfig =
+    { explorerUri = "https://explorer.spectrum.fi"
+    }
+, txSubmitConfig =
+    { nodeSocketPath = "/home/bromel/projects/cardano-node/ipc/node.socket"
     }
 , txAssemblyConfig =
     { feePolicy         = FeePolicy.Balance
@@ -62,8 +62,8 @@ in
     , deafultChangeAddr = "addr_test1vr007v5nktnksje3gnm4aw4arwrkcl5rvvx4lwa3w8mtzxgf6c2nt"
     }
 , secrets =
-    { secretFile = "/path/to/secret/file"
-    , keyPass    = "pass"
+    { secretFile = "/home/bromel/projects/cardano-dex-backend/wallet1TS.json"
+    , keyPass    = "secret"
     }
 , loggingConfig =
     { rootLogLevel   = LogLevel.Info
@@ -71,7 +71,10 @@ in
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 , utxoStoreConfig =
-    { utxoStorePath   = "./path/to//utxoStore"
-    , createIfMissing = True
+    { utxoStorePath = "./utxoStore"
+    , createIfMissing      = True
+    }
+, poolActionsConfig =
+    { safeTxFeeLovalace = +1500000
     }
 }

@@ -23,7 +23,7 @@ import CardanoTx.Models
   ( TxCandidate, fullTxOutDatum, fullTxOutRef, FullTxOut (FullTxOut) )
 import qualified CardanoTx.Interop as Interop
 import Cardano.Api
-  ( Tx )
+  ( Tx, Error(..), TxIn (TxIn) )
 import Ouroboros.Network.Subscription.PeerState ()
 
 import qualified ErgoDex.Amm.Orders as Core
@@ -68,6 +68,7 @@ import RIO.Text (isInfixOf)
 import Data.Text (pack)
 import Control.Concurrent (threadDelay)
 import Data.Aeson (encode)
+import Ledger (TxOutRef(txOutRefId))
 
 newtype OrdersExecutor s m = OrdersExecutor
   { run :: s m ()
@@ -108,7 +109,7 @@ run'
   -> PoolActions
   -> s m ()
 run' logging@Logging{..} syncSem txRefs backlog@BacklogService{..} txs explorer resolver poolActions =
-    S.before (liftIO $ waitQSem syncSem) $ S.repeatM (liftIO (threadDelay 1000000) >> tryAcquire) & S.mapM (\case
+    S.before (liftIO $ waitQSem syncSem) $ S.repeatM tryAcquire & S.mapM (\case
       Just orderWithCreationTime ->
         infoM ("Going to execute order for pool" ++ show orderWithCreationTime) >>
           execute' logging txRefs backlog txs explorer resolver poolActions orderWithCreationTime
@@ -140,18 +141,14 @@ execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs explorer
     ]
 
 processOrderExecutionException :: Monad m => Logging m -> BacklogService m -> SomeException -> Order -> UTCTime -> m ()
-processOrderExecutionException Logging{..} BacklogService{suspend, drop} executionError order@(OnChain FullTxOut{..} _) orderTime =
-  let
-    orderTxId  = Interop.toCardanoTxIn fullTxOutRef
-    errMsgText = pack (show executionError)
-  in if isInfixOf "BadInputsUTxO" errMsgText && not (pack (show orderTxId) `isInfixOf` errMsgText)
-       then
-         suspend (SuspendedOrder order orderTime) >>
-           infoM ("Got BadInputsUTxO error during order (" ++ show order ++ ") execution without orderId. " ++ show errMsgText ++ ". Going to suspend order")
-       else
-         drop (orderId order) >>
-           infoM ("Got error during order (" ++ show order ++ ") " ++ show errMsgText ++ ". Going to drop order")
-           
+processOrderExecutionException Logging{..} BacklogService{suspend, drop} executionError order@(OnChain FullTxOut{..} _) orderTime = do
+  let errMsgText = pack (show executionError)
+  if isInfixOf "BadInputsUTxO" errMsgText && not (pack (show (txOutRefId fullTxOutRef)) `isInfixOf` errMsgText)
+    then
+      suspend (SuspendedOrder order orderTime) >>
+        infoM ("Got BadInputsUTxO error during order (" ++ show order ++ ") execution without orderId (" ++ show (txOutRefId fullTxOutRef) ++ "). " ++ show errMsgText ++ ". Going to suspend order")
+    else drop (orderId order) >> infoM ("Got error during order (" ++ show order ++ ") " ++ show errMsgText ++ ". Going to drop order")
+
 executeOrder'
   :: (Monad m, MonadThrow m)
   => BacklogService m

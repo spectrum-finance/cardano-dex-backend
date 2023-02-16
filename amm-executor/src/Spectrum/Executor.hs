@@ -87,8 +87,8 @@ import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
   ( mkPersistentWalletOutputs )
-import ErgoDex.Amm.PoolActions 
-  ( mkPoolActions )
+import ErgoDex.Amm.PoolActions
+  ( mkPoolActions, PoolActionsConfig )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -149,29 +149,31 @@ import Spectrum.Executor.Backlog.Persistence.BacklogStore
   ( mkBacklogStore )
 import Data.Map (Map)
 import qualified Data.Map as Map
-import WalletAPI.UtxoStoreConfig 
+import WalletAPI.UtxoStoreConfig
   ( UtxoStoreConfig )
 import Spectrum.Executor.Scripts
   ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidators )
+import Ledger.Address (pubKeyHashAddress)
 
 data Env f m = Env
-  { ledgerSyncConfig   :: !LedgerSyncConfig
-  , eventSourceConfig  :: !EventSourceConfig
-  , lederHistoryConfig :: !LedgerStoreConfig
-  , pstoreConfig       :: !PoolStoreConfig
-  , backlogConfig      :: !BacklogServiceConfig
-  , txsInsRefs         :: !TxRefs
-  , scriptsConfig      :: !ScriptsConfig
-  , backlogStoreConfig :: !BacklogStoreConfig
-  , networkParams      :: !NetworkParameters
-  , explorerConfig     :: !ExplorerConfig
-  , txSubmitConfig     :: !TxSubmitConfig
-  , txAssemblyConfig   :: !TxAssemblyConfig
-  , utxoStoreConfig    :: !UtxoStoreConfig
-  , secrets            :: !Secrets
-  , mkLogging          :: !(MakeLogging f m)
-  , mkLogging'         :: !(MakeLogging m m)
-  , networkId          :: !C.NetworkId
+  { ledgerSyncConfig        :: !LedgerSyncConfig
+  , eventSourceConfig       :: !EventSourceConfig
+  , lederHistoryConfig      :: !LedgerStoreConfig
+  , pstoreConfig            :: !PoolStoreConfig
+  , backlogConfig           :: !BacklogServiceConfig
+  , txsInsRefs              :: !TxRefs
+  , scriptsConfig           :: !ScriptsConfig
+  , backlogStoreConfig      :: !BacklogStoreConfig
+  , networkParams           :: !NetworkParameters
+  , explorerConfig          :: !ExplorerConfig
+  , txSubmitConfig          :: !TxSubmitConfig
+  , txAssemblyConfig        :: !TxAssemblyConfig
+  , utxoStoreConfig         :: !UtxoStoreConfig
+  , poolActionsConfig       :: !PoolActionsConfig
+  , secrets                 :: !Secrets
+  , mkLogging               :: !(MakeLogging f m)
+  , mkLogging'              :: !(MakeLogging m m)
+  , networkId               :: !C.NetworkId
   } deriving stock (Generic)
 
 newtype App a = App
@@ -213,6 +215,7 @@ runApp args = do
         txSubmitConfig
         txAssemblyConfig
         utxoStoreConfig
+        poolActionsConfig
         secrets
         (translateMakeLogging (lift . App . lift) mkLogging)
         (translateMakeLogging (App . lift) mkLogging)
@@ -236,8 +239,8 @@ wireApp = interceptSigTerm >> do
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
     vault      = mkVault trustStore $ keyPass secrets
-  walletOutputs <- mkPersistentWalletOutputs lift mkLogging utxoStoreConfig explorer vault
-  executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
+  collateralOutputs <- mkPersistentWalletOutputs lift mkLogging utxoStoreConfig explorer vault
+  executorPkh       <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
   backlogStore   <- mkBacklogStore
@@ -253,8 +256,10 @@ wireApp = interceptSigTerm >> do
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
     backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
-    transactions    = mkTransactions networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
-    poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
+    transactions    = mkTransactions networkService networkId refScriptsMap collateralOutputs vault txAssemblyConfig
+    poolActions     = mkPoolActions poolActionsConfig (PaymentPubKeyHash executorPkh) validators
+  _ <- liftIO $ print (show executorPkh)
+  _ <- liftIO $ print (show $ pubKeyHashAddress (PaymentPubKeyHash executorPkh) Nothing)
   executor <- mkOrdersExecutor backlogService syncSem transactions explorer resolver poolActions
   pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
   poolHandlerLogging   <- forComponent mkLogging "PoolHandler"

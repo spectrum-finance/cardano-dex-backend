@@ -19,7 +19,7 @@ import RIO.Time
   ( getCurrentTime, diffUTCTime )
 
 import System.Logging.Hlog
-  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
+  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM, debugM) )
 
 import Spectrum.Prelude.HigherKind
   ( LiftK(liftK) )
