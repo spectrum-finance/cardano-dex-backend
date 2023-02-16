@@ -34,7 +34,7 @@ let
       "https://github.com/input-output-hk/ouroboros-network"."cb9eba406ceb2df338d8384b35c8addfe2067201" = "3ElbHM1B5u1QD0aes1KbaX2FxKJzU05H0OzJ36em1Bg=";
       "https://github.com/input-output-hk/iohk-monitoring-framework"."066f7002aac5a0efc20e49643fea45454f226caa" = "0ia5UflYEmBYepj2gkJy9msknklI0UPtUavMEGwk3Wg=";
       "https://github.com/input-output-hk/quickcheck-dynamic"."c272906361471d684440f76c297e29ab760f6a1e" = "TioJQASNrQX6B3n2Cv43X2olyT67//CFQqcpvNW7N60=";
-      "https://github.com/input-output-hk/cardano-node"."1.35.3-rc1" = "4IrheFeoWfvkZQndEk4fGUkOiOjcVhcyXZ6IqmvkDgg=";
+      "https://github.com/input-output-hk/cardano-node"."8762a10efe3f9f97939e3cb05edaf04250456702" = "LwoQejDDA9P7dbl8z3nFbEJDDim0Y7oHUOgf4EH2Xig=";
       "https://github.com/input-output-hk/ekg-forward"."297cd9db5074339a2fb2e5ae7d0780debb670c63" = "jwj/gh/A/PXhO6yVESV27k4yx9I8Id8fTa3m4ofPnP0=";
       "https://github.com/input-output-hk/optparse-applicative"."7497a29cb998721a9068d5725d49461f2bba0e7a" = "1gvsrg925vynwgqwplgjmp53vj953qyh3wbdf34pw21c8r47w35r";
       "https://github.com/input-output-hk/Win32-network"."3825d3abf75f83f406c1f7161883c438dac7277d" = "19wahfv726fa3mqajpqdqhnl9ica3xmf68i254q45iyjcpj1psqx";
@@ -45,7 +45,7 @@ let
       "https://github.com/input-output-hk/hedgehog-extras"."714ee03a5a786a05fc57ac5d2f1c2edce4660d85" = "6KQFEzb9g2a0soVvwLKESEbA+a8ygpROcMr6bkatROE=";
       "https://github.com/ergolabs/cardano-dex-contracts"."2fb44f444897d84e313ceb4d3d467441385802dd" = "Kih0IS6Ty3EnXlgqAyF04nWIWJAnHOEVfraebh5RsNI=";
       "https://github.com/ergolabs/hlog"."231ff5f0a12841174cf6d92a932f45fea4552bae" = "vjqo/cd8eGQ03PsISJrkAizMYouGMc4vZsMl+ozSQ5Y=";
-      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."55493f5f2e800fece51fcb9e296fef2fc2c1331d" = "tAN2gc2cxTggTUKuXGauKko8m+5HfubywcZEKF7A7xI=";
+      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."3a0dd0cf7ec074fe4699c7a25a2541476e9446d3" = "eU3yHQV9JCj4m4/shCu2ZUsCAUS8WzkCsMeUvWOaBb0=";
       "https://github.com/daleiz/rocksdb-haskell"."109af08f95b40f458d4933e3725ecb3e59337c39" = "1i1ya491fapa0g96527krarv0w0iybizqcz518741iw06hhpikiy";
     };
 
