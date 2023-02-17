@@ -137,3 +137,4 @@ library
                   , network-mux
                   , iohk-monitoring
                   , hlog
+                  , spectrum

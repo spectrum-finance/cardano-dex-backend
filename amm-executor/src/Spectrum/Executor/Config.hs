@@ -51,6 +51,7 @@ import Explorer.Config
   ( ExplorerConfig )
 import WalletAPI.TrustStore (SecretFile, KeyPass)
 import Spectrum.Common.Parsers (parseTxIn)
+import WalletAPI.UtxoStoreConfig (UtxoStoreConfig)
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
@@ -100,6 +101,7 @@ data AppConfig = AppConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
   , secrets            :: !Secrets
   , mainnetMode        :: !Bool
+  , utxoStoreConfig    :: !UtxoStoreConfig
   } deriving (Generic, FromDhall)
 
 loadAppConfig :: MonadIO f => Maybe String -> f AppConfig

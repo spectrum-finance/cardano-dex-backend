@@ -88,7 +88,7 @@ import WalletAPI.TrustStore
 import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
-  ( mkWalletOutputs' )
+  ( mkWalletOutputs', mkPersistentWalletOutputs )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -160,6 +160,7 @@ import ErgoDex.PValidators
   ( depositValidator, redeemValidator, swapValidator, poolValidator )
 import Plutus.Script.Utils.V2.Scripts (scriptHash)
 import qualified Data.Map as Map
+import WalletAPI.UtxoStoreConfig (UtxoStoreConfig)
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
@@ -173,6 +174,7 @@ data Env f m = Env
   , explorerConfig     :: !ExplorerConfig
   , txSubmitConfig     :: !TxSubmitConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
+  , utxoStoreConfig    :: !UtxoStoreConfig
   , secrets            :: !Secrets
   , mkLogging          :: !(MakeLogging f m)
   , mkLogging'         :: !(MakeLogging m m)
@@ -216,6 +218,7 @@ runApp args = do
         explorerConfig
         txSubmitConfig
         txAssemblyConfig
+        utxoStoreConfig
         secrets
         (translateMakeLogging (lift . App . lift) mkLogging)
         (translateMakeLogging (App . lift) mkLogging)
@@ -239,7 +242,7 @@ wireApp = interceptSigTerm >> do
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
     vault      = mkVault trustStore $ keyPass secrets
-  walletOutputs <- mkWalletOutputs' lift mkLogging explorer vault
+  walletOutputs <- mkPersistentWalletOutputs lift mkLogging utxoStoreConfig explorer vault
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath

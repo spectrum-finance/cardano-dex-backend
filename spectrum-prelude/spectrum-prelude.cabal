@@ -73,7 +73,6 @@ library
     hs-source-dirs: src
     
     exposed-modules: Spectrum.Prelude.Context
-                     Spectrum.Prelude.HigherKind
                      Spectrum.Prelude.UnliftIO
                      Spectrum.Prelude.Throw
 
@@ -83,3 +82,4 @@ library
                   , io-classes
                   , transformers
                   , generic-lens
+                  , spectrum
