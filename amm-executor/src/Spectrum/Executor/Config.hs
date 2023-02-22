@@ -5,6 +5,7 @@ module Spectrum.Executor.Config
   , NetworkConfig(..)
   , Secrets(..)
   , TxRefs(..)
+  , ScriptsConfig(..)
   , loadAppConfig
   ) where
 
@@ -22,8 +23,6 @@ import Control.Monad.IO.Class
   ( MonadIO (liftIO) )
 import Data.Maybe
   ( fromMaybe )
-import Dhall
-  ( FromDhall )
 import Dhall.Core
   ( Expr(..), Chunks(..) )
 import qualified Dhall     as D
@@ -49,9 +48,12 @@ import SubmitAPI.Config
   ( TxAssemblyConfig )
 import Explorer.Config
   ( ExplorerConfig )
-import WalletAPI.TrustStore (SecretFile, KeyPass)
-import Spectrum.Common.Parsers (parseTxIn)
-import WalletAPI.UtxoStoreConfig (UtxoStoreConfig)
+import WalletAPI.TrustStore 
+  ( SecretFile, KeyPass )
+import Spectrum.Common.Parsers 
+  ( parseTxIn )
+import WalletAPI.UtxoStoreConfig 
+  ( UtxoStoreConfig )
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
@@ -70,6 +72,13 @@ data TxRefs = TxRefs
   , depositRef :: !TxIn 
   , redeemRef  :: !TxIn
   , poolRef    :: !TxIn
+  } deriving (Generic, FromDhall)
+
+data ScriptsConfig = ScriptsConfig
+  { swapScriptPath    :: !FilePath
+  , depositScriptPath :: !FilePath
+  , redeemScriptPath  :: !FilePath
+  , poolScriptPath    :: !FilePath
   } deriving (Generic, FromDhall)
 
 instance FromDhall TxIn where
@@ -91,6 +100,7 @@ data AppConfig = AppConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
   , txsInsRefs         :: !TxRefs
+  , scripsConfig       :: !ScriptsConfig
   , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig

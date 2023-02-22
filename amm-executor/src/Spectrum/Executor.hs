@@ -88,7 +88,7 @@ import WalletAPI.TrustStore
 import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
-  ( mkWalletOutputs', mkPersistentWalletOutputs )
+  ( mkPersistentWalletOutputs )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -112,13 +112,12 @@ import Spectrum.Executor.Config
   , Secrets(..)
   , NetworkConfig(..)
   , TxRefs(..)
+  , ScriptsConfig (..)
   )
-import Spectrum.Executor.EventSource.Data.TxContext
-  ( TxCtx(LedgerCtx) )
 import Spectrum.Executor.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.EventSink.Pipe
-  ( mkEventSink, pipe, EventSink )
+  ( mkEventSink, pipe )
 import Spectrum.Executor.EventSink.Types
   ( voidEventHandler)
 import Spectrum.Executor.EventSink.Handlers.Pools
@@ -147,20 +146,12 @@ import Spectrum.Executor.Backlog.Process as Backlog
   ( mkBacklog, run, Backlog (run) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore 
   ( mkBacklogStore )
-import Streamly.Internal.Data.Stream.Serial 
-  ( SerialT(SerialT) )
-import Spectrum.Executor.Data.PoolState 
-  ( NewPool )
-import Spectrum.Executor.Data.State 
-  ( Confirmed )
-import Spectrum.Executor.Data.OrderState 
-  ( OrderInState, OrderState (Pending, Eliminated) )
 import Data.Map (Map)
-import ErgoDex.PValidators
-  ( depositValidator, redeemValidator, swapValidator, poolValidator )
-import Plutus.Script.Utils.V2.Scripts (scriptHash)
 import qualified Data.Map as Map
-import WalletAPI.UtxoStoreConfig (UtxoStoreConfig)
+import WalletAPI.UtxoStoreConfig 
+  ( UtxoStoreConfig )
+import Spectrum.Executor.Scripts
+  ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidators )
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
@@ -169,6 +160,7 @@ data Env f m = Env
   , pstoreConfig       :: !PoolStoreConfig
   , backlogConfig      :: !BacklogServiceConfig
   , txsInsRefs         :: !TxRefs
+  , scriptsConfig      :: !ScriptsConfig
   , backlogStoreConfig :: !BacklogStoreConfig
   , networkParams      :: !NetworkParameters
   , explorerConfig     :: !ExplorerConfig
@@ -213,6 +205,7 @@ runApp args = do
         pstoreConfig
         backlogConfig
         txsInsRefs
+        scripsConfig
         backlogStoreConfig
         nparams
         explorerConfig
@@ -246,13 +239,15 @@ wireApp = interceptSigTerm >> do
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
-  validators     <- fetchValidatorsV1
   backlogStore   <- mkBacklogStore
   backlogService <- mkBacklogService backlogStore
   pools          <- mkPools
   resolver       <- mkPoolResolver pools
-  refScriptsMap  <- mkRefScriptsMap txsInsRefs
+
+  scriptsValidators <- mkScriptsValidators scriptsConfig
   let
+    validators      = scriptsValidators2AmmValidators scriptsValidators
+    refScriptsMap   = mkRefScriptsMap txsInsRefs scriptsValidators
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
@@ -276,13 +271,14 @@ wireApp = interceptSigTerm >> do
 epochSlots :: C.ConsensusModeParams C.CardanoMode
 epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
 
-mkRefScriptsMap :: MonadIO f => TxRefs -> f (Map Script C.TxIn)
-mkRefScriptsMap TxRefs{..} = do
-  swapV    <- unValidatorScript <$> swapValidator
-  depositV <- unValidatorScript <$> depositValidator
-  redeemV  <- unValidatorScript <$> redeemValidator
-  poolV    <- unValidatorScript <$> poolValidator
-  pure $ Map.fromList
+mkRefScriptsMap :: TxRefs -> ScriptsValidators -> Map Script C.TxIn
+mkRefScriptsMap TxRefs{..} ScriptsValidators{..} =
+  let
+    swapV    = unValidatorScript swapValidator
+    depositV = unValidatorScript depositValidator
+    redeemV  = unValidatorScript redeemValidator
+    poolV    = unValidatorScript poolValidator
+  in Map.fromList
     [ (swapV, swapRef)
     , (depositV, depositRef)
     , (redeemV, redeemRef)

@@ -80,6 +80,7 @@ library
     exposed-modules: Spectrum.Executor
                      Spectrum.Executor.Types
                      Spectrum.Executor.Config
+                     Spectrum.Executor.Scripts
                      Spectrum.Executor.Topic
                      Spectrum.Executor.Data.State
                      Spectrum.Executor.Data.OrderState
