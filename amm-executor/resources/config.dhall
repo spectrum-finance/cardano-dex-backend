@@ -70,4 +70,8 @@ in
     , fileHandlers   = [fileHandlers "logs/amm-executor.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
+, utxoStoreConfig =
+    { utxoStorePath   = "./path/to//utxoStore"
+    , createIfMissing = True
+    }
 }

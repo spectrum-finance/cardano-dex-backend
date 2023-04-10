@@ -206,7 +206,7 @@ runApp args = do
         pstoreConfig
         backlogConfig
         txsInsRefs
-        scripsConfig
+        scriptsConfig
         backlogStoreConfig
         nparams
         explorerConfig
