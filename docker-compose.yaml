@@ -34,7 +34,7 @@ services:
       - /home/bromel/projects/cardano-dex-backend/wallet1TS.json:/etc/wallet1TS.json
       - ./scripts:/scripts
       - ./config/spectrum/dcSpectrumConfig.dhall:/etc/appConfig.dhall
-      - /home/bromel/projects/cardano-node/ipc:/ipc
+      - cardano-node-ipc:/ipc
     restart: on-failure
     depends_on:
       - cardano-node
