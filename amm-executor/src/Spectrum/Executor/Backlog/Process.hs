@@ -16,7 +16,7 @@ import Streamly.Prelude
 
 import Spectrum.Executor.Backlog.Service (BacklogService (BacklogService, put, drop))
 
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( ReadTopic(..) )
 import Spectrum.Executor.Data.OrderState
   ( OrderInState(EliminatedOrder), OrderState(Eliminated, Pending) )

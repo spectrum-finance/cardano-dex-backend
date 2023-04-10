@@ -11,13 +11,13 @@ import RIO.Time
 import qualified Ledger as P
 import qualified Data.Set as Set
 
-import Spectrum.Executor.EventSource.Data.TxEvent
+import Spectrum.EventSource.Data.TxEvent
   ( TxEvent (AppliedTx) )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler )
-import Spectrum.Executor.EventSource.Data.Tx
+import Spectrum.EventSource.Data.Tx
   ( MinimalTx(MinimalLedgerTx), MinimalConfirmedTx (..) )
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( WriteTopic (..) )
 import ErgoDex.Amm.Orders
   ( AnyOrder (AnyOrder)
@@ -36,7 +36,7 @@ import Spectrum.Executor.Types
   ( Order, OrderId (OrderId) )
 import Spectrum.Executor.Data.OrderState
   ( OrderInState(PendingOrder, EliminatedOrder), OrderState(Pending, Eliminated) )
-import Spectrum.Executor.EventSource.Data.TxContext
+import Spectrum.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore
   ( BacklogStore (BacklogStore, get) )

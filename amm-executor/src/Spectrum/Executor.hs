@@ -102,19 +102,20 @@ import Spectrum.LedgerSync
   ( mkLedgerSync )
 import Cardano.Network.Protocol.NodeToClient.Trace
   ( encodeTraceClient )
-import Spectrum.Executor.EventSource.Stream
+import Spectrum.EventSource.Stream
   ( mkEventSource, EventSource (upstream) )
+import Spectrum.Config
+  ( EventSourceConfig )
 import Spectrum.Executor.Config
   ( AppConfig(..)
   , loadAppConfig
-  , EventSourceConfig
   , TxSubmitConfig(..)
   , Secrets(..)
   , NetworkConfig(..)
   , TxRefs(..)
   , ScriptsConfig (..)
   )
-import Spectrum.Executor.EventSource.Persistence.Config
+import Spectrum.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.EventSink.Pipe
   ( mkEventSink, pipe )
@@ -124,7 +125,7 @@ import Spectrum.Executor.EventSink.Handlers.Pools
   ( mkNewPoolsHandler )
 import Spectrum.Executor.EventSink.Handlers.Orders
   ( mkPendingOrdersHandler, mkEliminatedOrdersHandler )
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic, mkNoopTopic )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( mkPools )

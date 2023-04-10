@@ -5,21 +5,21 @@ module Spectrum.Executor.EventSink.Handlers.Pools
 import RIO
   ( (<&>), MonadIO, foldM )
 
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( WriteTopic (..) )
 import Spectrum.Executor.Data.PoolState
   ( NewPool(..) )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler )
-import Spectrum.Executor.EventSource.Data.TxEvent
+import Spectrum.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx) )
-import Spectrum.Executor.EventSource.Data.Tx
+import Spectrum.EventSource.Data.Tx
   ( MinimalTx(MinimalLedgerTx), MinimalConfirmedTx (..) )
 import ErgoDex.Class
   ( FromLedger(parseFromLedger) )
 import Spectrum.Executor.Data.State
   ( Confirmed(..) )
-import Spectrum.Executor.EventSource.Data.TxContext
+import Spectrum.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
 import System.Logging.Hlog
   ( Logging(Logging, infoM) )
