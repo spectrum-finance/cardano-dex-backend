@@ -81,14 +81,14 @@ import SubmitAPI.Config
   ( TxAssemblyConfig )
 import NetworkAPI.Types
   ( SocketPath(SocketPath) )
-import ErgoDex.Amm.PoolActions
-  ( fetchValidatorsV1, mkPoolActions )
 import WalletAPI.TrustStore
   ( mkTrustStore )
 import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
   ( mkPersistentWalletOutputs )
+import ErgoDex.Amm.PoolActions 
+  ( mkPoolActions )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -258,7 +258,7 @@ wireApp = interceptSigTerm >> do
   pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
   poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
   let
-    poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging
+    poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging scriptsValidators
     newOrdersHan  = mkPendingOrdersHandler newOrdersWr syncSem pendingOrdersLogging backlogConfig networkParams
     execOrdersHan = mkEliminatedOrdersHandler backlogStore backlogConfig networkParams elimOrdersWr
     lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler

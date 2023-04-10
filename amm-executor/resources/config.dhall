@@ -50,7 +50,7 @@ in
     , redeemRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#4"
     , poolRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#1"
     }
-, scripsConfig =
+, scriptsConfig =
     { swapScriptPath    = "./scripts/swap.uplc"
     , depositScriptPath = "./scripts/deposut.uplc"
     , redeemScriptPath  = "./scripts/redeem.uplc"
