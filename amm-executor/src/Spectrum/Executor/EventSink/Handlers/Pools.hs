@@ -5,22 +5,21 @@ module Spectrum.Executor.EventSink.Handlers.Pools
 import RIO
   ( (<&>), MonadIO, foldM )
 
-import ErgoDex.PValidators
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( WriteTopic (..) )
 import Spectrum.Executor.Data.PoolState
   ( NewPool(..) )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler )
-import Spectrum.Executor.EventSource.Data.TxEvent
+import Spectrum.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx) )
-import Spectrum.Executor.EventSource.Data.Tx
+import Spectrum.EventSource.Data.Tx
   ( MinimalTx(MinimalLedgerTx), MinimalConfirmedTx (..) )
 import ErgoDex.Class
   ( FromLedger(parseFromLedger) )
 import Spectrum.Executor.Data.State
   ( Confirmed(..) )
-import Spectrum.Executor.EventSource.Data.TxContext
+import Spectrum.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
 import System.Logging.Hlog
   ( Logging(Logging, infoM) )
@@ -32,24 +31,25 @@ import ErgoDex.Amm.Pool
   ( Pool )
 import Plutus.Script.Utils.V2.Address
   ( mkValidatorAddress )
+import Spectrum.Executor.Scripts (ScriptsValidators (..))
 
 mkNewPoolsHandler
   :: MonadIO m
   => WriteTopic m (NewPool Confirmed)
   -> Logging m
+  -> ScriptsValidators
   -> EventHandler m 'LedgerCtx
-mkNewPoolsHandler WriteTopic{..} log@Logging{..} = \case
+mkNewPoolsHandler WriteTopic{..} log@Logging{..} validators = \case
   AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) ->
-    (parsePool log `traverse` txOutputs) >>= foldM process Nothing
+    (parsePool log validators `traverse` txOutputs) >>= foldM process Nothing
       where process _ ordM = mapM publish $ ordM <&> NewPool
   _ -> pure Nothing
 
-parsePool :: (MonadIO m) => Logging m -> FullTxOut -> m (Maybe (Confirmed (OnChain Pool)))
-parsePool Logging{..} out@FullTxOut{..} = do
-  pValidator <- poolValidator
+parsePool :: (MonadIO m) => Logging m -> ScriptsValidators -> FullTxOut -> m (Maybe (Confirmed (OnChain Pool)))
+parsePool Logging{..} ScriptsValidators{poolValidator} out@FullTxOut{..} = do
   let
     pool        = parseFromLedger out
-    poolAddress = mkValidatorAddress pValidator
+    poolAddress = mkValidatorAddress poolValidator
   if fullTxOutAddress == poolAddress
     then case pool of
       Just a    -> do

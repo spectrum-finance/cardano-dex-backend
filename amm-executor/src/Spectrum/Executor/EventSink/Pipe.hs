@@ -12,7 +12,7 @@ import qualified Streamly.Prelude as S
 import Streamly.Prelude
   ( MonadAsync, IsStream )
 
-import Spectrum.Executor.EventSource.Data.TxEvent
+import Spectrum.EventSource.Data.TxEvent
   ( TxEvent )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler, DefaultEventHandler )

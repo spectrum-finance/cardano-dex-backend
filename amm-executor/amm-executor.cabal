@@ -81,18 +81,9 @@ library
                      Spectrum.Executor.Types
                      Spectrum.Executor.Config
                      Spectrum.Executor.Scripts
-                     Spectrum.Executor.Topic
                      Spectrum.Executor.Data.State
                      Spectrum.Executor.Data.OrderState
                      Spectrum.Executor.Data.PoolState
-                     Spectrum.Executor.EventSource.Types
-                     Spectrum.Executor.EventSource.Stream
-                     Spectrum.Executor.EventSource.Data.TxContext
-                     Spectrum.Executor.EventSource.Data.TxEvent
-                     Spectrum.Executor.EventSource.Data.Tx
-                     Spectrum.Executor.EventSource.Persistence.Config
-                     Spectrum.Executor.EventSource.Persistence.LedgerHistory
-                     Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
                      Spectrum.Executor.EventSink.Pipe
                      Spectrum.Executor.EventSink.Types
                      Spectrum.Executor.EventSink.Handlers.Pools
@@ -185,6 +176,7 @@ library
                   , quickblue
                   , async
                   , unagi-chan == 0.4.1.4
+                  , ledger-sync
                   , cryptonite
                   , spectrum
 

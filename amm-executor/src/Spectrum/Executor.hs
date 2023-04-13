@@ -81,14 +81,14 @@ import SubmitAPI.Config
   ( TxAssemblyConfig )
 import NetworkAPI.Types
   ( SocketPath(SocketPath) )
-import ErgoDex.Amm.PoolActions
-  ( fetchValidatorsV1, mkPoolActions )
 import WalletAPI.TrustStore
   ( mkTrustStore )
 import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
   ( mkPersistentWalletOutputs )
+import ErgoDex.Amm.PoolActions 
+  ( mkPoolActions )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -102,19 +102,20 @@ import Spectrum.LedgerSync
   ( mkLedgerSync )
 import Cardano.Network.Protocol.NodeToClient.Trace
   ( encodeTraceClient )
-import Spectrum.Executor.EventSource.Stream
+import Spectrum.EventSource.Stream
   ( mkEventSource, EventSource (upstream) )
+import Spectrum.Config
+  ( EventSourceConfig )
 import Spectrum.Executor.Config
   ( AppConfig(..)
   , loadAppConfig
-  , EventSourceConfig
   , TxSubmitConfig(..)
   , Secrets(..)
   , NetworkConfig(..)
   , TxRefs(..)
   , ScriptsConfig (..)
   )
-import Spectrum.Executor.EventSource.Persistence.Config
+import Spectrum.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.EventSink.Pipe
   ( mkEventSink, pipe )
@@ -124,7 +125,7 @@ import Spectrum.Executor.EventSink.Handlers.Pools
   ( mkNewPoolsHandler )
 import Spectrum.Executor.EventSink.Handlers.Orders
   ( mkPendingOrdersHandler, mkEliminatedOrdersHandler )
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic, mkNoopTopic )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( mkPools )
@@ -205,7 +206,7 @@ runApp args = do
         pstoreConfig
         backlogConfig
         txsInsRefs
-        scripsConfig
+        scriptsConfig
         backlogStoreConfig
         nparams
         explorerConfig
@@ -258,7 +259,7 @@ wireApp = interceptSigTerm >> do
   pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
   poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
   let
-    poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging
+    poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging scriptsValidators
     newOrdersHan  = mkPendingOrdersHandler newOrdersWr syncSem pendingOrdersLogging backlogConfig networkParams
     execOrdersHan = mkEliminatedOrdersHandler backlogStore backlogConfig networkParams elimOrdersWr
     lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler

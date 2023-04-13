@@ -16,7 +16,7 @@ import Control.Monad.Catch
 
 import Spectrum.Executor.Data.State
   ( Confirmed, Unconfirmed )
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( ReadTopic(..) )
 import Spectrum.Executor.Data.PoolState
   ( NewPool(..), DiscardedPool(..) )

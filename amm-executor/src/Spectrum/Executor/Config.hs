@@ -1,6 +1,5 @@
 module Spectrum.Executor.Config
   ( AppConfig(..)
-  , EventSourceConfig(..)
   , TxSubmitConfig(..)
   , NetworkConfig(..)
   , Secrets(..)
@@ -34,14 +33,16 @@ import Cardano.Api.Shelley
 
 import Spectrum.LedgerSync.Config
   ( LedgerSyncConfig )
-import Spectrum.Executor.EventSource.Types
+import Spectrum.EventSource.Types
   ( ConcretePoint )
-import Spectrum.Executor.EventSource.Persistence.Config
-    ( LedgerStoreConfig )
+import Spectrum.EventSource.Persistence.Config
+  ( LedgerStoreConfig )
 import Spectrum.Executor.PoolTracker.Persistence.Config
   ( PoolStoreConfig )
 import Spectrum.Executor.Backlog.Config
   ( BacklogServiceConfig )
+import Spectrum.Config
+  ( EventSourceConfig )
 import Spectrum.Executor.Backlog.Persistence.Config
   ( BacklogStoreConfig )
 import SubmitAPI.Config
@@ -57,10 +58,6 @@ import WalletAPI.UtxoStoreConfig
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
-  } deriving (Generic, FromDhall)
-
-data EventSourceConfig = EventSourceConfig
-  { startAt :: !ConcretePoint
   } deriving (Generic, FromDhall)
 
 data TxSubmitConfig = TxSubmitConfig
@@ -100,7 +97,7 @@ data AppConfig = AppConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
   , txsInsRefs         :: !TxRefs
-  , scripsConfig       :: !ScriptsConfig
+  , scriptsConfig       :: !ScriptsConfig
   , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig

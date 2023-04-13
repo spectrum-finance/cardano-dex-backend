@@ -4,7 +4,7 @@ module Spectrum.Executor.EventSink.Types
   , voidEventHandler
   ) where
 
-import Spectrum.Executor.EventSource.Data.TxEvent
+import Spectrum.EventSource.Data.TxEvent
   ( TxEvent )
 
 type EventHandler m ctx = TxEvent ctx -> m (Maybe ())

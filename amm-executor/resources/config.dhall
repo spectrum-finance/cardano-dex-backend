@@ -50,7 +50,7 @@ in
     , redeemRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#4"
     , poolRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#1"
     }
-, scripsConfig =
+, scriptsConfig =
     { swapScriptPath    = "./scripts/swap.uplc"
     , depositScriptPath = "./scripts/deposut.uplc"
     , redeemScriptPath  = "./scripts/redeem.uplc"
@@ -69,5 +69,9 @@ in
     { rootLogLevel   = LogLevel.Info
     , fileHandlers   = [fileHandlers "logs/amm-executor.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
+    }
+, utxoStoreConfig =
+    { utxoStorePath   = "./path/to//utxoStore"
+    , createIfMissing = True
     }
 }
