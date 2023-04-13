@@ -45,7 +45,7 @@ let
       "https://github.com/input-output-hk/hedgehog-extras"."714ee03a5a786a05fc57ac5d2f1c2edce4660d85" = "6KQFEzb9g2a0soVvwLKESEbA+a8ygpROcMr6bkatROE=";
       "https://github.com/ergolabs/cardano-dex-contracts"."2fb44f444897d84e313ceb4d3d467441385802dd" = "Kih0IS6Ty3EnXlgqAyF04nWIWJAnHOEVfraebh5RsNI=";
       "https://github.com/ergolabs/hlog"."231ff5f0a12841174cf6d92a932f45fea4552bae" = "vjqo/cd8eGQ03PsISJrkAizMYouGMc4vZsMl+ozSQ5Y=";
-      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."3a0dd0cf7ec074fe4699c7a25a2541476e9446d3" = "eU3yHQV9JCj4m4/shCu2ZUsCAUS8WzkCsMeUvWOaBb0=";
+      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."c5399868ed6625679e2a7fbca8f1390a97a3b960" = "oKIai+vYkQOdOyBudk7S0jJv+CxRqZqSYV+uPhJYEdg=";
       "https://github.com/daleiz/rocksdb-haskell"."109af08f95b40f458d4933e3725ecb3e59337c39" = "1i1ya491fapa0g96527krarv0w0iybizqcz518741iw06hhpikiy";
     };
 
@@ -53,9 +53,7 @@ let
       {
         enableLibraryProfiling = true;
         packages = {
-          spectrum-prelude.package.buildable = false;
           amm-executor.package.buildable = false;
-          ledger-sync.package.buildable = false;
 
           # Broken due to haddock errors. Refer to https://github.com/input-output-hk/plutus/blob/master/nix/pkgs/haskell/haskell.nix
           plutus-ledger.doHaddock = false;

@@ -80,18 +80,10 @@ library
     exposed-modules: Spectrum.Executor
                      Spectrum.Executor.Types
                      Spectrum.Executor.Config
-                     Spectrum.Executor.Topic
+                     Spectrum.Executor.Scripts
                      Spectrum.Executor.Data.State
                      Spectrum.Executor.Data.OrderState
                      Spectrum.Executor.Data.PoolState
-                     Spectrum.Executor.EventSource.Types
-                     Spectrum.Executor.EventSource.Stream
-                     Spectrum.Executor.EventSource.Data.TxContext
-                     Spectrum.Executor.EventSource.Data.TxEvent
-                     Spectrum.Executor.EventSource.Data.Tx
-                     Spectrum.Executor.EventSource.Persistence.Config
-                     Spectrum.Executor.EventSource.Persistence.LedgerHistory
-                     Spectrum.Executor.EventSource.Persistence.Data.BlockLinks
                      Spectrum.Executor.EventSink.Pipe
                      Spectrum.Executor.EventSink.Types
                      Spectrum.Executor.EventSink.Handlers.Pools
@@ -108,8 +100,6 @@ library
                      Spectrum.Executor.Backlog.Process
                      Spectrum.Executor.Backlog.Config
                      Spectrum.Executor.OrdersExecutor.Process
-                     Spectrum.Common.Persistence.Exception
-                     Spectrum.Common.Persistence.Serialization
                      Spectrum.Common.Streaming.Class
                      Spectrum.Common.Parsers
 
@@ -186,7 +176,9 @@ library
                   , quickblue
                   , async
                   , unagi-chan == 0.4.1.4
+                  , ledger-sync
                   , cryptonite
+                  , spectrum
 
 executable amm-executor-app
     default-language: Haskell2010
@@ -249,3 +241,4 @@ test-suite amm-executor-test
     , ledger-sync
     , resourcet
     , wallet-api
+    , spectrum

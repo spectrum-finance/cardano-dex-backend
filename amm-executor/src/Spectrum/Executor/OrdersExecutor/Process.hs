@@ -108,7 +108,7 @@ run'
   -> PoolActions
   -> s m ()
 run' logging@Logging{..} syncSem txRefs backlog@BacklogService{..} txs explorer resolver poolActions =
-  S.before (liftIO $ waitQSem syncSem) $ S.repeatM tryAcquire & S.mapM (\case
+    S.before (liftIO $ waitQSem syncSem) $ S.repeatM (liftIO (threadDelay 1000000) >> tryAcquire) & S.mapM (\case
       Just orderWithCreationTime ->
         infoM ("Going to execute order for pool" ++ show orderWithCreationTime) >>
           execute' logging txRefs backlog txs explorer resolver poolActions orderWithCreationTime

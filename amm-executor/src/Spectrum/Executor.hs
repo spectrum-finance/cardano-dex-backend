@@ -81,14 +81,14 @@ import SubmitAPI.Config
   ( TxAssemblyConfig )
 import NetworkAPI.Types
   ( SocketPath(SocketPath) )
-import ErgoDex.Amm.PoolActions
-  ( fetchValidatorsV1, mkPoolActions )
 import WalletAPI.TrustStore
   ( mkTrustStore )
 import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
-  ( mkWalletOutputs' )
+  ( mkPersistentWalletOutputs )
+import ErgoDex.Amm.PoolActions 
+  ( mkPoolActions )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -102,30 +102,30 @@ import Spectrum.LedgerSync
   ( mkLedgerSync )
 import Cardano.Network.Protocol.NodeToClient.Trace
   ( encodeTraceClient )
-import Spectrum.Executor.EventSource.Stream
+import Spectrum.EventSource.Stream
   ( mkEventSource, EventSource (upstream) )
+import Spectrum.Config
+  ( EventSourceConfig )
 import Spectrum.Executor.Config
   ( AppConfig(..)
   , loadAppConfig
-  , EventSourceConfig
   , TxSubmitConfig(..)
   , Secrets(..)
   , NetworkConfig(..)
   , TxRefs(..)
+  , ScriptsConfig (..)
   )
-import Spectrum.Executor.EventSource.Data.TxContext
-  ( TxCtx(LedgerCtx) )
-import Spectrum.Executor.EventSource.Persistence.Config
+import Spectrum.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.EventSink.Pipe
-  ( mkEventSink, pipe, EventSink )
+  ( mkEventSink, pipe )
 import Spectrum.Executor.EventSink.Types
   ( voidEventHandler)
 import Spectrum.Executor.EventSink.Handlers.Pools
   ( mkNewPoolsHandler )
 import Spectrum.Executor.EventSink.Handlers.Orders
   ( mkPendingOrdersHandler, mkEliminatedOrdersHandler )
-import Spectrum.Executor.Topic
+import Spectrum.Topic
   ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic, mkNoopTopic )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( mkPools )
@@ -147,19 +147,12 @@ import Spectrum.Executor.Backlog.Process as Backlog
   ( mkBacklog, run, Backlog (run) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore 
   ( mkBacklogStore )
-import Streamly.Internal.Data.Stream.Serial 
-  ( SerialT(SerialT) )
-import Spectrum.Executor.Data.PoolState 
-  ( NewPool )
-import Spectrum.Executor.Data.State 
-  ( Confirmed )
-import Spectrum.Executor.Data.OrderState 
-  ( OrderInState, OrderState (Pending, Eliminated) )
 import Data.Map (Map)
-import ErgoDex.PValidators
-  ( depositValidator, redeemValidator, swapValidator, poolValidator )
-import Plutus.Script.Utils.V2.Scripts (scriptHash)
 import qualified Data.Map as Map
+import WalletAPI.UtxoStoreConfig 
+  ( UtxoStoreConfig )
+import Spectrum.Executor.Scripts
+  ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidators )
 
 data Env f m = Env
   { ledgerSyncConfig   :: !LedgerSyncConfig
@@ -168,11 +161,13 @@ data Env f m = Env
   , pstoreConfig       :: !PoolStoreConfig
   , backlogConfig      :: !BacklogServiceConfig
   , txsInsRefs         :: !TxRefs
+  , scriptsConfig      :: !ScriptsConfig
   , backlogStoreConfig :: !BacklogStoreConfig
   , networkParams      :: !NetworkParameters
   , explorerConfig     :: !ExplorerConfig
   , txSubmitConfig     :: !TxSubmitConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
+  , utxoStoreConfig    :: !UtxoStoreConfig
   , secrets            :: !Secrets
   , mkLogging          :: !(MakeLogging f m)
   , mkLogging'         :: !(MakeLogging m m)
@@ -211,11 +206,13 @@ runApp args = do
         pstoreConfig
         backlogConfig
         txsInsRefs
+        scriptsConfig
         backlogStoreConfig
         nparams
         explorerConfig
         txSubmitConfig
         txAssemblyConfig
+        utxoStoreConfig
         secrets
         (translateMakeLogging (lift . App . lift) mkLogging)
         (translateMakeLogging (App . lift) mkLogging)
@@ -239,17 +236,19 @@ wireApp = interceptSigTerm >> do
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
     vault      = mkVault trustStore $ keyPass secrets
-  walletOutputs <- mkWalletOutputs' lift mkLogging explorer vault
+  walletOutputs <- mkPersistentWalletOutputs lift mkLogging utxoStoreConfig explorer vault
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
-  validators     <- fetchValidatorsV1
   backlogStore   <- mkBacklogStore
   backlogService <- mkBacklogService backlogStore
   pools          <- mkPools
   resolver       <- mkPoolResolver pools
-  refScriptsMap  <- mkRefScriptsMap txsInsRefs
+
+  scriptsValidators <- mkScriptsValidators scriptsConfig
   let
+    validators      = scriptsValidators2AmmValidators scriptsValidators
+    refScriptsMap   = mkRefScriptsMap txsInsRefs scriptsValidators
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
@@ -260,7 +259,7 @@ wireApp = interceptSigTerm >> do
   pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
   poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
   let
-    poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging
+    poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging scriptsValidators
     newOrdersHan  = mkPendingOrdersHandler newOrdersWr syncSem pendingOrdersLogging backlogConfig networkParams
     execOrdersHan = mkEliminatedOrdersHandler backlogStore backlogConfig networkParams elimOrdersWr
     lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
@@ -273,13 +272,14 @@ wireApp = interceptSigTerm >> do
 epochSlots :: C.ConsensusModeParams C.CardanoMode
 epochSlots = C.CardanoModeParams $ C.EpochSlots 21600
 
-mkRefScriptsMap :: MonadIO f => TxRefs -> f (Map Script C.TxIn)
-mkRefScriptsMap TxRefs{..} = do
-  swapV    <- unValidatorScript <$> swapValidator
-  depositV <- unValidatorScript <$> depositValidator
-  redeemV  <- unValidatorScript <$> redeemValidator
-  poolV    <- unValidatorScript <$> poolValidator
-  pure $ Map.fromList
+mkRefScriptsMap :: TxRefs -> ScriptsValidators -> Map Script C.TxIn
+mkRefScriptsMap TxRefs{..} ScriptsValidators{..} =
+  let
+    swapV    = unValidatorScript swapValidator
+    depositV = unValidatorScript depositValidator
+    redeemV  = unValidatorScript redeemValidator
+    poolV    = unValidatorScript poolValidator
+  in Map.fromList
     [ (swapV, swapRef)
     , (depositV, depositRef)
     , (redeemV, redeemRef)

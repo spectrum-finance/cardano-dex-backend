@@ -1,9 +1,7 @@
 index-state: 2022-04-06T00:00:00Z
 
 packages:
-  spectrum-prelude
   amm-executor
-  ledger-sync
 
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
@@ -335,13 +333,16 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 3a0dd0cf7ec074fe4699c7a25a2541476e9446d3
+  tag: c5399868ed6625679e2a7fbca8f1390a97a3b960
   subdir:
     cardano-tx
     ergo-hs-common
+    spectrum
     dex-core
     quickblue
     submit-api
+    ledger-sync
+    spectrum-prelude
     network-api
     wallet-api
     datum-keeper-client

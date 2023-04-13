@@ -44,6 +44,18 @@ in
 , txSubmitConfig =
     { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
     }
+, txsInsRefs =
+    { swapRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#2"
+    , depositRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#3"
+    , redeemRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#4"
+    , poolRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#1"
+    }
+, scriptsConfig =
+    { swapScriptPath    = "./scripts/swap.uplc"
+    , depositScriptPath = "./scripts/deposut.uplc"
+    , redeemScriptPath  = "./scripts/redeem.uplc"
+    , poolScriptPath    = "./scripts/pool.uplc"
+    }
 , txAssemblyConfig =
     { feePolicy         = FeePolicy.Balance
     , collateralPolicy  = CollateralPolicy.Cover
@@ -57,5 +69,9 @@ in
     { rootLogLevel   = LogLevel.Info
     , fileHandlers   = [fileHandlers "logs/amm-executor.log" LogLevel.Info]
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
+    }
+, utxoStoreConfig =
+    { utxoStorePath   = "./path/to//utxoStore"
+    , createIfMissing = True
     }
 }

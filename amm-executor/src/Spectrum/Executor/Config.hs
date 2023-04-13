@@ -1,10 +1,10 @@
 module Spectrum.Executor.Config
   ( AppConfig(..)
-  , EventSourceConfig(..)
   , TxSubmitConfig(..)
   , NetworkConfig(..)
   , Secrets(..)
   , TxRefs(..)
+  , ScriptsConfig(..)
   , loadAppConfig
   ) where
 
@@ -22,8 +22,6 @@ import Control.Monad.IO.Class
   ( MonadIO (liftIO) )
 import Data.Maybe
   ( fromMaybe )
-import Dhall
-  ( FromDhall )
 import Dhall.Core
   ( Expr(..), Chunks(..) )
 import qualified Dhall     as D
@@ -35,29 +33,31 @@ import Cardano.Api.Shelley
 
 import Spectrum.LedgerSync.Config
   ( LedgerSyncConfig )
-import Spectrum.Executor.EventSource.Types
+import Spectrum.EventSource.Types
   ( ConcretePoint )
-import Spectrum.Executor.EventSource.Persistence.Config
-    ( LedgerStoreConfig )
+import Spectrum.EventSource.Persistence.Config
+  ( LedgerStoreConfig )
 import Spectrum.Executor.PoolTracker.Persistence.Config
   ( PoolStoreConfig )
 import Spectrum.Executor.Backlog.Config
   ( BacklogServiceConfig )
+import Spectrum.Config
+  ( EventSourceConfig )
 import Spectrum.Executor.Backlog.Persistence.Config
   ( BacklogStoreConfig )
 import SubmitAPI.Config
   ( TxAssemblyConfig )
 import Explorer.Config
   ( ExplorerConfig )
-import WalletAPI.TrustStore (SecretFile, KeyPass)
-import Spectrum.Common.Parsers (parseTxIn)
+import WalletAPI.TrustStore 
+  ( SecretFile, KeyPass )
+import Spectrum.Common.Parsers 
+  ( parseTxIn )
+import WalletAPI.UtxoStoreConfig 
+  ( UtxoStoreConfig )
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
-  } deriving (Generic, FromDhall)
-
-data EventSourceConfig = EventSourceConfig
-  { startAt :: !ConcretePoint
   } deriving (Generic, FromDhall)
 
 data TxSubmitConfig = TxSubmitConfig
@@ -69,6 +69,13 @@ data TxRefs = TxRefs
   , depositRef :: !TxIn 
   , redeemRef  :: !TxIn
   , poolRef    :: !TxIn
+  } deriving (Generic, FromDhall)
+
+data ScriptsConfig = ScriptsConfig
+  { swapScriptPath    :: !FilePath
+  , depositScriptPath :: !FilePath
+  , redeemScriptPath  :: !FilePath
+  , poolScriptPath    :: !FilePath
   } deriving (Generic, FromDhall)
 
 instance FromDhall TxIn where
@@ -90,6 +97,7 @@ data AppConfig = AppConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
   , txsInsRefs         :: !TxRefs
+  , scriptsConfig       :: !ScriptsConfig
   , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig
@@ -100,6 +108,7 @@ data AppConfig = AppConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
   , secrets            :: !Secrets
   , mainnetMode        :: !Bool
+  , utxoStoreConfig    :: !UtxoStoreConfig
   } deriving (Generic, FromDhall)
 
 loadAppConfig :: MonadIO f => Maybe String -> f AppConfig
