@@ -276,7 +276,7 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/input-output-hk/cardano-node
-    tag: 1.35.3-rc1
+    tag: 8762a10efe3f9f97939e3cb05edaf04250456702
     subdir:
       cardano-api
       cardano-git-rev
@@ -335,7 +335,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 55493f5f2e800fece51fcb9e296fef2fc2c1331d
+  tag: 3a0dd0cf7ec074fe4699c7a25a2541476e9446d3
   subdir:
     cardano-tx
     ergo-hs-common
