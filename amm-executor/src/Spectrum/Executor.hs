@@ -87,8 +87,8 @@ import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
   ( mkPersistentWalletOutputs )
-import ErgoDex.Amm.PoolActions 
-  ( mkPoolActions )
+import ErgoDex.Amm.PoolActions
+  ( mkPoolActions, PoolActionsConfig )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -168,6 +168,7 @@ data Env f m = Env
   , txSubmitConfig     :: !TxSubmitConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
   , utxoStoreConfig    :: !UtxoStoreConfig
+  , poolActionsConfig  :: !PoolActionsConfig
   , secrets            :: !Secrets
   , mkLogging          :: !(MakeLogging f m)
   , mkLogging'         :: !(MakeLogging m m)
@@ -213,6 +214,7 @@ runApp args = do
         txSubmitConfig
         txAssemblyConfig
         utxoStoreConfig
+        poolActionsConfig
         secrets
         (translateMakeLogging (lift . App . lift) mkLogging)
         (translateMakeLogging (App . lift) mkLogging)
@@ -254,7 +256,7 @@ wireApp = interceptSigTerm >> do
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
     backlog         = mkBacklog backlogService newOrdersRd elimOrdersRd
     transactions    = mkTransactions networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
-    poolActions     = mkPoolActions (PaymentPubKeyHash executorPkh) validators
+    poolActions     = mkPoolActions poolActionsConfig (PaymentPubKeyHash executorPkh) validators
   executor <- mkOrdersExecutor backlogService syncSem transactions explorer resolver poolActions
   pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
   poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
