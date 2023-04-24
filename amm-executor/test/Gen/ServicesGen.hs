@@ -40,8 +40,8 @@ import Tests.Backlog.PersistenceMock
   ( mkMockStorage )
 import NetworkAPI.Service 
   ( CardanoNetwork(..) )
-import ErgoDex.Amm.PoolActions 
-  ( mkPoolActions, fetchValidatorsV1 )
+import ErgoDex.Amm.PoolActions
+  ( mkPoolActions, fetchValidatorsV1, PoolActionsConfig (..) )
 import CardanoTx.Models 
   ( ChangeAddress(..), FullTxOut (..) )
 import NetworkAPI.Types 
@@ -167,7 +167,8 @@ mkMockOrdersExecutor orders backlogService poolResolver explorer = do
   executorPkh    <- fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   validators     <- fetchValidatorsV1
   let
-    poolActions  = mkPoolActions (PaymentPubKeyHash executorPkh) validators
+    poolActionsCfg = PoolActionsConfig 250000
+    poolActions    = mkPoolActions poolActionsCfg (PaymentPubKeyHash executorPkh) validators
 
   mkOrdersExecutor @IO @IO @SerialT @TestEnv @C.BabbageEra backlogService syncSem transactions explorer poolResolver poolActions
 

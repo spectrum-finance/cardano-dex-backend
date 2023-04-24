@@ -71,7 +71,10 @@ in
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 , utxoStoreConfig =
-    { utxoStorePath   = "./path/to//utxoStore"
+    { utxoStorePath   = "./path/to/utxoStore"
     , createIfMissing = True
+    }
+, poolActionsConfig =
+    { safeTxFeeLovalace = +1500000
     }
 }
