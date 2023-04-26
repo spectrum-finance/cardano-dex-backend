@@ -32,7 +32,7 @@ import Cardano.Api.Shelley
   ( TxIn )
 
 import Spectrum.LedgerSync.Config
-  ( LedgerSyncConfig )
+  ( NodeSocketConfig )
 import Spectrum.EventSource.Types
   ( ConcretePoint )
 import Spectrum.EventSource.Persistence.Config
@@ -94,12 +94,12 @@ data Secrets = Secrets
   } deriving (Generic, FromDhall)
 
 data AppConfig = AppConfig
-  { ledgerSyncConfig   :: !LedgerSyncConfig
+  { nodeSocketConfig   :: !NodeSocketConfig
   , eventSourceConfig  :: !EventSourceConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
   , txsInsRefs         :: !TxRefs
-  , scriptsConfig       :: !ScriptsConfig
+  , scriptsConfig      :: !ScriptsConfig
   , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig

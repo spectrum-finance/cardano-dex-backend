@@ -10,7 +10,7 @@ import Control.Monad.IO.Class
   ( MonadIO )
 
 import System.Logging.Hlog
-  ( MakeLogging (MakeLogging, forComponent), Logging (Logging, infoM) )
+  ( MakeLogging (MakeLogging, forComponent), Logging (Logging, infoM, debugM) )
 
 import qualified ErgoDex.Amm.Pool as Core
 import ErgoDex.Amm.Pool
@@ -93,18 +93,18 @@ attachLogging :: Monad m => Logging m -> PoolResolver m -> PoolResolver m
 attachLogging Logging{..} PoolResolver{..}=
   PoolResolver
     { resolvePool = \pid -> do
-        infoM $ "resolvePool " <> show pid
+        debugM $ "resolvePool " <> show pid
         r <- resolvePool pid
-        infoM $ "resolvePool " <> show pid <> " -> " <> show r
+        debugM $ "resolvePool " <> show pid <> " -> " <> show r
         pure r
     , putPool = \tracedPool -> do
-        infoM $ "putPool " <> show tracedPool
+        debugM $ "putPool " <> show tracedPool
         r <- putPool tracedPool
-        infoM $ "putPool " <> show tracedPool <> " -> " <> show r
+        debugM $ "putPool " <> show tracedPool <> " -> " <> show r
         pure r
     , invalidatePool = \pool -> do
-        infoM $ "invalidatePool " <> show pool
+        debugM $ "invalidatePool " <> show pool
         r <- invalidatePool pool
-        infoM $ "invalidatePool " <> show pool <> " -> " <> show r
+        debugM $ "invalidatePool " <> show pool <> " -> " <> show r
         pure r
     }

@@ -19,7 +19,7 @@ import RIO.Time
   ( getCurrentTime, diffUTCTime )
 
 import System.Logging.Hlog
-  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
+  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM, debugM) )
 
 import Spectrum.Prelude.HigherKind
   ( LiftK(liftK) )
@@ -32,7 +32,7 @@ import Spectrum.Executor.Backlog.Config
 import Spectrum.Executor.Data.OrderState
   ( OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder) )
 import Spectrum.Executor.Types
-  ( OrderId, OrderWithCreationTime (OrderWithCreationTime) )
+  ( OrderId, OrderWithCreationTime (OrderWithCreationTime), orderId )
 import Spectrum.Prelude.Context
   ( HasType, askContext )
 import Control.Monad.Trans.Resource
@@ -73,16 +73,18 @@ mkBacklogService'
   -> BacklogStore m
   -> f (BacklogService m)
 mkBacklogService' MakeLogging{..} config store@BacklogStore{..} = do
-  logging     <- forComponent "BacklogService"
+  logging@Logging{..} <- forComponent "BacklogService"
   -- those queues should be shared with Backlog.Proceess (to make live updates). So maybe worth extracting them into separate module. e.g. BacklogStore
   pendingPQ   <- newIORef PQ.empty  -- ordered by weight; new orders
   suspendedPQ <- newIORef PQ.empty  -- ordered by weight; failed orders, waiting for retry (retries are performed with some constant probability, e.g. 5%) 
   toRevisitQ  <- newIORef Seq.empty -- regular queue; successully submitted orders. Left orders should be re-executed in X minutes. Normally successfully confirmed orders are eliminated from this queue.
   _           <- liftK $ recover store config pendingPQ
   pure $ attachLogging logging BacklogService
-    { put = \(PendingOrder order timestamp) -> do
-        put $ BacklogOrder timestamp order
-        modifyIORef' pendingPQ (PQ.insert $ mkWeightedOrder order timestamp)
+    { put = \(PendingOrder order timestamp) -> do       
+        existsInStore <- exists $ BacklogOrder timestamp order
+        if existsInStore
+          then infoM ("Order " ++ show (orderId order) ++ " already exists in storage. Ignore it") >> pure ()
+          else infoM ("Order " ++ show (orderId order) ++ " doesn't exists in storage. Put it") >> put (BacklogOrder timestamp order) >> modifyIORef' pendingPQ (PQ.insert $ mkWeightedOrder order timestamp)
     , suspend = \(SuspendedOrder order timestamp) -> do
         existsInStore <- exists $ BacklogOrder timestamp order
         if existsInStore
@@ -169,28 +171,28 @@ attachLogging :: Monad m => Logging m -> BacklogService m -> BacklogService m
 attachLogging Logging{..} BacklogService{..}=
   BacklogService
     { put = \order -> do
-        infoM $ "put " <> show order
+        debugM $ "put " <> show order
         r <- put order
-        infoM $ "put " <> show order <> " -> " <> show r
+        debugM $ "put " <> show order <> " -> " <> show r
         pure r
     , suspend = \order -> do
-        infoM $ "suspend " <> show order
+        debugM $ "suspend " <> show order
         r <- suspend order
-        infoM $ "suspend " <> show order <> " -> " <> show r
+        debugM $ "suspend " <> show order <> " -> " <> show r
         pure r
     , checkLater = \order -> do
-        infoM $ "checkLater " <> show order
+        debugM $ "checkLater " <> show order
         r <- checkLater order
-        infoM $ "checkLater " <> show order <> " -> " <> show r
+        debugM $ "checkLater " <> show order <> " -> " <> show r
         pure r
     , tryAcquire = do
-        infoM @String "tryAcquire"
+        debugM @String "tryAcquire"
         r <- tryAcquire
-        infoM $ "tryAcquire -> " <> show r
+        debugM $ "tryAcquire -> " <> show r
         pure r
     , drop = \orderId -> do
-        infoM $ "drop " <> show orderId
+        debugM $ "drop " <> show orderId
         r <- drop orderId
-        infoM $ "drop " <> show orderId <> " -> " <> show r
+        debugM $ "drop " <> show orderId <> " -> " <> show r
         pure r
     }
