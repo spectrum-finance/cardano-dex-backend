@@ -13,7 +13,7 @@ import Data.Aeson
   ( FromJSON )
 
 import System.Logging.Hlog
-  ( MakeLogging(..), Logging (Logging, infoM) )
+  ( MakeLogging(..), Logging (Logging, infoM, debugM) )
 
 import Control.Monad.IO.Class
   ( MonadIO )
@@ -128,44 +128,44 @@ attachLogging :: Monad m => Logging m -> Pools m -> Pools m
 attachLogging Logging{..} Pools{..} =
   Pools
     { getPrediction = \pid -> do
-        infoM $ "getPrediction " <> show pid
+        debugM $ "getPrediction " <> show pid
         r <- getPrediction pid
-        infoM $ "getPrediction " <> show pid <> " -> " <> show r
+        debugM $ "getPrediction " <> show pid <> " -> " <> show r
         pure r
     , getLastPredicted = \pid -> do
-        infoM $ "getLastPredicted " <> show pid
+        debugM $ "getLastPredicted " <> show pid
         r <- getLastPredicted pid
-        infoM $ "getLastPredicted " <> show pid <> " -> " <> show r
+        debugM $ "getLastPredicted " <> show pid <> " -> " <> show r
         pure r
     , getLastConfirmed = \pid -> do
-        infoM $ "getLastConfirmed " <> show pid
+        debugM $ "getLastConfirmed " <> show pid
         r <- getLastConfirmed pid
-        infoM $ "getLastConfirmed " <> show pid <> " -> " <> show r
+        debugM $ "getLastConfirmed " <> show pid <> " -> " <> show r
         pure r
     , getLastUnconfirmed = \pid -> do
-        infoM $ "getLastUnconfirmed " <> show pid
+        debugM $ "getLastUnconfirmed " <> show pid
         r <- getLastUnconfirmed pid
-        infoM $ "getLastUnconfirmed " <> show pid <> " -> " <> show r
+        debugM $ "getLastUnconfirmed " <> show pid <> " -> " <> show r
         pure r
     , putPredicted = \pp -> do
-        infoM $ "putPredicted " <> show pp
+        debugM $ "putPredicted " <> show pp
         r <- putPredicted pp
-        infoM $ "putPredicted " <> show pp <> " -> " <> show r
+        debugM $ "putPredicted " <> show pp <> " -> " <> show r
         pure r
     , putConfirmed = \pp -> do
-        infoM $ "putConfirmed " <> show pp
+        debugM $ "putConfirmed " <> show pp
         r <- putConfirmed pp
-        infoM $ "putConfirmed " <> show pp <> " -> " <> show r
+        debugM $ "putConfirmed " <> show pp <> " -> " <> show r
         pure r
     , putUnconfirmed = \pp -> do
-        infoM $ "putUnconfirmed " <> show pp
+        debugM $ "putUnconfirmed " <> show pp
         r <- putUnconfirmed pp
-        infoM $ "putUnconfirmed " <> show pp <> " -> " <> show r
+        debugM $ "putUnconfirmed " <> show pp <> " -> " <> show r
         pure r
     , invalidate = \pid sid -> do
-        infoM $ "invalidate pid: " <> show pid <> ". sid: " <> show sid
+        debugM $ "invalidate pid: " <> show pid <> ". sid: " <> show sid
         r <- invalidate pid sid
-        infoM $ "invalidate pid: " <> show pid <> ", sid: " <> show sid <> " -> " <> show r
+        debugM $ "invalidate pid: " <> show pid <> ", sid: " <> show sid <> " -> " <> show r
         pure r
     }
 

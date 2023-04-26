@@ -22,9 +22,9 @@ import Spectrum.Executor.Data.State
 import Spectrum.EventSource.Data.TxContext
   ( TxCtx(LedgerCtx) )
 import System.Logging.Hlog
-  ( Logging(Logging, infoM) )
+  ( Logging(Logging, infoM, debugM) )
 import CardanoTx.Models
-  ( FullTxOut (FullTxOut, fullTxOutAddress) )
+  ( FullTxOut (FullTxOut, fullTxOutAddress), fullTxOutRef )
 import ErgoDex.State
   ( OnChain )
 import ErgoDex.Amm.Pool
@@ -53,9 +53,9 @@ parsePool Logging{..} ScriptsValidators{poolValidator} out@FullTxOut{..} = do
   if fullTxOutAddress == poolAddress
     then case pool of
       Just a    -> do
-        infoM ("Pool found in: " ++ show out)
+        infoM ("Pool found in: " ++ show fullTxOutRef)
         pure $ Just $ Confirmed a
       _         -> do
-        infoM ("Pool not found in: " ++ show out)
+        debugM ("Pool not found in: " ++ show out)
         pure Nothing
   else pure Nothing

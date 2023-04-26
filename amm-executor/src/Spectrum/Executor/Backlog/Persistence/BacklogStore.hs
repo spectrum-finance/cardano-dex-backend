@@ -14,7 +14,7 @@ import Control.Monad.Trans.Resource
   ( MonadResource )
 
 import System.Logging.Hlog 
-  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM) )
+  ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM, debugM) )
 
 import Spectrum.Executor.Types 
   ( OrderId, orderId )
@@ -75,28 +75,28 @@ attachLogging :: Monad m => Logging m -> BacklogStore m -> BacklogStore m
 attachLogging Logging{..} BacklogStore{..}=
   BacklogStore
     { put = \order -> do
-        infoM $ "put " <> show order
+        debugM $ "put " <> show order
         r <- put order
-        infoM $ "put " <> show order <> " -> " <> show r
+        debugM $ "put " <> show order <> " -> " <> show r
         pure r
     , exists = \order -> do
-        infoM $ "isExist " <> show order
+        debugM $ "isExist " <> show order
         r <- exists order
-        infoM $ "isExist " <> show order <> " -> " <> show r
+        debugM $ "isExist " <> show order <> " -> " <> show r
         pure r
     , dropOrder = \oId -> do
-        infoM $ "dropOrder " <> show oId
+        debugM $ "dropOrder " <> show oId
         r <- dropOrder oId
-        infoM $ "dropOrder " <> show oId <> " -> " <> show r
+        debugM $ "dropOrder " <> show oId <> " -> " <> show r
         pure r
     , get = \oId -> do
-        infoM $ "get " <> show oId
+        debugM $ "get " <> show oId
         r <- get oId
-        infoM $ "get " <> show oId <> " -> " <> show r
+        debugM $ "get " <> show oId <> " -> " <> show r
         pure r
     , getAll = do
-        infoM @String "getAll"
+        debugM @String "getAll"
         r <- getAll
-        infoM $ "getAll -> Size: " <> (show . length $ r)
+        debugM $ "getAll -> Size: " <> (show . length $ r)
         pure r
     }

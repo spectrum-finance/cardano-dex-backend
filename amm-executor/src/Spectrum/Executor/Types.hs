@@ -3,6 +3,7 @@ module Spectrum.Executor.Types
   , OrderId(..)
   , poolStateId
   , orderId
+  , orderRef
   , type Pool
   , type Order
   , OrderWithCreationTime(..)
@@ -54,6 +55,9 @@ type Order = OnChain Core.AnyOrder
 
 orderId :: Order -> OrderId
 orderId (OnChain FullTxOut{..} _) = OrderId fullTxOutRef
+
+orderRef :: OrderId -> TxOutRef
+orderRef (OrderId ref) = ref
 
 newtype OrderWeight = OrderWeight Integer
   deriving newtype (Eq, Ord, Show)
