@@ -1,6 +1,7 @@
 module Spectrum.Executor.Backlog.Persistence.BacklogStore
   ( BacklogStore(..)
   , mkBacklogStore
+  , mkBacklogStoreNonPersist
   ) where
 
 import qualified Database.RocksDB as Rocks
@@ -8,24 +9,25 @@ import qualified Database.RocksDB as Rocks
 import RIO     hiding (drop)
 import Prelude hiding (drop)
 
-import Data.Aeson       
+import Data.Aeson
   ( FromJSON )
 import Control.Monad.Trans.Resource
   ( MonadResource )
 
-import System.Logging.Hlog 
+import System.Logging.Hlog
   ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM, debugM) )
 
-import Spectrum.Executor.Types 
+import Spectrum.Executor.Types
   ( OrderId, orderId )
 import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
-import Spectrum.Executor.Backlog.Persistence.Config 
+import Spectrum.Executor.Backlog.Persistence.Config
   ( BacklogStoreConfig(..) )
-import Spectrum.Executor.Backlog.Data.BacklogOrder 
+import Spectrum.Executor.Backlog.Data.BacklogOrder
   ( BacklogOrder (BacklogOrder, backlogOrder) )
 import Spectrum.Prelude.Context
   ( HasType, askContext )
+import Data.List (find)
 
 data BacklogStore m = BacklogStore
   { put       :: BacklogOrder -> m ()
@@ -35,8 +37,48 @@ data BacklogStore m = BacklogStore
   , getAll    :: m [BacklogOrder]
   }
 
+mkBacklogStoreNonPersist
+  :: forall f m env.
+    ( MonadIO f
+    , MonadIO m
+    , MonadUnliftIO m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    )
+  => f (BacklogStore m)
+mkBacklogStoreNonPersist = do
+  MakeLogging{..}        <- askContext
+  storage <- newIORef []
+  let size = 300
+  logging <- forComponent "Bots.BacklogStore"
+  pure $ attachLogging logging BacklogStore
+    { put       = \order@BacklogOrder{..} ->
+        atomicModifyIORef' storage (\ordersList ->
+            if length ordersList > size
+              then
+                let
+                  (newStorage, _) = splitAt (size `div` 2) ordersList
+                in ((orderId backlogOrder, order) : newStorage, ())
+              else ((orderId backlogOrder, order) : ordersList, ())
+          )
+      --put (serialize . orderId $ backlogOrder) (serialize order)
+    , exists    = \BacklogOrder{..} -> do
+        ordersList <- readIORef storage
+        pure $ isJust $ find (\(storageId, _) -> orderId backlogOrder == storageId) ordersList
+    , dropOrder = \dropId ->
+        atomicModifyIORef' storage (\ordersList ->
+            (filter (\(storageId, _) -> storageId /= dropId) ordersList, ())
+          )
+    , get       = \getId -> do
+        ordersList <- readIORef storage
+        pure $ find (\(storageId, _) -> getId == storageId) ordersList <&> snd
+    , getAll    = do
+        ordersList <- readIORef storage
+        pure $ ordersList <&> snd
+    }
+
 mkBacklogStore
-  :: forall f m env. 
+  :: forall f m env.
     ( MonadIO f
     , MonadResource f
     , MonadIO m
@@ -51,7 +93,7 @@ mkBacklogStore = do
   MakeLogging{..}        <- askContext
   BacklogStoreConfig{..} <- askContext
 
-  logging <- forComponent "BacklogStore"
+  logging <- forComponent "Bots.BacklogStore"
   (_, db) <- Rocks.openBracket storePath
                 Rocks.defaultOptions
                   { Rocks.createIfMissing = createIfMissing

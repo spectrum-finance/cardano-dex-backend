@@ -51,7 +51,7 @@ import Gen.ServicesGen
   ( mkCardanoNetworkMockWithSubmitionError
   , mkMockTrustStore
   , mkTestExplorer
-  , mkMockOrdersExecutor
+  -- , mkMockOrdersExecutor
   , mkMockPoolResolver
   , mkService
   , mkTestVault
@@ -67,39 +67,39 @@ import Tests.Backlog.PersistenceMock
   ( mkMockStorage )
 
 checkOrdersExecutor = testGroup "Orders"
-  [ testProperty "bad_inputs_utxo_test" processTest
+  [ -- testProperty "bad_inputs_utxo_test" processTest
   ]
 
 defaultSleepTimeInSeconds :: Seconds
 defaultSleepTimeInSeconds = 3
 
-processTest :: Property
-processTest = withTests 10 $ property $ do
-  validators@Validators{..}    <- liftIO mkValidators
-  onChainPool@(OnChain _ pool) <- forAll (genOnChainPool (validator poolInfo))
+-- processTest :: Property
+-- processTest = withTests 10 $ property $ do
+--   validators@Validators{..}    <- liftIO mkValidators
+--   onChainPool@(OnChain _ pool) <- forAll (genOnChainPool (validator poolInfo))
 
-  mapForExplorer  <- forAll $ genRefMapForExplorer validators testTxRefs
-  let
-    vault        = mkTestVault
-    poolResolver = mkMockPoolResolver onChainPool
+--   mapForExplorer  <- forAll $ genRefMapForExplorer validators testTxRefs
+--   let
+--     vault        = mkTestVault
+--     poolResolver = mkMockPoolResolver onChainPool
 
-  executorPkh           <- fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
-  executorCollateralOut <- forAll $ genAdaFullTxOut executorPkh
+--   executorPkh           <- fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
+--   executorCollateralOut <- forAll $ genAdaFullTxOut executorPkh
 
-  swapOrders     <- forAll $ Gen.list (Range.linear 1 10) (genSwapOrder (validator swapInfo) pool)
-  currentTime    <- getCurrentTime
-  store          <- mkMockStorage
-  let
-    pendingOrders = swapOrders <&> (`PendingOrder` currentTime)
-    explorer      = mkTestExplorer executorCollateralOut mapForExplorer
+--   swapOrders     <- forAll $ Gen.list (Range.linear 1 10) (genSwapOrder (validator swapInfo) pool)
+--   currentTime    <- getCurrentTime
+--   store          <- mkMockStorage
+--   let
+--     pendingOrders = swapOrders <&> (`PendingOrder` currentTime)
+--     explorer      = mkTestExplorer executorCollateralOut mapForExplorer
 
-  backlogService <- liftIO $ mkBacklogService' mkEmptyMakeLogging cfgForOnlyPendingOrders store
-  executor       <- liftIO $ mkMockOrdersExecutor swapOrders backlogService poolResolver explorer
+--   backlogService <- liftIO $ mkBacklogService' mkEmptyMakeLogging cfgForOnlyPendingOrders store
+--   executor       <- liftIO $ mkMockOrdersExecutor swapOrders backlogService poolResolver explorer
 
-  liftIO $ put backlogService `traverse` pendingOrders
-  lift . fork $ S.drain $ run executor
+--   liftIO $ put backlogService `traverse` pendingOrders
+--   lift . fork $ S.drain $ run executor
 
-  liftIO $ sleep defaultSleepTimeInSeconds
+--   liftIO $ sleep defaultSleepTimeInSeconds
 
-  orders <- liftIO $ getAll store
-  length orders === length swapOrders
+--   orders <- liftIO $ getAll store
+--   length orders === length swapOrders

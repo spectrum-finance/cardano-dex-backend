@@ -44,7 +44,7 @@ mkPoolResolver
   -> f (PoolResolver m)
 mkPoolResolver pools@Pools{..} = do
   MakeLogging{..} <- askContext
-  logging <- forComponent "PoolResolver"
+  logging <- forComponent "Bots.PoolResolver"
   pure $ attachLogging logging PoolResolver
     { resolvePool    = resolvePool' pools
     , putPool        = putPredicted

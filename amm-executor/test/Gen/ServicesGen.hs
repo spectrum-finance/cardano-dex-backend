@@ -41,7 +41,7 @@ import Tests.Backlog.PersistenceMock
 import NetworkAPI.Service 
   ( CardanoNetwork(..) )
 import ErgoDex.Amm.PoolActions
-  ( mkPoolActions, fetchValidatorsV1, PoolActionsConfig (..) )
+  ( mkPoolActions, fetchValidatorsV1 )
 import CardanoTx.Models 
   ( ChangeAddress(..), FullTxOut (..) )
 import NetworkAPI.Types 
@@ -95,6 +95,8 @@ import Gen.ExceptionsGen
   ( BadInputsUTxOException(..) )
 import Gen.LoggingGen 
   ( mkMakeLogging, mkEmptyMakeLogging )
+import Spectrum.Executor.OrdersExecutor.Service (mkOrdersExecutorService)
+import Spectrum.Executor.OrdersExecutor.RefInputs
 
 mkService :: forall f . (MonadIO f, MonadIO f, LiftK f f) => MakeLogging f f -> BacklogServiceConfig -> BacklogStore f -> f (BacklogService f)
 mkService = mkBacklogService'
@@ -136,40 +138,40 @@ mkMockPoolResolver pool = PoolResolver
   , invalidatePool = \_ -> pure ()
   }
 
-makeMockTransactions :: Explorer IO -> IO (Transactions IO C.BabbageEra)
-makeMockTransactions explorer = do
-  let
-    refScriptsMap = Map.empty
-    cardanoNetwork = mkCardanoNetworkMockWithSubmitionError
+-- makeMockTransactions :: Explorer IO -> IO (Transactions IO C.BabbageEra)
+-- makeMockTransactions explorer = do
+--   let
+--     refScriptsMap = Map.empty
+--     cardanoNetwork = mkCardanoNetworkMockWithSubmitionError
 
-    keyPass = KeyPass "testKeyPass"
-    tsStore = mkMockTrustStore
-    vault   = mkVault tsStore keyPass
+--     keyPass = KeyPass "testKeyPass"
+--     tsStore = mkMockTrustStore
+--     vault   = mkVault tsStore keyPass
 
-    txAssemblyConfig = TxAssemblyConfig
-      { feePolicy         = Balance
-      , collateralPolicy  = Cover
-      , deafultChangeAddr = DefaultChangeAddress . ChangeAddress $ testAddress
-      }
+--     txAssemblyConfig = TxAssemblyConfig
+--       { feePolicy         = Balance
+--       , collateralPolicy  = Cover
+--       , deafultChangeAddr = DefaultChangeAddress . ChangeAddress $ testAddress
+--       }
 
-  walletOutputs <- mkWalletOutputs' id mkEmptyMakeLogging explorer vault
-  pure $ mkTransactions cardanoNetwork mockNetworkId refScriptsMap walletOutputs vault txAssemblyConfig
+--   walletOutputs <- mkWalletOutputs' id mkEmptyMakeLogging explorer vault
+--   pure $ mkTransactions cardanoNetwork mockNetworkId refScriptsMap walletOutputs vault txAssemblyConfig
 
-mkMockOrdersExecutor :: [Spectrum.Order] -> BacklogService IO -> PoolResolver IO -> Explorer IO -> IO (OrdersExecutor SerialT IO)
-mkMockOrdersExecutor orders backlogService poolResolver explorer = do
-  let
-      keyPass = KeyPass "testKeyPass"
-      tsStore = mkMockTrustStore
-      vault   = mkVault tsStore keyPass
+-- mkMockOrdersExecutor :: [Spectrum.Order] -> BacklogService IO -> PoolResolver IO -> Explorer IO -> IO (OrdersExecutor SerialT IO)
+-- mkMockOrdersExecutor orders backlogService poolResolver explorer = do
+--   let
+--       keyPass = KeyPass "testKeyPass"
+--       tsStore = mkMockTrustStore
+--       vault   = mkVault tsStore keyPass
 
-  transactions   <- makeMockTransactions explorer
-  executorPkh    <- fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
-  validators     <- fetchValidatorsV1
-  let
-    poolActionsCfg = PoolActionsConfig 250000
-    poolActions    = mkPoolActions poolActionsCfg (PaymentPubKeyHash executorPkh) validators
+--   transactions   <- makeMockTransactions explorer
+--   executorPkh    <- fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
+--   validators     <- fetchValidatorsV1
+--   let
+--     poolActions = mkPoolActions (PaymentPubKeyHash executorPkh) validators
 
-  mkOrdersExecutor @IO @IO @SerialT @TestEnv @C.BabbageEra backlogService transactions explorer poolResolver poolActions
+--   ordersExecutorService <- mkOrdersExecutorService backlogService transactions explorer poolResolver poolActions
+--   mkOrdersExecutor @IO @IO @SerialT @TestEnv backlogService ordersExecutorService
 
 mkTestExplorer :: forall f. (MonadIO f) => FullTxOut -> Map.Map TxOutRef FullTxOut -> Explorer f
 mkTestExplorer executorOutput refMap = Explorer

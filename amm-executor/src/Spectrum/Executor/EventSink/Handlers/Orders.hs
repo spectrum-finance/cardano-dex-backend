@@ -7,7 +7,7 @@ module Spectrum.Executor.EventSink.Handlers.Orders
 import RIO
   ( (<&>), MonadIO (liftIO), foldM, QSem, signalQSem, catMaybes )
 import RIO.Time
-  ( getCurrentTime, secondsToNominalDiffTime, addUTCTime, diffUTCTime )
+  ( getCurrentTime, secondsToNominalDiffTime, addUTCTime, diffUTCTime, UTCTime )
 import Data.Time.Clock.POSIX
   ( posixSecondsToUTCTime )
 
@@ -37,7 +37,7 @@ import ErgoDex.State
 import ErgoDex.Class
   ( FromLedger(parseFromLedger) )
 import Spectrum.Executor.Types
-  ( Order, OrderId (OrderId), orderId, orderRef )
+  ( Order, OrderId (OrderId), orderId, orderRef, OrderWithCreationTime (OrderWithCreationTime) )
 import Spectrum.Executor.Data.OrderState
   ( OrderInState(PendingOrder, EliminatedOrder), OrderState(Pending, Eliminated) )
 import Spectrum.EventSource.Data.TxContext
@@ -49,6 +49,7 @@ import Cardano.Api (SlotNo(unSlotNo))
 import Cardano.Slotting.Time (SystemStart(getSystemStart))
 import Spectrum.Executor.Backlog.Config (BacklogServiceConfig(BacklogServiceConfig, orderLifetime))
 import System.Logging.Hlog (Logging (Logging, infoM, debugM))
+import Spectrum.Executor.OrdersExecutor.Service (OrdersExecutorService(OrdersExecutorService, execute, executeUnsafe))
 
 mkPendingOrdersHandler
   :: MonadIO m
@@ -64,7 +65,7 @@ mkPendingOrdersHandler WriteTopic{..} syncSem logging@Logging{..} mainnetMode Ba
     currentTime <- getCurrentTime
     let
        slotsTime = fromIntegral $ unSlotNo slotNo
-       txTime    = 
+       txTime    =
          if mainnetMode
            then posixSecondsToUTCTime $ secondsToNominalDiffTime (1591566291 + slotsTime)
            else addUTCTime (secondsToNominalDiffTime slotsTime) (getSystemStart systemStart)
@@ -84,20 +85,31 @@ mkMempoolPendingOrdersHandler
   -> Bool
   -> BacklogServiceConfig
   -> NetworkParameters
+  -> OrdersExecutorService m
   -> EventHandler m 'MempoolCtx
-mkMempoolPendingOrdersHandler WriteTopic{..} logging@Logging{..} mainnetMode BacklogServiceConfig{..} NetworkParameters{..} = \case
+mkMempoolPendingOrdersHandler WriteTopic{..} logging@Logging{..} mainnetMode BacklogServiceConfig{..} NetworkParameters{..} orderExecutorService = \case
   PendingTx (MinimalMempoolTx MinimalUnconfirmedTx{..}) -> do
-    debugM ("Processing mempool tx:" ++ show txId)
+    infoM ("Processing mempool tx:" ++ show txId)
     let
        slotsTime = fromIntegral $ unSlotNo slotNo
-       txTime    = 
+       txTime    =
          if mainnetMode
            then posixSecondsToUTCTime $ secondsToNominalDiffTime (1591566291 + slotsTime)
            else addUTCTime (secondsToNominalDiffTime slotsTime) (getSystemStart systemStart)
-    (parseOrder logging `traverse` txOutputs) >>= foldM (process txTime) Nothing
+    (processOrder logging orderExecutorService txTime `traverse` txOutputs) >>= foldM (process txTime) Nothing
       where
         process oTime _ ordM = mapM publish (ordM <&> flip PendingOrder oTime)
   _ -> pure Nothing
+
+processOrder :: (MonadIO m) => Logging m -> OrdersExecutorService m -> UTCTime -> FullTxOut -> m (Maybe Order)
+processOrder logging OrdersExecutorService{..} txTime out = do
+  parseOrder logging out >>= (\case
+      Just order -> do
+        let orderWithCreationTime = OrderWithCreationTime order txTime
+        executeUnsafe orderWithCreationTime
+        pure $ Just order
+      Nothing -> pure Nothing
+    )
 
 parseOrder :: (MonadIO m) => Logging m -> FullTxOut -> m (Maybe Order)
 parseOrder Logging{..} out =

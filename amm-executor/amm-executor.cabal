@@ -76,6 +76,9 @@ library
     import: base, project-config
 
     hs-source-dirs: src
+
+    ghc-options:      -O2
+                      -threaded
     
     exposed-modules: Spectrum.Executor
                      Spectrum.Executor.Types
@@ -100,6 +103,8 @@ library
                      Spectrum.Executor.Backlog.Process
                      Spectrum.Executor.Backlog.Config
                      Spectrum.Executor.OrdersExecutor.Process
+                     Spectrum.Executor.OrdersExecutor.Service
+                     Spectrum.Executor.OrdersExecutor.RefInputs
                      Spectrum.Common.Streaming.Class
                      Spectrum.Common.Parsers
 
@@ -180,6 +185,7 @@ library
                   , ledger-sync
                   , cryptonite
                   , spectrum
+                  , hslogger
 
 executable amm-executor-app
     default-language: Haskell2010

@@ -43,7 +43,7 @@ import Spectrum.Config
 import Spectrum.Executor.Backlog.Persistence.Config
   ( BacklogStoreConfig )
 import SubmitAPI.Config
-  ( TxAssemblyConfig )
+  ( TxAssemblyConfig, UnsafeEvalConfig )
 import Explorer.Config
   ( ExplorerConfig )
 import WalletAPI.TrustStore 
@@ -52,8 +52,6 @@ import Spectrum.Common.Parsers
   ( parseTxIn )
 import WalletAPI.UtxoStoreConfig 
   ( UtxoStoreConfig )
-import ErgoDex.Amm.PoolActions 
-  ( PoolActionsConfig )
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
@@ -103,7 +101,7 @@ data AppConfig = AppConfig
   , secrets            :: !Secrets
   , mainnetMode        :: !Bool
   , utxoStoreConfig    :: !UtxoStoreConfig
-  , poolActionsConfig  :: !PoolActionsConfig
+  , unsafeEval         :: !UnsafeEvalConfig
   } deriving (Generic, FromDhall)
 
 loadAppConfig :: MonadIO f => Maybe String -> f AppConfig

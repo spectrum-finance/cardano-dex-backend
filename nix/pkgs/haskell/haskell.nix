@@ -43,15 +43,14 @@ let
       "https://github.com/input-output-hk/cardano-ledger"."c7c63dabdb215ebdaed8b63274965966f2bf408f" = "zTQbMOGPD1Oodv6VUsfF6NUiXkbN8SWI98W3Atv4wbI=";
       "https://github.com/input-output-hk/plutus-apps"."593ffafa59dd30ad28cfaf144c526c66328595d2" = "CIuI/Nz7O67ljOHDg7UBbXgWuIE7VPRdPX4VK0/DI3A=";
       "https://github.com/input-output-hk/hedgehog-extras"."714ee03a5a786a05fc57ac5d2f1c2edce4660d85" = "6KQFEzb9g2a0soVvwLKESEbA+a8ygpROcMr6bkatROE=";
-      "https://github.com/ergolabs/cardano-dex-contracts"."2fb44f444897d84e313ceb4d3d467441385802dd" = "Kih0IS6Ty3EnXlgqAyF04nWIWJAnHOEVfraebh5RsNI=";
-      "https://github.com/ergolabs/hlog"."231ff5f0a12841174cf6d92a932f45fea4552bae" = "vjqo/cd8eGQ03PsISJrkAizMYouGMc4vZsMl+ozSQ5Y=";
-      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."fcac32d65975b53b2421f67254355765860a4e4b" = "SPXqOI8Lqe6lSvK1L745Ruin/AKXfvLeaS1ZEvc28dY=";
+      "https://github.com/ergolabs/cardano-dex-contracts"."7850574a9b7f3e33cd7fc16f5fcdbbf0c8de68df" = "1jzh8o3SdkZflVLLglT45iCcmgDSAg6b1P7fTwwmgPM=";
+      "https://github.com/ergolabs/hlog"."f62f1cc1e2ed933d99dfeca8ade634bfe8984ee4" = "YSeEjFPSxbeKkFo+uhDkgMo841DpMygHngY/V07Gj8c=";
+      "https://github.com/ergolabs/cardano-dex-sdk-haskell"."fcadfb499f2a479e71245e837b6d4132db8f1e03" = "BRbENk4ymfGVd7QxJ7zEgIydssD/4L/B60ZKyRH3Knk=";
       "https://github.com/daleiz/rocksdb-haskell"."109af08f95b40f458d4933e3725ecb3e59337c39" = "1i1ya491fapa0g96527krarv0w0iybizqcz518741iw06hhpikiy";
     };
 
     modules = [
       {
-        enableLibraryProfiling = true;
         packages = {
           amm-executor.package.buildable = false;
           wallet-helper.package.buildable = false;

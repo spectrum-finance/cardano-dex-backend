@@ -1,4 +1,4 @@
-module Spectrum.Executor.Backlog.Process 
+module Spectrum.Executor.Backlog.Process
   ( Backlog(..)
   , mkBacklog
   ) where
@@ -22,7 +22,7 @@ import Spectrum.Executor.Data.OrderState
   ( OrderInState(EliminatedOrder), OrderState(Eliminated, Pending) )
 import RIO ((<&>))
 
-newtype Backlog s m = Backlog 
+newtype Backlog s m = Backlog
   { run :: s m ()
   }
 
@@ -59,5 +59,5 @@ trackEliminatedOrdersUpdates
   -> ReadTopic s m (OrderInState 'Eliminated)
   -> s m ()
 trackEliminatedOrdersUpdates BacklogService{..} ReadTopic{..} = do
-  oId <- upstream <&> (\case EliminatedOrder oid -> oid) 
+  oId <- upstream <&> (\case EliminatedOrder oid -> oid)
   S.fromEffect $ drop oId

@@ -15,12 +15,17 @@ import ErgoDex.Amm.PoolActions
   ( AmmValidators (..) )
 import ErgoDex.Validators 
   ( V1, PoolValidator (..), OrderValidator (..) )
+import Plutus.Script.Utils.V2.Address (mkValidatorAddress)
 
 data ScriptsValidators = ScriptsValidators
-  { swapValidator    :: PV2.Validator 
+  { swapValidator    :: PV2.Validator
+  , swapAddress      :: PV2.Address
   , depositValidator :: PV2.Validator
+  , depositAddress   :: PV2.Address
   , redeemValidator  :: PV2.Validator
+  , redeemAddress    :: PV2.Address
   , poolValidator    :: PV2.Validator
+  , poolAddress      :: PV2.Address
   }
 
 scriptsValidators2AmmValidators :: ScriptsValidators -> AmmValidators V1
@@ -38,6 +43,11 @@ mkScriptsValidators ScriptsConfig{..} = do
   redeemValidator  <- readValidatorFromFile redeemScriptPath
   depositValidator <- readValidatorFromFile depositScriptPath
   poolValidator    <- readValidatorFromFile poolScriptPath
+  let
+    swapAddress    = mkValidatorAddress swapValidator
+    depositAddress = mkValidatorAddress depositValidator
+    redeemAddress  = mkValidatorAddress redeemValidator
+    poolAddress    = mkValidatorAddress poolValidator
   pure $ ScriptsValidators{..}
       
 readValidatorFromFile :: (MonadIO m) => FilePath -> m PV2.Validator

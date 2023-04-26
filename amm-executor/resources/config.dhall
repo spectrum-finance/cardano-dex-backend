@@ -13,14 +13,14 @@ in
     Affects on usage of networkConfig.cardanoNetworkId field.
     The mainnet mode does not use networkConfig.cardanoNetworkId
   -}
-  mainnetMode = False,
+  mainnetMode = True,
 
   {- 
     Ledger sync configuration.
     Provides information about node socket path to establish connection with
   -}
   nodeSocketConfig =
-    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
+    { nodeSocketPath = "./path/to/node.socket"
     , maxInFlight    = 256
     },
 
@@ -34,8 +34,8 @@ in
   -}
   eventSourceConfig =
     { startAt =
-        { slot = 2729633
-        , hash = "815dafb374898811dc74069a8df8af7a98a80214203e89acdd6425c2e3db37c7"
+        { slot = 98823654
+        , hash = "4666f26d15f4802c0d4c81b841583ea6d90d623d168c77f1e45200eda1f82638"
         }
     },
 
@@ -71,7 +71,7 @@ in
     information about network parameters. It serves as a central source for accessing
     various network-related settings and details.
   -}
-  nodeConfigPath = "/root/cardano-vasil-docker/config/preview/config.json",
+  nodeConfigPath = "./config/mainnet/mainnet-config.json",
 
   {- 
     The pool store configuration manages the persistence of pools in the system.
@@ -103,9 +103,9 @@ in
            of 95%.
   -}
   backlogConfig =
-    { orderLifetime        = 10
-    , orderExecTime        = 10
-    , suspendedPropability = 5
+    { orderLifetime        = 4500
+    , orderExecTime        = 1500
+    , suspendedPropability = 0
     },
 
   {- 
@@ -128,8 +128,8 @@ in
     as Spectrum-finance explorer, if you want to change original uri
   -}
   explorerConfig =
-    { explorerUri = "https://testnet-api.quickblue.io"
-    , network     = Network.Preview
+    { explorerUri = "https://explorer.spectrum.fi"
+    , network = Network.Mainnet
     },
 
   {-
@@ -142,10 +142,10 @@ in
      configuration.
   -}
   txsInsRefs =
-    { swapRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#2"
-    , depositRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#3"
-    , redeemRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#4"
-    , poolRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#1"
+    { swapRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#2"
+    , depositRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#0"
+    , redeemRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#1"
+    , poolRef = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
     },
 
   {- Scripts upls paths configuration. -}
@@ -160,7 +160,7 @@ in
   txAssemblyConfig =
     { feePolicy         = FeePolicy.Balance
     , collateralPolicy  = CollateralPolicy.Cover
-    , deafultChangeAddr = "addr_test1vr007v5nktnksje3gnm4aw4arwrkcl5rvvx4lwa3w8mtzxgf6c2nt"
+    , deafultChangeAddr = "bot address"
     },
 
   {- 
@@ -203,5 +203,11 @@ in
   -}
   poolActionsConfig =
     { safeTxFeeLovalace = +300000
+    },
+
+  unsafeEval =
+    { unsafeTxFee = +310000
+    , exUnits = 145000000
+    , exMem = 330000
     }
 }
