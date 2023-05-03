@@ -4,7 +4,7 @@ module Spectrum.Executor.PoolTracker.Persistence.Pools
   ) where
 
 import RIO
-  ( IsString(fromString), ByteString )
+  ( IsString(fromString), ByteString, liftIO, newEmptyMVar, newIORef, readIORef, (<&>), atomicModifyIORef )
 
 import qualified Database.RocksDB as Rocks
 
@@ -37,6 +37,7 @@ import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
 import Spectrum.Prelude.Context
   ( MonadReader, HasType, askContext )
+import qualified Data.Map as Map
 
 data Pools m = Pools
   { getPrediction      :: PoolStateId -> m (Maybe (Traced (Predicted Pool)))
@@ -62,8 +63,23 @@ mkPools
   => f (Pools m)
 mkPools = do
   PoolStoreConfig{..} <- askContext
+  if persistent then mkPersistentPools else mkNonPersistentPool
+
+mkPersistentPools
+  :: forall f m env.
+    ( MonadIO f
+    , MonadResource f
+    , MonadIO m
+    , MonadThrow m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    , HasType PoolStoreConfig env
+    )
+  => f (Pools m)
+mkPersistentPools = do
+  PoolStoreConfig{..} <- askContext
   MakeLogging{..}     <- askContext
-  
+
   logging <- forComponent "Pools"
   (_, db) <- Rocks.openBracket storePath
               Rocks.defaultOptions
@@ -121,6 +137,82 @@ mkPools = do
                 put (mkLastConfirmedKey pid) (serialize prevConfirmedPool)
               Nothing ->
                 delete (mkLastConfirmedKey pid)
+          else pure () ) confirmedM
+    }
+
+mkNonPersistentPool ::
+  forall f m env.
+    ( MonadIO f
+    , MonadResource f
+    , MonadIO m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    )
+  => f (Pools m)
+mkNonPersistentPool = do
+  MakeLogging{..}  <- askContext
+  logging          <- forComponent "Pools"
+  predictionRefMap <- liftIO (newIORef mempty)
+  predictedRefMap  <- liftIO (newIORef mempty)
+  confirmedRefMap  <- liftIO (newIORef mempty)
+  unconfirmedRefMap  <- liftIO (newIORef mempty)
+  let
+    find refMap key = liftIO $ readIORef refMap <&> Map.lookup key
+    insert refMap key value = atomicModifyIORef refMap (\prevMap -> (Map.insert key value prevMap, ()))
+    delete refMap key = atomicModifyIORef refMap (\prevMap -> (Map.delete key prevMap, ()))
+  pure $ attachLogging logging Pools
+    { getPrediction      = find predictionRefMap . mkPredictedKey --get . mkPredictedKey
+    , getLastPredicted   = find predictedRefMap . mkLastPredictedKey -- \poolId -> liftIO $ readIORef predictedRefMap <&> Map.lookup (mkLastPredictedKey poolId) --get . mkLastPredictedKey
+    , getLastConfirmed   = find confirmedRefMap . mkLastConfirmedKey -- \poolId -> liftIO $ readIORef confirmedRefMap <&> Map.lookup (mkLastConfirmedKey poolId)-- get . mkLastConfirmedKey
+    , getLastUnconfirmed = find unconfirmedRefMap . mkLastUnconfirmedKey -- \poolId -> liftIO $ readIORef unconfirmedRefMap <&> Map.lookup (mkLastUnconfirmedKey poolId) --get . mkLastUnconfirmedKey
+
+    , putPredicted =
+        \tpp@(Traced pp@(Predicted pool@(OnChain _ Core.Pool{poolId})) _) -> do
+          insert predictionRefMap (mkPredictedKey $ poolStateId pool) tpp
+          insert predictedRefMap (mkLastPredictedKey poolId) pp
+          -- put (mkPredictedKey $ poolStateId pool) (tpp)
+          -- put (mkLastPredictedKey poolId) (pp)
+
+    , putConfirmed =
+        \cp@(Confirmed pool@(OnChain _ Core.Pool{poolId})) -> do
+          currentLastConfirmed <- find confirmedRefMap . mkLastConfirmedKey $ poolId
+          insert confirmedRefMap (mkPrevConfirmedKey (poolStateId pool)) `traverse` currentLastConfirmed
+          insert confirmedRefMap (mkLastConfirmedKey poolId) cp
+          --put (mkPrevConfirmedKey $ poolStateId pool) (serialize currentLastConfirmed)
+          -- put (mkLastConfirmedKey poolId) (serialize cp)
+
+    , putUnconfirmed =
+        \up@(Unconfirmed (OnChain _ Core.Pool{poolId})) ->
+          insert unconfirmedRefMap (mkLastUnconfirmedKey poolId) up
+          -- atomicModifyIORef unconfirmedRefMap (\prevMap -> (Map.insert (mkLastUnconfirmedKey poolId) up prevMap, ()))
+          -- put (mkLastUnconfirmedKey poolId) (serialize up)
+
+    , invalidate = \pid sid -> do
+        predM <- liftIO $ readIORef predictedRefMap <&> Map.lookup (mkLastPredictedKey pid)
+        mapM_
+          (\((Predicted pool)) ->
+            if poolStateId pool == sid
+              then delete predictionRefMap (mkPredictedKey sid) >> delete confirmedRefMap (mkLastPredictedKey pid)
+              else pure () )
+          predM
+        unconfirmedM <- find unconfirmedRefMap (mkLastUnconfirmedKey pid)
+        mapM_
+          (\((Unconfirmed pool)) ->
+            if poolStateId pool == sid
+              then delete unconfirmedRefMap (mkLastUnconfirmedKey pid)
+              else pure () )
+          unconfirmedM
+        confirmedM <- find confirmedRefMap (mkLastConfirmedKey pid)
+        mapM_ (\(Confirmed pool) ->
+          if poolStateId pool == sid
+          then do
+            prevConfPoolM <- find confirmedRefMap (mkPrevConfirmedKey sid)
+            case prevConfPoolM of
+              Just prevConfirmedPool ->
+                delete confirmedRefMap (mkPrevConfirmedKey sid) >>
+                insert confirmedRefMap (mkLastConfirmedKey pid) prevConfirmedPool
+              Nothing ->
+                delete confirmedRefMap (mkLastConfirmedKey pid)
           else pure () ) confirmedM
     }
 

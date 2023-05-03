@@ -10,5 +10,6 @@ import Dhall
 data BacklogStoreConfig = BacklogStoreConfig
   { storePath       :: !FilePath
   , createIfMissing :: !Bool
+  , persistent      :: !Bool
   }
   deriving (Generic, FromDhall)

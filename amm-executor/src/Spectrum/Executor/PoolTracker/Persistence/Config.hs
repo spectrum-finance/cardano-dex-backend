@@ -10,5 +10,6 @@ import Dhall
 data PoolStoreConfig = PoolStoreConfig
   { storePath       :: !FilePath
   , createIfMissing :: !Bool
+  , persistent      :: !Bool
   }
   deriving (Generic, FromDhall)

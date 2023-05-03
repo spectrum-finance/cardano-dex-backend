@@ -8,21 +8,21 @@ import qualified Database.RocksDB as Rocks
 import RIO     hiding (drop)
 import Prelude hiding (drop)
 
-import Data.Aeson       
+import Data.Aeson
   ( FromJSON )
 import Control.Monad.Trans.Resource
   ( MonadResource )
-
-import System.Logging.Hlog 
+import qualified Data.Map as Map
+import System.Logging.Hlog
   ( MakeLogging(MakeLogging, forComponent), Logging (Logging, infoM, debugM) )
 
-import Spectrum.Executor.Types 
+import Spectrum.Executor.Types
   ( OrderId, orderId )
 import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
-import Spectrum.Executor.Backlog.Persistence.Config 
+import Spectrum.Executor.Backlog.Persistence.Config
   ( BacklogStoreConfig(..) )
-import Spectrum.Executor.Backlog.Data.BacklogOrder 
+import Spectrum.Executor.Backlog.Data.BacklogOrder
   ( BacklogOrder (BacklogOrder, backlogOrder) )
 import Spectrum.Prelude.Context
   ( HasType, askContext )
@@ -36,7 +36,22 @@ data BacklogStore m = BacklogStore
   }
 
 mkBacklogStore
-  :: forall f m env. 
+  :: forall f m env.
+    ( MonadIO f
+    , MonadResource f
+    , MonadThrow m
+    , MonadUnliftIO m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    , HasType BacklogStoreConfig env
+    )
+  => f (BacklogStore m)
+mkBacklogStore = do
+  BacklogStoreConfig{..} <- askContext
+  if persistent then mkPersistentBacklogStore else mkNonPersistentBacklogStore
+
+mkPersistentBacklogStore
+  :: forall f m env.
     ( MonadIO f
     , MonadResource f
     , MonadIO m
@@ -47,7 +62,7 @@ mkBacklogStore
     , HasType BacklogStoreConfig env
     )
   => f (BacklogStore m)
-mkBacklogStore = do
+mkPersistentBacklogStore = do
   MakeLogging{..}        <- askContext
   BacklogStoreConfig{..} <- askContext
 
@@ -69,6 +84,28 @@ mkBacklogStore = do
     , dropOrder = delete . serialize
     , get       = get . serialize
     , getAll    = bracket (Rocks.createIter db Rocks.defaultReadOptions) Rocks.releaseIter ((=<<) (mapM deserializeM) . Rocks.iterValues)
+    }
+
+mkNonPersistentBacklogStore
+  :: forall f m env.
+    ( MonadIO f
+    , MonadResource f
+    , MonadIO m
+    , MonadUnliftIO m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    )
+  => f (BacklogStore m)
+mkNonPersistentBacklogStore = do
+  MakeLogging{..}  <- askContext
+  ordersMap        <- liftIO (newIORef mempty)
+  logging          <- forComponent "BacklogStore"
+  pure $ attachLogging logging BacklogStore
+    { put       = \order@BacklogOrder{..} -> atomicModifyIORef ordersMap (\prevMap -> (Map.insert (orderId backlogOrder) order prevMap, ()))-- put (serialize . orderId $ backlogOrder) (serialize order)
+    , exists    = \BacklogOrder{..} -> liftIO $ readIORef ordersMap <&> Map.member (orderId backlogOrder) --exists . serialize . orderId $ backlogOrder
+    , dropOrder = \orderId2drop -> atomicModifyIORef ordersMap (\prevMap -> (Map.delete orderId2drop prevMap, ()))
+    , get       = \orderId -> liftIO $ readIORef ordersMap <&> Map.lookup orderId
+    , getAll    = liftIO $ readIORef ordersMap <&> Map.elems -- bracket (Rocks.createIter db Rocks.defaultReadOptions) Rocks.releaseIter ((=<<) (mapM deserializeM) . Rocks.iterValues)
     }
 
 attachLogging :: Monad m => Logging m -> BacklogStore m -> BacklogStore m
