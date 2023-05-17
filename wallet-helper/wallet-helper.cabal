@@ -1,0 +1,45 @@
+cabal-version:      2.4
+name:               wallet-helper
+version:            0.1.0.0
+
+author:             SpectrumFinance
+maintainer:         
+
+extra-source-files: CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/spectrum-finance/cardano-dex-backend
+
+common base
+  build-depends: base >= 4.9 && < 5
+
+common project-config
+  default-language:     Haskell2010
+
+  default-extensions:   TypeApplications
+                
+  ghc-options:          -O2
+                        -threaded
+
+library
+    import: base, project-config
+
+    hs-source-dirs: src
+    
+    exposed-modules: Wallet.Helper
+
+    build-depends:  cardano-api
+                  , wallet-api
+                  , text
+
+executable wallet-helper-app
+    default-language: Haskell2010
+    hs-source-dirs:   app
+    main-is:          Main.hs
+
+    ghc-options:      -O2
+                      -threaded
+
+    build-depends:    base >= 4.9 && < 5
+                    , wallet-helper

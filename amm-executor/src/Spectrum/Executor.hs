@@ -97,7 +97,7 @@ import SubmitAPI.Service
   ( mkTransactions )
 
 import Spectrum.LedgerSync.Config
-  ( NetworkParameters, NodeSocketConfig, parseNetworkParameters )
+  ( NetworkParameters, NodeSocketConfig(..), parseNetworkParameters )
 import Spectrum.LedgerSync
   ( mkLedgerSync )
 import Cardano.Network.Protocol.NodeToClient.Trace
@@ -109,7 +109,6 @@ import Spectrum.Config
 import Spectrum.Executor.Config
   ( AppConfig(..)
   , loadAppConfig
-  , TxSubmitConfig(..)
   , Secrets(..)
   , NetworkConfig(..)
   , TxRefs(..)
@@ -165,7 +164,6 @@ data Env f m = Env
   , backlogStoreConfig :: !BacklogStoreConfig
   , networkParams      :: !NetworkParameters
   , explorerConfig     :: !ExplorerConfig
-  , txSubmitConfig     :: !TxSubmitConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
   , utxoStoreConfig    :: !UtxoStoreConfig
   , poolActionsConfig  :: !PoolActionsConfig
@@ -211,7 +209,6 @@ runApp args = do
         backlogStoreConfig
         nparams
         explorerConfig
-        txSubmitConfig
         txAssemblyConfig
         utxoStoreConfig
         poolActionsConfig
@@ -244,7 +241,7 @@ wireApp = interceptSigTerm >> do
     vault      = mkVault trustStore $ keyPass secrets
   walletOutputs <- mkPersistentWalletOutputs lift mkLogging utxoStoreConfig explorer vault
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
-  let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
+  let sockPath = SocketPath $ nodeSocketPath nodeSocketConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
   backlogStore   <- mkBacklogStore
   backlogService <- mkBacklogService backlogStore
