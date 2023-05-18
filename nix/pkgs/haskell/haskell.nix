@@ -54,6 +54,7 @@ let
         enableLibraryProfiling = true;
         packages = {
           amm-executor.package.buildable = false;
+          wallet-helper.package.buildable = false;
 
           # Broken due to haddock errors. Refer to https://github.com/input-output-hk/plutus/blob/master/nix/pkgs/haskell/haskell.nix
           plutus-ledger.doHaddock = false;

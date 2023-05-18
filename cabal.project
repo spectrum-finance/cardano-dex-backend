@@ -2,6 +2,7 @@ index-state: 2022-04-06T00:00:00Z
 
 packages:
   amm-executor
+  wallet-helper
 
 package cardano-crypto-praos
   flags: -external-libsodium-vrf

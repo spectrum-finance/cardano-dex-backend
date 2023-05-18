@@ -2,14 +2,14 @@ cabal-version:      2.4
 name:               amm-executor
 version:            0.1.0.0
 
-author:             ErgoLabs
+author:             SpectrumFinance
 maintainer:         
 
 extra-source-files: CHANGELOG.md
 
 source-repository head
   type: git
-  location: https://github.com/ergolabs/cardano-dex-backend
+  location: https://github.com/spectrum-finance/cardano-dex-backend
 
 common base
   build-depends: base >= 4.9 && < 5
