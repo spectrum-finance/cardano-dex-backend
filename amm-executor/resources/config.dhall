@@ -10,15 +10,15 @@ let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = componen
 in
 { 
   {-
-    Set network mode, possible values True | False.
-    Effects on usage of networkConfig.cardanoNetworkId field.
+    Sets network mode, possible values 'are' True | False.
+    Affects on usage of networkConfig.cardanoNetworkId field.
     The mainnet mode does not use networkConfig.cardanoNetworkId
   -}
   mainnetMode = False,
 
   {- 
     Ledger sync configuration.
-    Provide information about node socket path with which the connection is established
+    Provides information about node socket path to establish connection with
   -}
   ledgerSyncConfig =
     { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
@@ -27,7 +27,7 @@ in
 
   {- 
     Event source configuration.
-    Provide information about start point of syncronizataion process.
+    Provides information about start point of syncronizataion process.
     Recommendation: 
     To process order as soon as possible check that your node is fully synced and
     slot with hash are corresponding to one of the latest block in chain
@@ -41,8 +41,8 @@ in
 
   {- 
     Network configuration.
-    (Needed only when mainnetMode == False, otherwise leave it unchanged)
-    Provide information about network magic id
+    (Use only if mainnetMode == False, otherwise leave it unchanged)
+    Provides information about network magic id
   -}
   networkConfig = 
       { cardanoNetworkId = 2
@@ -50,7 +50,7 @@ in
 
   {- 
     Ledger store (responsible for persisting blocks) configuration.
-    Provide information about ledger store path.
+    Provides information about ledger store path.
   -}
   ledgerStoreConfig =
     { storePath       = "./data/amm-executor"
@@ -65,7 +65,7 @@ in
 
   {- 
     Pool store (responsible for persisting pools) configuration.
-    Provide information about pool store path.
+    Provides information about pool store path.
   -}
   pstoreConfig =
     { storePath       = "/path"
@@ -97,7 +97,7 @@ in
 
   {- 
     Backlog store (responsible for persisting orders) configuration.
-    Provide information about backlog store path.
+    Provides information about backlog store path.
   -}
   backlogStoreConfig =
     { storePath       = "/path"
@@ -115,7 +115,7 @@ in
 
   {- 
     Tx submition configuration.
-    Provide information about node socket path with which the connection is established
+    Provides information about node socket path with which the connection is established
   -}
   txSubmitConfig =
     { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
@@ -171,7 +171,7 @@ in
 
   {- 
     Utxo store (responsible for persisting utxos of bot's wallet) configuration.
-    Provide information about utxo store path.
+    Provides information about utxo store path.
   -}
   utxoStoreConfig =
     { utxoStorePath   = "./path/to/utxoStore"
@@ -180,7 +180,7 @@ in
 
   {- 
     Pool actions configuration.
-    Provide information about approximately order transation fee
+    Provides information about approximately order transation fee
   -}
   poolActionsConfig =
     { safeTxFeeLovalace = +1500000
