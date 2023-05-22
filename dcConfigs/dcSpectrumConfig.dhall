@@ -7,7 +7,7 @@ let fileHandlers = \(path : Text) -> \(level : LogLevel) -> {_1 = path, _2 = lev
 let levelOverride = \(component : Text) -> \(level : LogLevel) -> {_1 = component, _2 = level}
 in
 { mainnetMode = False
-, ledgerSyncConfig =
+, nodeSocketConfig =
     { nodeSocketPath = "/ipc/node.socket"
     , maxInFlight    = 256
     }
@@ -56,9 +56,6 @@ in
     }
 , explorerConfig =
     { explorerUri = "https://explorer.spectrum.fi"
-    }
-, txSubmitConfig =
-    { nodeSocketPath = "/ipc/node.socket"
     }
 , txAssemblyConfig =
     { feePolicy         = FeePolicy.Balance

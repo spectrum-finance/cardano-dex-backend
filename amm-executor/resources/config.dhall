@@ -20,7 +20,7 @@ in
     Ledger sync configuration.
     Provides information about node socket path to establish connection with
   -}
-  ledgerSyncConfig =
+  nodeSocketConfig =
     { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
     , maxInFlight    = 256
     },
@@ -111,14 +111,6 @@ in
   -}
   explorerConfig =
     { explorerUri = "https://testnet-api.quickblue.io"
-    },
-
-  {- 
-    Tx submition configuration.
-    Provides information about node socket path with which the connection is established
-  -}
-  txSubmitConfig =
-    { nodeSocketPath = "/var/lib/docker/volumes/cardano-vasil-docker_node-ipc/_data/node.socket"
     },
 
   {- 

@@ -97,7 +97,7 @@ import SubmitAPI.Service
   ( mkTransactions )
 
 import Spectrum.LedgerSync.Config
-  ( NetworkParameters, LedgerSyncConfig, parseNetworkParameters )
+  ( NetworkParameters, NodeSocketConfig (..), parseNetworkParameters )
 import Spectrum.LedgerSync
   ( mkLedgerSync )
 import Cardano.Network.Protocol.NodeToClient.Trace
@@ -109,7 +109,6 @@ import Spectrum.Config
 import Spectrum.Executor.Config
   ( AppConfig(..)
   , loadAppConfig
-  , TxSubmitConfig(..)
   , Secrets(..)
   , NetworkConfig(..)
   , TxRefs(..)
@@ -155,7 +154,7 @@ import Spectrum.Executor.Scripts
   ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidators )
 
 data Env f m = Env
-  { ledgerSyncConfig   :: !LedgerSyncConfig
+  { nodeSocketConfig   :: !NodeSocketConfig
   , eventSourceConfig  :: !EventSourceConfig
   , lederHistoryConfig :: !LedgerStoreConfig
   , pstoreConfig       :: !PoolStoreConfig
@@ -165,7 +164,6 @@ data Env f m = Env
   , backlogStoreConfig :: !BacklogStoreConfig
   , networkParams      :: !NetworkParameters
   , explorerConfig     :: !ExplorerConfig
-  , txSubmitConfig     :: !TxSubmitConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
   , utxoStoreConfig    :: !UtxoStoreConfig
   , poolActionsConfig  :: !PoolActionsConfig
@@ -201,7 +199,7 @@ runApp args = do
         else C.Testnet (C.NetworkMagic (fromIntegral $ cardanoNetworkId networkConfig))
     env =
       Env
-        ledgerSyncConfig
+        nodeSocketConfig
         eventSourceConfig
         ledgerStoreConfig
         pstoreConfig
@@ -211,7 +209,6 @@ runApp args = do
         backlogStoreConfig
         nparams
         explorerConfig
-        txSubmitConfig
         txAssemblyConfig
         utxoStoreConfig
         poolActionsConfig
@@ -240,12 +237,12 @@ wireApp = interceptSigTerm >> do
     vault      = mkVault trustStore $ keyPass secrets
   walletOutputs <- mkPersistentWalletOutputs lift mkLogging utxoStoreConfig explorer vault
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
-  let sockPath = SocketPath $ nodeSocketPath txSubmitConfig
+  let sockPath = SocketPath $ nodeSocketPath nodeSocketConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
   backlogStore   <- mkBacklogStore
   backlogService <- mkBacklogService backlogStore
   pools          <- mkPools
-  resolver       <- mkPoolcResolver pools
+  resolver       <- mkPoolResolver pools
 
   scriptsValidators <- mkScriptsValidators scriptsConfig
   let
