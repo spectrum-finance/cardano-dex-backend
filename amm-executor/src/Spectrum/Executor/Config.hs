@@ -99,7 +99,7 @@ data AppConfig = AppConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
   , txsInsRefs         :: !TxRefs
-  , scriptsConfig       :: !ScriptsConfig
+  , scriptsConfig      :: !ScriptsConfig
   , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig

@@ -245,7 +245,7 @@ wireApp = interceptSigTerm >> do
   backlogStore   <- mkBacklogStore
   backlogService <- mkBacklogService backlogStore
   pools          <- mkPools
-  resolver       <- mkPoolResolver pools
+  resolver       <- mkPoolcResolver pools
 
   scriptsValidators <- mkScriptsValidators scriptsConfig
   let
