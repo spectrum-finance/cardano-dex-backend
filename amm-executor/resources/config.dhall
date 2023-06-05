@@ -1,7 +1,6 @@
--- Configuration of spectrum off-chain service for Cardano network
--- More info: github.com/spectrum-finance/cardano-dex-backend
 let FeePolicy = < Strict | Balance >
 let CollateralPolicy = < Ignore | Cover >
+let Network = < Mainnet | Preview >
 
 let LogLevel = < Info | Error | Warn | Debug >
 let format = "$time - $loggername - $prio - $msg" : Text
@@ -130,6 +129,7 @@ in
   -}
   explorerConfig =
     { explorerUri = "https://testnet-api.quickblue.io"
+    , network     = Network.Preview
     },
 
   {-
