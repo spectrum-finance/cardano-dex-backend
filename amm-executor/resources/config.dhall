@@ -27,10 +27,11 @@ in
 
   {- 
     Event source configuration.
-    Provides information about start point of syncronizataion process.
-    Recommendation: 
-    To process order as soon as possible check that your node is fully synced and
-    slot with hash are corresponding to one of the latest block in chain
+    Provides information about about the starting point of the synchronization process.
+    Recommendation:
+    To process orders as soon as possible, it is recommended to ensure that your node
+    is fully synced and that the slot with the corresponding hash corresponds
+    to one of the latest blocks in the chain.
   -}
   eventSourceConfig =
     { startAt =
@@ -41,16 +42,25 @@ in
 
   {- 
     Network configuration.
-    (Use only if mainnetMode == False, otherwise leave it unchanged)
-    Provides information about network magic id
+
+    This configuration provides details about the network magic ID.
+    The network magic ID is a unique identifier specific to the network you are connected to.
+    It plays a crucial role in ensuring compatibility and synchronization between nodes.
+
+    Please note that this information is applicable only when the mainnetMode is set to False.
+    In mainnet mode, the network magic ID is not utilized.
   -}
   networkConfig = 
       { cardanoNetworkId = 2
       },
 
   {- 
-    Ledger store (responsible for persisting blocks) configuration.
-    Provides information about ledger store path.
+    Ledger store configuration.
+
+    The ledger store configuration manages the persistence of blocks in the system.
+    It is responsible for storing blocks in a durable manner.
+
+    The ledger store path specifies the directory or file path where the blocks are persisted.
   -}
   ledgerStoreConfig =
     { storePath       = "./data/amm-executor"
@@ -58,14 +68,18 @@ in
     },
 
   {- 
-    Main configuration file of connected node.
-    Necessary for correct transaction fee estimation
+    The main configuration file of the connected node is crucial for obtaining important
+    information about network parameters. It serves as a central source for accessing
+    various network-related settings and details.
   -}
   nodeConfigPath = "/root/cardano-vasil-docker/config/preview/config.json",
 
   {- 
-    Pool store (responsible for persisting pools) configuration.
-    Provides information about pool store path.
+    The pool store configuration manages the persistence of pools in the system.
+    It is responsible for storing and managing information related to pools,
+    including pool updates.
+    This configuration provides details about the pool store path, which specifies
+    the location where the pool-related data is stored on the system.
   -}
   pstoreConfig =
     { storePath       = "/path"
@@ -73,21 +87,21 @@ in
     },
 
   {- 
-    Backlog is a part of app that reponsible for orders execution.
-    Configuration below provide main orders parameters:
-     * orderLifetime - Time in picoseconds describing how long from 
-       current time order will be considered as ready for execution
-     * orderExecTime - Time in picoseconds describing how long from 
-       current time order will be rechecked for executed status. In
-       case if order was not executed - backlog will try to do it
-       once again
-     * suspendedPropability - Set probability level between execution
-       orders with some recoverable exceptions (e.g PriceTooHigh - 
-       situation when order couldn't be executed due to slippage
-       tollarance) and new orders parsed from network.
+   The backlog is an essential component of the application responsible for executing orders.
+   The configuration provided below specifies the main parameters related to order execution:
+     * orderLifetime - This parameter defines the duration in picoseconds during which an
+        order will be considered ready for execution, starting from the current time.
+     * orderExecTime - This parameter determines the duration in picoseconds for rechecking
+        the execution status of an order. If an order was not executed within this timeframe,
+        the backlog will attempt to execute it again.
+     * suspendedPropability - This parameter sets the probability level for executing orders
+        with recoverable exceptions, such as situations where the order couldn't be executed
+        due to slippage tolerance, known as PriceTooHigh error. The suspendedProbability
+        value represents the probability (in percentage) for executing new orders parsed from
+        the network.
        Example:
-         - suspendedPropability = 5
-           New orders will be execured with propability 95%
+         - If suspendedProbability is set to 5, new orders will be executed with a probability
+           of 95%.
   -}
   backlogConfig =
     { orderLifetime        = 10
@@ -96,8 +110,11 @@ in
     },
 
   {- 
-    Backlog store (responsible for persisting orders) configuration.
-    Provides information about backlog store path.
+    The backlog store configuration is responsible for persisting orders in the system.
+    It ensures that orders are stored and managed reliably.
+
+    This configuration provides details about the backlog store path,
+    which specifies the location where the order-related data is stored on the system.
   -}
   backlogStoreConfig =
     { storePath       = "/path"
@@ -106,18 +123,23 @@ in
 
   {- 
     Explorer configuration.
-    If you would like change to your own be sure that resources provide
-    the same api as github.com/spectrum-finance/cardano-explorer-backend
+
+    It is important to note that the API compatibility is crucial for seamless integration
+    of the explorer. Be ensure that the resources you utilize offer the same API endpoints
+    as Spectrum-finance explorer, if you want to change original uri
   -}
   explorerConfig =
     { explorerUri = "https://testnet-api.quickblue.io"
     },
 
-  {- 
-    Transaction reference inputs information.
-    There is necessary to provide refs for outputs with off-chain services because 
-    off-chain service use CIP-31 (https://cips.cardano.org/cips/cip31/). If you 
-    don't want to deploy your one outputs do not change this configuration
+  {-
+    Transaction reference inputs provide essential information regarding references to outputs
+     when using off-chain services. These references are necessary because off-chain service
+     adhere to the CIP-31 standard (Cardano Improvement Proposal 31, available at
+     https://cips.cardano.org/cips/cip31/).
+
+     If you do not intend to deploy your own outputs, it is recommended not to modify this
+     configuration.
   -}
   txsInsRefs =
     { swapRef = "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16#2"
@@ -162,8 +184,8 @@ in
     },
 
   {- 
-    Utxo store (responsible for persisting utxos of bot's wallet) configuration.
-    Provides information about utxo store path.
+    This configuration provides details about the UTXO store path, which specifies the location
+    where the UTXO data of the bot's wallet is stored on the system.
   -}
   utxoStoreConfig =
     { utxoStorePath   = "./path/to/utxoStore"
@@ -171,8 +193,13 @@ in
     },
 
   {- 
-    Pool actions configuration.
-    Provides information about approximately order transation fee
+    The Pool actions configuration provides information about the approximate transaction fee
+    that users, rather than the bot executor, will incur. This fee specifically relates
+    to the Cardano network transaction fee and is not associated with execution rewards.
+
+    This value was derived from practical experience, so it is advisable not to modify it
+    unless you are confident that the actual transaction fee is higher than the value specified
+    in this configuration.
   -}
   poolActionsConfig =
     { safeTxFeeLovalace = +300000
