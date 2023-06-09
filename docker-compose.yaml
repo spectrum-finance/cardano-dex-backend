@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
   cardano-node:
-    image: inputoutput/cardano-node:1.35.3
+    image: inputoutput/cardano-node:1.35.7
     volumes:
       - cardano-node-db:/data/db
       - cardano-node-ipc:/ipc
@@ -33,7 +33,7 @@ services:
       - ./config/preview:/var/cardano/config
       - /home/bromel/projects/cardano-dex-backend/wallet1TS.json:/etc/wallet1TS.json
       - ./scripts:/scripts
-      - ./config/spectrum/dcSpectrumConfig.dhall:/etc/appConfig.dhall
+      - ./dcConfigs/dcSpectrumConfig.dhall:/etc/appConfig.dhall
       - cardano-node-ipc:/ipc
     restart: on-failure
     depends_on:

@@ -6,3 +6,7 @@ cradle:
       component: "amm-executor:exe:amm-executor-app"
     - path: "./amm-executor/test"
       component: "amm-executor:test:amm-executor-test"
+    - path: "./wallet-helper/src"
+      component: "wallet-helper:lib:wallet-helper"
+    - path: "./wallet-helper/app"
+      component: "wallet-helper:exe:wallet-helper-app"
