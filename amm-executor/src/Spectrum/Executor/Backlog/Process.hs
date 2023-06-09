@@ -35,11 +35,13 @@ mkBacklog
      )
   => BacklogService m
   -> ReadTopic s m (OrderInState 'Pending)
+  -> ReadTopic s m (OrderInState 'Pending)
   -> ReadTopic s m (OrderInState 'Eliminated)
   -> Backlog s m
-mkBacklog backlogService pending eliminated =
+mkBacklog backlogService pendingM pendingL eliminated =
   Backlog $
-    S.parallel (trackPendingOrdersUpdates backlogService pending)
+    S.parallel (trackPendingOrdersUpdates backlogService pendingL) $
+    S.parallel (trackPendingOrdersUpdates backlogService pendingM)
     (trackEliminatedOrdersUpdates backlogService eliminated)
 
 trackPendingOrdersUpdates

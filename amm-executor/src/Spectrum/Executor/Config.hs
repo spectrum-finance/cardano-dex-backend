@@ -1,6 +1,5 @@
 module Spectrum.Executor.Config
   ( AppConfig(..)
-  , TxSubmitConfig(..)
   , NetworkConfig(..)
   , Secrets(..)
   , TxRefs(..)
@@ -32,9 +31,7 @@ import Cardano.Api.Shelley
   ( TxIn )
 
 import Spectrum.LedgerSync.Config
-  ( LedgerSyncConfig )
-import Spectrum.EventSource.Types
-  ( ConcretePoint )
+  ( NodeSocketConfig )
 import Spectrum.EventSource.Persistence.Config
   ( LedgerStoreConfig )
 import Spectrum.Executor.PoolTracker.Persistence.Config
@@ -60,10 +57,6 @@ import ErgoDex.Amm.PoolActions
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
-  } deriving (Generic, FromDhall)
-
-data TxSubmitConfig = TxSubmitConfig
-  { nodeSocketPath :: !FilePath
   } deriving (Generic, FromDhall)
 
 data TxRefs = TxRefs
@@ -94,19 +87,18 @@ data Secrets = Secrets
   } deriving (Generic, FromDhall)
 
 data AppConfig = AppConfig
-  { ledgerSyncConfig   :: !LedgerSyncConfig
+  { nodeSocketConfig   :: !NodeSocketConfig
   , eventSourceConfig  :: !EventSourceConfig
   , ledgerStoreConfig  :: !LedgerStoreConfig
   , nodeConfigPath     :: !FilePath
   , txsInsRefs         :: !TxRefs
-  , scriptsConfig       :: !ScriptsConfig
+  , scriptsConfig      :: !ScriptsConfig
   , networkConfig      :: !NetworkConfig
   , loggingConfig      :: !LoggingConfig
   , pstoreConfig       :: !PoolStoreConfig
   , backlogConfig      :: !BacklogServiceConfig
   , backlogStoreConfig :: !BacklogStoreConfig
   , explorerConfig     :: !ExplorerConfig
-  , txSubmitConfig     :: !TxSubmitConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
   , secrets            :: !Secrets
   , mainnetMode        :: !Bool

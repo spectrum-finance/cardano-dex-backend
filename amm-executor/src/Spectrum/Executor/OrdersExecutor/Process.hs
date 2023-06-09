@@ -17,14 +17,15 @@ import Control.Monad.Catch
   ( MonadThrow, SomeException, MonadCatch, catches, Handler (Handler) )
 
 import System.Logging.Hlog
-  ( MakeLogging (MakeLogging, forComponent), Logging (Logging, infoM) )
-
+  ( MakeLogging (MakeLogging, forComponent), Logging (Logging, debugM, debugM) )
 import CardanoTx.Models
   ( TxCandidate, fullTxOutDatum, fullTxOutRef, FullTxOut (FullTxOut) )
 import qualified CardanoTx.Interop as Interop
 import Cardano.Api
   ( Tx )
 import Ouroboros.Network.Subscription.PeerState ()
+import Ledger 
+  ( TxOutRef(txOutRefId) )
 
 import qualified ErgoDex.Amm.Orders as Core
 import qualified ErgoDex.Amm.Pool   as Core
@@ -68,6 +69,7 @@ import RIO.Text (isInfixOf)
 import Data.Text (pack)
 import Control.Concurrent (threadDelay)
 import Data.Aeson (encode)
+import qualified System.Logging.Hlog as Trace
 
 newtype OrdersExecutor s m = OrdersExecutor
   { run :: s m ()
@@ -82,24 +84,22 @@ mkOrdersExecutor
     , HasType (MakeLogging f m) env
     , HasType TxRefs env, MonadCatch m)
   => BacklogService m
-  -> QSem
   -> Transactions m era
   -> Explorer m
   -> PoolResolver m
   -> PoolActions
   -> f (OrdersExecutor s m)
-mkOrdersExecutor backlog syncSem transactions explorer resolver poolActions = do
+mkOrdersExecutor backlog transactions explorer resolver poolActions = do
   MakeLogging{..} <- askContext
   txRefsCfg       <- askContext
   logging         <- forComponent "OrdersExecutor"
   pure $ OrdersExecutor
-    { run = run' logging syncSem txRefsCfg backlog transactions explorer resolver poolActions
+    { run = run' logging txRefsCfg backlog transactions explorer resolver poolActions
     }
 
 run'
   :: forall s m era. (IsStream s, MonadAsync m, MonadUnliftIO m, MonadCatch m)
   => Logging m
-  -> QSem
   -> TxRefs
   -> BacklogService m
   -> Transactions m era
@@ -107,8 +107,8 @@ run'
   -> PoolResolver m
   -> PoolActions
   -> s m ()
-run' logging@Logging{..} syncSem txRefs backlog@BacklogService{..} txs explorer resolver poolActions =
-    S.before (liftIO $ waitQSem syncSem) $ S.repeatM tryAcquire & S.mapM (\case
+run' logging@Logging{..} txRefs backlog@BacklogService{..} txs explorer resolver poolActions =
+    S.repeatM tryAcquire & S.mapM (\case
       Just orderWithCreationTime ->
         infoM ("Going to execute order for pool" ++ show orderWithCreationTime) >>
           execute' logging txRefs backlog txs explorer resolver poolActions orderWithCreationTime
@@ -140,17 +140,13 @@ execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs explorer
     ]
 
 processOrderExecutionException :: Monad m => Logging m -> BacklogService m -> SomeException -> Order -> UTCTime -> m ()
-processOrderExecutionException Logging{..} BacklogService{suspend, drop} executionError order@(OnChain FullTxOut{..} _) orderTime =
-  let
-    orderTxId  = Interop.toCardanoTxIn fullTxOutRef
-    errMsgText = pack (show executionError)
-  in if isInfixOf "BadInputsUTxO" errMsgText && not (pack (show orderTxId) `isInfixOf` errMsgText)
-       then
-         suspend (SuspendedOrder order orderTime) >>
-           infoM ("Got BadInputsUTxO error during order (" ++ show order ++ ") execution without orderId. " ++ show errMsgText ++ ". Going to suspend order")
-       else
-         drop (orderId order) >>
-           infoM ("Got error during order (" ++ show order ++ ") " ++ show errMsgText ++ ". Going to drop order")
+processOrderExecutionException Logging{..} BacklogService{suspend, drop} executionError order@(OnChain FullTxOut{..} _) orderTime = do
+   let errMsgText = pack (show executionError)
+   if isInfixOf "BadInputsUTxO" errMsgText && not (pack (show (txOutRefId fullTxOutRef)) `isInfixOf` errMsgText)
+     then
+       suspend (SuspendedOrder order orderTime) >>
+         infoM ("Got BadInputsUTxO error during order (" ++ show order ++ ") execution without orderId (" ++ show (txOutRefId fullTxOutRef) ++ "). " ++ show errMsgText ++ ". Going to suspend order")
+     else drop (orderId order) >> infoM ("Got error during order (" ++ show order ++ ") " ++ show errMsgText ++ ". Going to drop order")
            
 executeOrder'
   :: (Monad m, MonadThrow m)
@@ -178,7 +174,7 @@ executeOrder'
 
     pool@(OnChain prevPoolOut Core.Pool{poolId}) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
     (txCandidate, Predicted _ predictedPool)     <- runOrder txRefs explorer pool order poolActions
-    infoM ("txCandidate: " ++ show (encode txCandidate))
+    debugM ("txCandidate: " ++ show (encode txCandidate))
     tx    <- finalizeTx txCandidate
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
     let
@@ -186,6 +182,7 @@ executeOrder'
         { tracedState  = State.Predicted (OnChain pPool predictedPool)
         , prevTxOutRef = fullTxOutRef prevPoolOut
         }
+    debugM (show tx)
     _ <- submitTx tx
     putPool tracedPredictedPool
     _ <- checkLater (InProgressOrder order executionStartTime)

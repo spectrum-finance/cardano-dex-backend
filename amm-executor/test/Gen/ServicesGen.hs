@@ -157,7 +157,6 @@ makeMockTransactions explorer = do
 
 mkMockOrdersExecutor :: [Spectrum.Order] -> BacklogService IO -> PoolResolver IO -> Explorer IO -> IO (OrdersExecutor SerialT IO)
 mkMockOrdersExecutor orders backlogService poolResolver explorer = do
-  syncSem <- newQSem 1
   let
       keyPass = KeyPass "testKeyPass"
       tsStore = mkMockTrustStore
@@ -170,7 +169,7 @@ mkMockOrdersExecutor orders backlogService poolResolver explorer = do
     poolActionsCfg = PoolActionsConfig 250000
     poolActions    = mkPoolActions poolActionsCfg (PaymentPubKeyHash executorPkh) validators
 
-  mkOrdersExecutor @IO @IO @SerialT @TestEnv @C.BabbageEra backlogService syncSem transactions explorer poolResolver poolActions
+  mkOrdersExecutor @IO @IO @SerialT @TestEnv @C.BabbageEra backlogService transactions explorer poolResolver poolActions
 
 mkTestExplorer :: forall f. (MonadIO f) => FullTxOut -> Map.Map TxOutRef FullTxOut -> Explorer f
 mkTestExplorer executorOutput refMap = Explorer

@@ -2,6 +2,7 @@ index-state: 2022-04-06T00:00:00Z
 
 packages:
   amm-executor
+  wallet-helper
 
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
@@ -333,7 +334,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/ergolabs/cardano-dex-sdk-haskell
-  tag: 9df1dbb11df27ec26aba01cda0a4e2b2bbd4fdc3
+  tag: fcac32d65975b53b2421f67254355765860a4e4b
   subdir:
     cardano-tx
     ergo-hs-common
