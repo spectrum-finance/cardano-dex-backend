@@ -154,7 +154,8 @@ import Spectrum.Executor.Scripts
   ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidators )
 
 data Env f m = Env
-  { nodeSocketConfig   :: !NodeSocketConfig
+  { mainnetMode        :: !Bool
+  , nodeSocketConfig   :: !NodeSocketConfig
   , eventSourceConfig  :: !EventSourceConfig
   , lederHistoryConfig :: !LedgerStoreConfig
   , pstoreConfig       :: !PoolStoreConfig
@@ -199,6 +200,7 @@ runApp args = do
         else C.Testnet (C.NetworkMagic (fromIntegral $ cardanoNetworkId networkConfig))
     env =
       Env
+        mainnetMode
         nodeSocketConfig
         eventSourceConfig
         ledgerStoreConfig
@@ -263,8 +265,8 @@ wireApp = interceptSigTerm >> do
   poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
   let
     poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging scriptsValidators
-    newOrdersHan  = mkPendingOrdersHandler newOrdersWr syncSem pendingOrdersLogging backlogConfig networkParams
-    newMOrdersHan = mkMempoolPendingOrdersHandler newOrdersMWr pendingOrdersLogging backlogConfig networkParams
+    newOrdersHan  = mkPendingOrdersHandler newOrdersWr syncSem pendingOrdersLogging mainnetMode backlogConfig networkParams
+    newMOrdersHan = mkMempoolPendingOrdersHandler newOrdersMWr pendingOrdersLogging mainnetMode backlogConfig networkParams
     execOrdersHan = mkEliminatedOrdersHandler backlogStore backlogConfig networkParams elimOrdersWr
     lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
     msink         = mkEventSink [newMOrdersHan] voidEventHandler

@@ -1,5 +1,6 @@
 let FeePolicy = < Strict | Balance >
 let CollateralPolicy = < Ignore | Cover >
+let Network = < Mainnet | Preview >
 
 let LogLevel = < Info | Error | Warn | Debug >
 let format = "$time - $loggername - $prio - $msg" : Text
@@ -56,6 +57,7 @@ in
     }
 , explorerConfig =
     { explorerUri = "https://explorer.spectrum.fi"
+    , network     = Network.Preview
     }
 , txAssemblyConfig =
     { feePolicy         = FeePolicy.Balance

@@ -8,6 +8,8 @@ import RIO
   ( (<&>), MonadIO (liftIO), foldM, QSem, signalQSem, catMaybes )
 import RIO.Time
   ( getCurrentTime, secondsToNominalDiffTime, addUTCTime, diffUTCTime )
+import Data.Time.Clock.POSIX
+  ( posixSecondsToUTCTime )
 
 import qualified Ledger as P
 import qualified Data.Set as Set
@@ -53,15 +55,19 @@ mkPendingOrdersHandler
   => WriteTopic m (OrderInState 'Pending)
   -> QSem
   -> Logging m
+  -> Bool
   -> BacklogServiceConfig
   -> NetworkParameters
   -> EventHandler m 'LedgerCtx
-mkPendingOrdersHandler WriteTopic{..} syncSem logging@Logging{..} BacklogServiceConfig{..} NetworkParameters{..} = \case
+mkPendingOrdersHandler WriteTopic{..} syncSem logging@Logging{..} mainnetMode BacklogServiceConfig{..} NetworkParameters{..} = \case
   AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) -> do
     currentTime <- getCurrentTime
     let
-       slotsTime = secondsToNominalDiffTime . fromIntegral $ unSlotNo slotNo
-       txTime    = addUTCTime slotsTime (getSystemStart systemStart)
+       slotsTime = fromIntegral $ unSlotNo slotNo
+       txTime    = 
+         if mainnetMode
+           then posixSecondsToUTCTime $ secondsToNominalDiffTime (1591566291 + slotsTime)
+           else addUTCTime (secondsToNominalDiffTime slotsTime) (getSystemStart systemStart)
     if diffUTCTime currentTime txTime > orderLifetime
       then infoM ("Tx is outdated : " ++ show txId) >> pure Nothing
       else infoM ("Processing ledger tx:" ++ show txId) >> liftIO (signalQSem syncSem) >> ((parseOrder logging `traverse` txOutputs) <&> filterExecuted . catMaybes) >>= foldM (process txTime) Nothing
@@ -75,15 +81,19 @@ mkMempoolPendingOrdersHandler
   :: MonadIO m
   => WriteTopic m (OrderInState 'Pending)
   -> Logging m
+  -> Bool
   -> BacklogServiceConfig
   -> NetworkParameters
   -> EventHandler m 'MempoolCtx
-mkMempoolPendingOrdersHandler WriteTopic{..} logging@Logging{..} BacklogServiceConfig{..} NetworkParameters{..} = \case
+mkMempoolPendingOrdersHandler WriteTopic{..} logging@Logging{..} mainnetMode BacklogServiceConfig{..} NetworkParameters{..} = \case
   PendingTx (MinimalMempoolTx MinimalUnconfirmedTx{..}) -> do
     debugM ("Processing mempool tx:" ++ show txId)
     let
-       slotsTime = secondsToNominalDiffTime . fromIntegral $ unSlotNo slotNo
-       txTime    = addUTCTime slotsTime (getSystemStart systemStart)
+       slotsTime = fromIntegral $ unSlotNo slotNo
+       txTime    = 
+         if mainnetMode
+           then posixSecondsToUTCTime $ secondsToNominalDiffTime (1591566291 + slotsTime)
+           else addUTCTime (secondsToNominalDiffTime slotsTime) (getSystemStart systemStart)
     (parseOrder logging `traverse` txOutputs) >>= foldM (process txTime) Nothing
       where
         process oTime _ ordM = mapM publish (ordM <&> flip PendingOrder oTime)
