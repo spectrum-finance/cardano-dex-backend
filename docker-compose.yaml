@@ -31,7 +31,7 @@ services:
     volumes:
       - spectrum-backend-volume:/data
       - ./config/preview:/var/cardano/config
-      - /home/bromel/projects/cardano-dex-backend/wallet1TS.json:/etc/wallet1TS.json
+      - ${PWD}/myKeys/cypher.json
       - ./scripts:/scripts
       - ./dcConfigs/dcSpectrumConfig.dhall:/etc/appConfig.dhall
       - cardano-node-ipc:/ipc
