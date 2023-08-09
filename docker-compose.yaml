@@ -27,11 +27,11 @@ services:
         max-size: "200k"
         max-file: "10"
   spectrum-cardano-backend:
-    image: spectrumlabs/spectrum-cardano-backend:0.0.1
+    image: spectrumlabs/spectrum-cardano-backend:1.0.0
     volumes:
       - spectrum-backend-volume:/data
       - ./config/preview:/var/cardano/config
-      - /home/bromel/projects/cardano-dex-backend/wallet1TS.json:/etc/wallet1TS.json
+      - ${PWD}/myKeys/cypher.json:/etc/wallet1TS.json
       - ./scripts:/scripts
       - ./dcConfigs/dcSpectrumConfig.dhall:/etc/appConfig.dhall
       - cardano-node-ipc:/ipc
