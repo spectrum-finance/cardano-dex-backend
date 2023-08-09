@@ -6,12 +6,12 @@ services:
     volumes:
       - cardano-node-db:/data/db
       - cardano-node-ipc:/ipc
-      - ./config/preview:/var/cardano/config
+      - ./config:/config
     restart: on-failure
     command:
       - "run"
-      - "--config /var/cardano/config/config.json"
-      - "--topology /var/cardano/config/topology.json"
+      - "--config /config/mainnet-config.json"
+      - "--topology /config/mainnet-topology.json"
       - "--database-path /data/db"
       - "--socket-path /ipc/node.socket"
     healthcheck:
@@ -30,7 +30,7 @@ services:
     image: spectrumlabs/spectrum-cardano-backend:1.0.0
     volumes:
       - spectrum-backend-volume:/data
-      - ./config/preview:/var/cardano/config
+      - ./config/mainnet:/config
       - ${PWD}/myKeys/cypher.json:/etc/wallet1TS.json
       - ./scripts:/scripts
       - ./dcConfigs/dcSpectrumConfig.dhall:/etc/appConfig.dhall
