@@ -81,7 +81,7 @@ genPool = do
   poolFee        <- genPoolFee
   let outCollateral  = 1000000000
 
-  pure $ Pool poolId poolReservesX poolReservesY poolLiquidity poolCoinX poolCoinY poolCoinLq poolFee outCollateral
+  pure $ Pool poolId poolReservesX poolReservesY poolLiquidity poolCoinX poolCoinY poolCoinLq poolFee outCollateral [] 0 Nothing
 
 genTokenName :: (MonadGen f) => f TokenName
 genTokenName = genBuiltinByteString 10 <&> TokenName
@@ -139,7 +139,7 @@ genPoolTxOut pValidator Pool{..} = do
       , coinAmountValue (Coin (unCoin . unPoolId $ poolId)) 1
       ]
     address = PV2.mkValidatorAddress pValidator
-    poolConfig = PoolConfig (unCoin . unPoolId $ poolId) (unCoin poolCoinX) (unCoin poolCoinY) (unCoin poolCoinLq) (poolFeeNum' poolFee)
+    poolConfig = PoolConfig (unCoin . unPoolId $ poolId) (unCoin poolCoinX) (unCoin poolCoinY) (unCoin poolCoinLq) (poolFeeNum' poolFee) [] 0
     datum   = KnownDatum (Datum (toBuiltinData poolConfig))
     txOutIndex = 2
   txId <- genTxId

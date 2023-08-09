@@ -29,5 +29,4 @@ data/
 backlogStore/
 psStore/
 wallet1TS.json
-config/
 .idea/

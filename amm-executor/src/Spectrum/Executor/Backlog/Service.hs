@@ -14,7 +14,7 @@ import Control.Monad.IO.Class
 import System.Random
   ( randomRIO )
 import RIO
-  ( (<&>), atomicModifyIORef, modifyIORef', newIORef, IORef, MonadReader )
+  ( (<&>), modifyIORef', newIORef, IORef, MonadReader, atomicModifyIORef', readIORef )
 import RIO.Time
   ( getCurrentTime, diffUTCTime )
 
@@ -52,7 +52,6 @@ data BacklogService m = BacklogService
 mkBacklogService
   :: forall f m env.
     ( MonadIO f
-    , MonadResource f
     , MonadUnliftIO m
     , LiftK m f
     , MonadReader env f
@@ -73,7 +72,7 @@ mkBacklogService'
   -> BacklogStore m
   -> f (BacklogService m)
 mkBacklogService' MakeLogging{..} config store@BacklogStore{..} = do
-  logging@Logging{..} <- forComponent "BacklogService"
+  logging@Logging{..} <- forComponent "Bots.BacklogService"
   -- those queues should be shared with Backlog.Proceess (to make live updates). So maybe worth extracting them into separate module. e.g. BacklogStore
   pendingPQ   <- newIORef PQ.empty  -- ordered by weight; new orders
   suspendedPQ <- newIORef PQ.empty  -- ordered by weight; failed orders, waiting for retry (retries are performed with some constant probability, e.g. 5%) 
@@ -97,7 +96,7 @@ mkBacklogService' MakeLogging{..} config store@BacklogStore{..} = do
           else pure False
     , tryAcquire = do
         revisitOrders config store pendingPQ toRevisitQ
-        getMaxWeightedOrder' config store pendingPQ suspendedPQ
+        getMaxWeightedOrder' config store logging pendingPQ suspendedPQ
     , drop = dropOrder
     }
 
@@ -111,7 +110,7 @@ revisitOrders
 revisitOrders BacklogServiceConfig{..} BacklogStore{..} pendingQueueRef toRevisitSeqRef = do
   currentTime       <- getCurrentTime
   revisited2process <-
-    atomicModifyIORef
+    atomicModifyIORef'
       toRevisitSeqRef
       (Seq.spanl (\(WeightedOrder _ _ oTime) -> diffUTCTime currentTime oTime < orderExecTime))
   mapM_ (\order@(WeightedOrder oId _ oTime) ->
@@ -124,31 +123,37 @@ getMaxWeightedOrder'
   :: forall m. (MonadIO m)
   => BacklogServiceConfig
   -> BacklogStore m
+  -> Logging m
   -> IORef (PQ.MaxQueue WeightedOrder)
   -> IORef (PQ.MaxQueue WeightedOrder)
   -> m (Maybe OrderWithCreationTime)
-getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store pendingQueueRef suspendedQueueRef = do
+getMaxWeightedOrder' cfg@BacklogServiceConfig{..} store l@Logging{..} pendingQueueRef suspendedQueueRef = do
   randomInt <- randomRIO (1, 100) :: m Int
   if randomInt > naturalToInt suspendedPropability
-    then getMaxOrderFromQueue cfg store pendingQueueRef
-    else getMaxOrderFromQueue cfg store suspendedQueueRef
+    then (infoM @String "Going to get from pending") >> getMaxOrderFromQueue cfg store l pendingQueueRef
+    else (infoM @String "Going to get from suspended") >> getMaxOrderFromQueue cfg store l suspendedQueueRef
 
 getMaxOrderFromQueue
   :: MonadIO m
   => BacklogServiceConfig
   -> BacklogStore m
+  -> Logging m
   -> IORef (PQ.MaxQueue WeightedOrder)
   -> m (Maybe OrderWithCreationTime)
-getMaxOrderFromQueue cfg@BacklogServiceConfig{..} store@BacklogStore{..} queueRef = do
+getMaxOrderFromQueue cfg@BacklogServiceConfig{..} store@BacklogStore{..} l@Logging{..} queueRef = do
   currentTime <- getCurrentTime
-  wOrderM     <- atomicModifyIORef queueRef (\queue -> case PQ.maxView queue of
+  infoM $ "Current time: " ++ show currentTime
+  queue <- readIORef queueRef
+  infoM $ "Current queue: " ++ show queue
+  wOrderM     <- atomicModifyIORef' queueRef (\queue -> case PQ.maxView queue of
       Just (order, newQueue) -> (newQueue, Just order)
       Nothing -> (queue, Nothing)
     )
+  infoM $ "wOrderM: " ++ show wOrderM
   case wOrderM of
     Just (WeightedOrder oId _ oTime) -> do
       if diffUTCTime currentTime oTime > orderLifetime
-      then dropOrder oId >> getMaxOrderFromQueue cfg store queueRef
+      then infoM ("Order is outdated. OrderLifeTime: " ++ show orderLifetime ++ ". Diff between current:" ++ show (diffUTCTime currentTime oTime) ) >> dropOrder oId >> getMaxOrderFromQueue cfg store l queueRef
       else get oId <&> fmap (\order -> OrderWithCreationTime (backlogOrder order) oTime)
     Nothing -> pure Nothing
 
@@ -168,22 +173,22 @@ recover BacklogStore{..} BacklogServiceConfig{..} pendingQueueRef = do
     (\queue -> foldr (\BacklogOrder{..} -> PQ.insert (mkWeightedOrder backlogOrder orderTimestamp)) queue filteredOrders)
 
 attachLogging :: Monad m => Logging m -> BacklogService m -> BacklogService m
-attachLogging Logging{..} BacklogService{..}=
+attachLogging Logging{..} BacklogService{..} =
   BacklogService
     { put = \order -> do
-        debugM $ "put " <> show order
+        infoM $ "put " <> show order
         r <- put order
-        debugM $ "put " <> show order <> " -> " <> show r
+        infoM $ "put " <> show order <> " -> " <> show r
         pure r
     , suspend = \order -> do
-        debugM $ "suspend " <> show order
+        infoM $ "suspend " <> show order
         r <- suspend order
-        debugM $ "suspend " <> show order <> " -> " <> show r
+        infoM $ "suspend " <> show order <> " -> " <> show r
         pure r
     , checkLater = \order -> do
-        debugM $ "checkLater " <> show order
+        infoM $ "checkLater " <> show order
         r <- checkLater order
-        debugM $ "checkLater " <> show order <> " -> " <> show r
+        infoM $ "checkLater " <> show order <> " -> " <> show r
         pure r
     , tryAcquire = do
         debugM @String "tryAcquire"
@@ -191,8 +196,8 @@ attachLogging Logging{..} BacklogService{..}=
         debugM $ "tryAcquire -> " <> show r
         pure r
     , drop = \orderId -> do
-        debugM $ "drop " <> show orderId
+        infoM $ "drop " <> show orderId
         r <- drop orderId
-        debugM $ "drop " <> show orderId <> " -> " <> show r
+        infoM $ "drop " <> show orderId <> " -> " <> show r
         pure r
     }

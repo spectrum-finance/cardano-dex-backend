@@ -1,10 +1,11 @@
 module Spectrum.Executor.PoolTracker.Persistence.Pools
   ( Pools(..)
   , mkPools
+  , mkNonPersistentPools
   ) where
 
 import RIO
-  ( IsString(fromString), ByteString )
+  ( IsString(fromString), ByteString, newIORef, readIORef, (<&>), atomicModifyIORef' )
 
 import qualified Database.RocksDB as Rocks
 
@@ -21,6 +22,7 @@ import Control.Monad.Trans.Resource
   ( MonadResource )
 import Control.Monad.Catch
   ( MonadThrow )
+import Data.Map as Map
 
 import qualified ErgoDex.Amm.Pool as Core
 import ErgoDex.State
@@ -37,6 +39,7 @@ import Spectrum.Common.Persistence.Serialization
   ( serialize, deserializeM )
 import Spectrum.Prelude.Context
   ( MonadReader, HasType, askContext )
+import GHC.IORef (IORef(IORef))
 
 data Pools m = Pools
   { getPrediction      :: PoolStateId -> m (Maybe (Traced (Predicted Pool)))
@@ -48,6 +51,83 @@ data Pools m = Pools
   , putUnconfirmed     :: Unconfirmed Pool -> m ()
   , invalidate         :: PoolId -> PoolStateId -> m ()
   }
+
+mkNonPersistentPools
+  :: forall f m env.
+    ( MonadIO f
+    , MonadIO m
+    , MonadThrow m
+    , MonadReader env f
+    , HasType (MakeLogging f m) env
+    , HasType PoolStoreConfig env
+    )
+  => f (Pools m)
+mkNonPersistentPools = do
+  PoolStoreConfig{..} <- askContext
+  MakeLogging{..}     <- askContext
+
+  refMap <- newIORef empty :: f (IORef (Map.Map ByteString ByteString))
+
+  logging <- forComponent "Bots.Pools"
+  -- (_, db) <- Rocks.openBracket storePath
+  --             Rocks.defaultOptions
+  --               { Rocks.createIfMissing = createIfMissing
+  --               }
+  let
+    -- get :: k -> m (Maybe a)
+    get :: FromJSON a => ByteString -> m (Maybe a)
+    get = \key -> readIORef refMap <&> Map.lookup key >>= (\elem -> deserializeM `traverse` elem)
+    put = \key value -> atomicModifyIORef' refMap (\storageMap -> (Map.insert key value storageMap, ()))
+    delete = \key -> atomicModifyIORef' refMap (\storageMap -> (Map.delete key storageMap, ()))
+  pure $ attachLogging logging Pools
+    { getPrediction      = get . mkPredictedKey
+    , getLastPredicted   = get . mkLastPredictedKey
+    , getLastConfirmed   = get . mkLastConfirmedKey
+    , getLastUnconfirmed = get . mkLastUnconfirmedKey
+
+    , putPredicted =
+        \tpp@(Traced pp@(Predicted pool@(OnChain _ Core.Pool{poolId})) _) -> do
+          put (mkPredictedKey $ poolStateId pool) (serialize tpp)
+          put (mkLastPredictedKey poolId) (serialize pp)
+
+    , putConfirmed =
+        \cp@(Confirmed pool@(OnChain _ Core.Pool{poolId})) -> do
+          currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ poolId
+          put (mkPrevConfirmedKey $ poolStateId pool) (serialize currentLastConfirmed)
+          put (mkLastConfirmedKey poolId) (serialize cp)
+
+    , putUnconfirmed =
+        \up@(Unconfirmed (OnChain _ Core.Pool{poolId})) ->
+          put (mkLastUnconfirmedKey poolId) (serialize up)
+
+    , invalidate = \pid sid -> do
+        predM <- get @(Predicted Pool) $ mkLastPredictedKey pid
+        mapM_
+          (\((Predicted pool)) ->
+            if poolStateId pool == sid
+              then delete (mkPredictedKey sid) >> delete (mkLastPredictedKey pid)
+              else pure () )
+          predM
+        unconfirmedM <- get @(Unconfirmed Pool) $ mkLastUnconfirmedKey pid
+        mapM_
+          (\((Unconfirmed pool)) ->
+            if poolStateId pool == sid
+              then delete $ mkLastUnconfirmedKey pid
+              else pure () )
+          unconfirmedM
+        confirmedM <- get @(Confirmed Pool) $ mkLastConfirmedKey pid
+        mapM_ (\(Confirmed pool) ->
+          if poolStateId pool == sid
+          then do
+            prevConfPoolM <- get @(Confirmed Pool) $ mkPrevConfirmedKey sid
+            case prevConfPoolM of
+              Just prevConfirmedPool ->
+                delete (mkPrevConfirmedKey sid) >>
+                put (mkLastConfirmedKey pid) (serialize prevConfirmedPool)
+              Nothing ->
+                delete (mkLastConfirmedKey pid)
+          else pure () ) confirmedM
+    }
 
 mkPools
   :: forall f m env.
@@ -63,8 +143,8 @@ mkPools
 mkPools = do
   PoolStoreConfig{..} <- askContext
   MakeLogging{..}     <- askContext
-  
-  logging <- forComponent "Pools"
+
+  logging <- forComponent "Bots.Pools"
   (_, db) <- Rocks.openBracket storePath
               Rocks.defaultOptions
                 { Rocks.createIfMissing = createIfMissing

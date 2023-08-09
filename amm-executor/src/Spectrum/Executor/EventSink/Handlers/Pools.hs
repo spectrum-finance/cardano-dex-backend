@@ -29,9 +29,8 @@ import ErgoDex.State
   ( OnChain )
 import ErgoDex.Amm.Pool
   ( Pool )
-import Plutus.Script.Utils.V2.Address
-  ( mkValidatorAddress )
 import Spectrum.Executor.Scripts (ScriptsValidators (..))
+import Plutus.V2.Ledger.Api (addressCredential)
 
 mkNewPoolsHandler
   :: MonadIO m
@@ -39,18 +38,17 @@ mkNewPoolsHandler
   -> Logging m
   -> ScriptsValidators
   -> EventHandler m 'LedgerCtx
-mkNewPoolsHandler WriteTopic{..} log@Logging{..} validators = \case
+mkNewPoolsHandler WriteTopic{..} logging validators = \case
   AppliedTx (MinimalLedgerTx MinimalConfirmedTx{..}) ->
-    (parsePool log validators `traverse` txOutputs) >>= foldM process Nothing
+    (parsePool logging validators `traverse` txOutputs) >>= foldM process Nothing
       where process _ ordM = mapM publish $ ordM <&> NewPool
   _ -> pure Nothing
 
 parsePool :: (MonadIO m) => Logging m -> ScriptsValidators -> FullTxOut -> m (Maybe (Confirmed (OnChain Pool)))
-parsePool Logging{..} ScriptsValidators{poolValidator} out@FullTxOut{..} = do
+parsePool Logging{..} ScriptsValidators{poolAddress} out@FullTxOut{..} = do
   let
     pool        = parseFromLedger out
-    poolAddress = mkValidatorAddress poolValidator
-  if fullTxOutAddress == poolAddress
+  if addressCredential fullTxOutAddress == addressCredential poolAddress
     then case pool of
       Just a    -> do
         infoM ("Pool found in: " ++ show fullTxOutRef)

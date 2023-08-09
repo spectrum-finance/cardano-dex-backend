@@ -8,7 +8,7 @@ module Spectrum.Executor
   ) where
 
 import RIO
-  ( ReaderT (..), MonadReader (ask), MonadIO (liftIO), void, Alternative (..), MonadPlus (..), newQSem, QSem, waitQSem )
+  ( ReaderT (..), MonadReader (ask), MonadIO (liftIO), void, Alternative (..), MonadPlus (..), newQSem, QSem, waitQSem, runReaderT )
 import RIO.List
   ( headMaybe )
 
@@ -59,7 +59,8 @@ import qualified Control.Monad.Catch as MC
 import Control.Tracer
   ( stdoutTracer, Contravariant (contramap) )
 import System.Logging.Hlog
-  ( makeLogging, MakeLogging (forComponent), translateMakeLogging, Logging (infoM) )
+  ( makeLogging, MakeLogging (forComponent, MakeLogging), translateMakeLogging, Logging (..), Loggable (toLog), LoggingConfig )
+import qualified System.Log.Logger as SL (errorM, infoM, debugM, warningM)
 
 import Streamly.Prelude as S
   ( drain, parallel, mapM, SerialT, before, fromEffect )
@@ -78,7 +79,7 @@ import Crypto.Random.Types
 import NetworkAPI.Service
   ( mkCardanoNetwork )
 import SubmitAPI.Config
-  ( TxAssemblyConfig )
+  ( TxAssemblyConfig, UnsafeEvalConfig )
 import NetworkAPI.Types
   ( SocketPath(SocketPath) )
 import WalletAPI.TrustStore
@@ -86,9 +87,9 @@ import WalletAPI.TrustStore
 import WalletAPI.Vault
   ( Vault(getPaymentKeyHash), mkVault )
 import WalletAPI.Utxos
-  ( mkPersistentWalletOutputs )
+  ( mkPersistentWalletOutputs, mkWalletOutputs )
 import ErgoDex.Amm.PoolActions
-  ( mkPoolActions, PoolActionsConfig )
+  ( mkPoolActions )
 import Explorer.Service
   ( mkExplorer )
 import Explorer.Config
@@ -99,7 +100,7 @@ import SubmitAPI.Service
 import Spectrum.LedgerSync.Config
   ( NetworkParameters, NodeSocketConfig(..), parseNetworkParameters )
 import Spectrum.LedgerSync
-  ( mkLedgerSync )
+  ( mkLedgerSync, LedgerSync )
 import Cardano.Network.Protocol.NodeToClient.Trace
   ( encodeTraceClient )
 import Spectrum.EventSource.Stream
@@ -127,7 +128,7 @@ import Spectrum.Executor.EventSink.Handlers.Orders
 import Spectrum.Topic
   ( OneToOneTopic(OneToOneTopic), mkOneToOneTopic, mkNoopTopic )
 import Spectrum.Executor.PoolTracker.Persistence.Pools
-  ( mkPools )
+  ( mkPools, mkNonPersistentPools )
 import Spectrum.Executor.PoolTracker.Process as Tracker
   ( mkPoolTracker, run )
 import Spectrum.Executor.PoolTracker.Persistence.Config
@@ -145,15 +146,17 @@ import Spectrum.Executor.Backlog.Config
 import Spectrum.Executor.Backlog.Process as Backlog
   ( mkBacklog, run, Backlog (run) )
 import Spectrum.Executor.Backlog.Persistence.BacklogStore
-  ( mkBacklogStore )
+  ( mkBacklogStore, mkBacklogStoreNonPersist )
 import Data.Map (Map)
 import qualified Data.Map as Map
 import WalletAPI.UtxoStoreConfig
   ( UtxoStoreConfig )
 import Spectrum.Executor.Scripts
   ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidators )
+import Spectrum.Executor.OrdersExecutor.Service (mkOrdersExecutorService)
+import Spectrum.Executor.OrdersExecutor.RefInputs (mkRefInputs)
 
-data Env f m = Env
+data Env = Env
   { mainnetMode        :: !Bool
   , nodeSocketConfig   :: !NodeSocketConfig
   , eventSourceConfig  :: !EventSourceConfig
@@ -167,26 +170,26 @@ data Env f m = Env
   , explorerConfig     :: !ExplorerConfig
   , txAssemblyConfig   :: !TxAssemblyConfig
   , utxoStoreConfig    :: !UtxoStoreConfig
-  , poolActionsConfig  :: !PoolActionsConfig
   , secrets            :: !Secrets
-  , mkLogging          :: !(MakeLogging f m)
-  , mkLogging'         :: !(MakeLogging m m)
+  , mkLogging          :: !(MakeLogging F IO)
+  , mkLogging'         :: !(MakeLogging IO IO)
   , networkId          :: !C.NetworkId
+  , unsafeEval         :: !UnsafeEvalConfig
   } deriving stock (Generic)
 
+type F = ReaderT Env IO
+
 newtype App a = App
-  { unApp :: ReaderT (Env Wire App) IO a
+  { unApp :: F a
   } deriving newtype
     ( Functor, Applicative, Monad
-    , MonadReader (Env Wire App)
+    , MonadReader Env
     , MonadIO
     , MonadST
     , MonadThread, MonadFork
     , MonadThrow, MC.MonadThrow, MonadCatch, MC.MonadCatch, MonadMask, MC.MonadMask
     , MonadBase IO, MonadBaseControl IO, MonadUnliftIO
     )
-
-type Wire = ResourceT App
 
 runApp :: [String] -> IO ()
 runApp args = do
@@ -213,26 +216,26 @@ runApp args = do
         explorerConfig
         txAssemblyConfig
         utxoStoreConfig
-        poolActionsConfig
         secrets
-        (translateMakeLogging (lift . App . lift) mkLogging)
-        (translateMakeLogging (App . lift) mkLogging)
+        (translateMakeLogging liftIO mkLogging)
+        mkLogging
         networkId
-  runContext env (runResourceT wireApp)
+        unsafeEval
+  runContext env wireApp
 
-wireApp :: Wire ()
-wireApp = interceptSigTerm >> do
+wireApp :: App ()
+wireApp = App { unApp = interceptSigTerm >> do
   env@Env{..} <- ask
   let tr = contramap (toString . encode . encodeTraceClient) stdoutTracer
   syncSem <- liftIO $ newQSem 1
   liftIO $ waitQSem syncSem
-  lsync   <- lift $ mkLedgerSync (runContext env) tr
-  lsource <- mkLedgerEventSource lsync
+  lsync   <- lift $ mkLedgerSync id tr mkLogging' nodeSocketConfig networkParams
+  lsource <- mkLedgerEventSource lsync liftIO
   msource <- mkMempoolTxEventSource lsync
-  poolsHandlerTopic      <- forComponent mkLogging "poolsHandlerTopic"
-  newOrdersHandlerTopic  <- forComponent mkLogging "newOrdersHandlerTopic"
-  newOrdersMHandlerTopic <- forComponent mkLogging "newOrdersMHandlerTopic"
-  elimOrdersHandlerTopic <- forComponent mkLogging "elimOrdersHandlerTopic"
+  poolsHandlerTopic      <- forComponent mkLogging "Bots.poolsHandlerTopic"
+  newOrdersHandlerTopic  <- forComponent mkLogging "Bots.newOrdersHandlerTopic"
+  newOrdersMHandlerTopic <- forComponent mkLogging "Bots.newOrdersMHandlerTopic"
+  elimOrdersHandlerTopic <- forComponent mkLogging "Bots.elimOrdersHandlerTopic"
   OneToOneTopic newPoolsRd newPoolsWr     <- mkOneToOneTopic poolsHandlerTopic
   OneToOneTopic newOrdersRd newOrdersWr   <- mkOneToOneTopic newOrdersHandlerTopic
   OneToOneTopic newOrderMsRd newOrdersMWr <- mkOneToOneTopic newOrdersMHandlerTopic
@@ -240,33 +243,38 @@ wireApp = interceptSigTerm >> do
   explorer <- mkExplorer mkLogging explorerConfig
   let
     trustStore = mkTrustStore @_ @C.PaymentKey C.AsPaymentKey (secretFile secrets)
-    vault      = mkVault trustStore $ keyPass secrets
-  walletOutputs <- mkPersistentWalletOutputs lift mkLogging utxoStoreConfig explorer vault
+    vault      = mkVault trustStore $ keyPass secrets :: Vault IO
+  pkh <- lift $ getPaymentKeyHash vault
+  walletOutputs <- mkWalletOutputs mkLogging explorer pkh
   executorPkh   <- lift $ fmap fromCardanoPaymentKeyHash (getPaymentKeyHash vault)
   let sockPath = SocketPath $ nodeSocketPath nodeSocketConfig
   networkService <- mkCardanoNetwork mkLogging C.BabbageEra epochSlots networkId sockPath
-  backlogStore   <- mkBacklogStore
+  backlogStore   <- mkBacklogStoreNonPersist
   backlogService <- mkBacklogService backlogStore
-  pools          <- mkPools
+  pools          <- mkNonPersistentPools
   resolver       <- mkPoolResolver pools
 
-  scriptsValidators <- mkScriptsValidators scriptsConfig
+  scriptsValidators   <- mkScriptsValidators scriptsConfig
+  transactionsLogging <- forComponent mkLogging "Bots.Transactions"
   let
     validators      = scriptsValidators2AmmValidators scriptsValidators
     refScriptsMap   = mkRefScriptsMap txsInsRefs scriptsValidators
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
-    backlog         = mkBacklog backlogService newOrderMsRd newOrdersRd elimOrdersRd
-    transactions    = mkTransactions networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
-    poolActions     = mkPoolActions poolActionsConfig (PaymentPubKeyHash executorPkh) validators
-  executor <- mkOrdersExecutor backlogService transactions explorer resolver poolActions
-  pendingOrdersLogging <- forComponent mkLogging "PendingOrdersHandler"
-  poolHandlerLogging   <- forComponent mkLogging "PoolHandler"
+    transactions    = mkTransactions unsafeEval transactionsLogging networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
+    poolActions     = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validators
+  refInputs <- liftIO $ mkRefInputs txsInsRefs explorer
+  executorService <- mkOrdersExecutorService backlogService transactions explorer resolver poolActions refInputs
+  executor <- mkOrdersExecutor backlogService executorService
+  pendingOrdersLogging <- forComponent mkLogging "Bots.PendingOrdersHandler"
+  mempoolOrdersLogging <- forComponent mkLogging "Bots.MempoolOrdersHandler"
+  poolHandlerLogging   <- forComponent mkLogging "Bots.PoolHandler"
   let
+    backlog       = mkBacklog backlogService newOrderMsRd newOrdersRd elimOrdersRd
     poolsHan      = mkNewPoolsHandler newPoolsWr poolHandlerLogging scriptsValidators
     newOrdersHan  = mkPendingOrdersHandler newOrdersWr syncSem pendingOrdersLogging mainnetMode backlogConfig networkParams
-    newMOrdersHan = mkMempoolPendingOrdersHandler newOrdersMWr pendingOrdersLogging mainnetMode backlogConfig networkParams
+    newMOrdersHan = mkMempoolPendingOrdersHandler newOrdersMWr mempoolOrdersLogging mainnetMode backlogConfig networkParams executorService
     execOrdersHan = mkEliminatedOrdersHandler backlogStore backlogConfig networkParams elimOrdersWr
     lsink         = mkEventSink [poolsHan, newOrdersHan, execOrdersHan] voidEventHandler
     msink         = mkEventSink [newMOrdersHan] voidEventHandler
@@ -276,8 +284,9 @@ wireApp = interceptSigTerm >> do
     S.parallel (pipe lsink . upstream $ lsource) $
     S.parallel (Backlog.run backlog) $
     runExecutorWithMempoolProcessing syncSem app
+}
 
-runExecutorWithMempoolProcessing :: QSem -> SerialT App () -> SerialT App ()
+runExecutorWithMempoolProcessing :: QSem -> SerialT IO () -> SerialT IO ()
 runExecutorWithMempoolProcessing sem = S.before (liftIO $ waitQSem sem)
 
 epochSlots :: C.ConsensusModeParams C.CardanoMode
@@ -297,10 +306,10 @@ mkRefScriptsMap TxRefs{..} ScriptsValidators{..} =
     , (poolV, poolRef)
     ]
 
-runContext :: Env Wire App -> App a -> IO a
+runContext :: Env -> App a -> IO a
 runContext env app = runReaderT (unApp app) env
 
-interceptSigTerm :: Wire ()
+interceptSigTerm :: ReaderT (Env) IO ()
 interceptSigTerm =
     lift $ liftIO $ void $ installHandler softwareTermination handler Nothing
   where
