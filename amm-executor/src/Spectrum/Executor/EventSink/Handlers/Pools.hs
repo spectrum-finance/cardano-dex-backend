@@ -11,6 +11,7 @@ import Spectrum.Executor.Data.PoolState
   ( NewPool(..) )
 import Spectrum.Executor.EventSink.Types
   ( EventHandler )
+import qualified ErgoDex.Amm.Pool as Core
 import Spectrum.EventSource.Data.TxEvent
   ( TxEvent(AppliedTx) )
 import Spectrum.EventSource.Data.Tx
@@ -26,9 +27,9 @@ import System.Logging.Hlog
 import CardanoTx.Models
   ( FullTxOut (FullTxOut, fullTxOutAddress), fullTxOutRef )
 import ErgoDex.State
-  ( OnChain )
-import ErgoDex.Amm.Pool
-  ( Pool )
+  ( OnChain (OnChain) )
+import Spectrum.Executor.Types
+  ( Pool(..), PoolVersion (PoolVersionV1, PoolVersionV2) )
 import Spectrum.Executor.Scripts (ScriptsValidators (..))
 import Plutus.V2.Ledger.Api (addressCredential)
 
@@ -44,16 +45,23 @@ mkNewPoolsHandler WriteTopic{..} logging validators = \case
       where process _ ordM = mapM publish $ ordM <&> NewPool
   _ -> pure Nothing
 
-parsePool :: (MonadIO m) => Logging m -> ScriptsValidators -> FullTxOut -> m (Maybe (Confirmed (OnChain Pool)))
-parsePool Logging{..} ScriptsValidators{poolAddress} out@FullTxOut{..} = do
+parsePool :: (MonadIO m) => Logging m -> ScriptsValidators -> FullTxOut -> m (Maybe (Confirmed Pool))
+parsePool Logging{..} ScriptsValidators{poolV1Address, poolV2Address} out@FullTxOut{..} = do
   let
     pool        = parseFromLedger out
-  if addressCredential fullTxOutAddress == addressCredential poolAddress
-    then case pool of
+  case pool of
       Just a    -> do
-        infoM ("Pool found in: " ++ show fullTxOutRef)
-        pure $ Just $ Confirmed a
+        if addressCredential fullTxOutAddress == addressCredential poolV1Address
+          then do
+            infoM ("Pool v1 found in: " ++ show fullTxOutRef)
+            pure $ Just $ Confirmed (Pool a PoolVersionV1)
+          else if addressCredential fullTxOutAddress == addressCredential poolV2Address
+            then do
+              infoM ("Pool v2 found in: " ++ show fullTxOutRef)
+              pure $ Just $ Confirmed (Pool a PoolVersionV2)
+          else do
+            debugM ("Pool not found in: " ++ show out)
+            pure Nothing
       _         -> do
         debugM ("Pool not found in: " ++ show out)
         pure Nothing
-  else pure Nothing

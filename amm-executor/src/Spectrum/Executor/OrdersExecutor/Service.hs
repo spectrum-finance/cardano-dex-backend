@@ -41,7 +41,7 @@ import Spectrum.Prelude.Throw
 import Spectrum.Executor.Backlog.Service
   ( BacklogService (BacklogService, suspend, drop, checkLater) )
 import Spectrum.Executor.Types
-  ( Order, Pool, orderId, OrderWithCreationTime (OrderWithCreationTime) )
+  ( Order, Pool(..), orderId, OrderWithCreationTime (OrderWithCreationTime) )
 import Spectrum.Prelude.Context
   ( HasType, askContext )
 import Spectrum.Executor.Config
@@ -256,7 +256,7 @@ runOrderUnsafe
   -> PoolActions
   -> Logging m
   -> m (TxCandidate, Predicted Core.Pool, Integer)
-runOrderUnsafe RefInputs{..} Explorer{..} (OnChain poolOut pool) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
+runOrderUnsafe RefInputs{..} Explorer{..} (Pool (OnChain poolOut pool) _) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
   case anyOrderAction of
     DepositAction deposit -> do
       throwEither (runDeposit [poolOutput, depositOutput] (OnChain orderOut deposit) (poolOut, pool))
@@ -274,7 +274,7 @@ runOrder
   -> PoolActions
   -> Logging m
   -> m (TxCandidate, Predicted Core.Pool)
-runOrder TxRefs{..} Explorer{..} (OnChain poolOut pool) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
+runOrder TxRefs{..} Explorer{..} (Pool (OnChain poolOut pool) _) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
   let poolOutRef = Interop.fromCardanoTxIn poolRef
   poolRefOuput <- getOutput poolOutRef
   case anyOrderAction of

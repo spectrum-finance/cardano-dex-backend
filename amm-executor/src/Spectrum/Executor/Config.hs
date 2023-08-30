@@ -68,7 +68,8 @@ data ScriptsConfig = ScriptsConfig
   { swapScriptPath    :: !FilePath
   , depositScriptPath :: !FilePath
   , redeemScriptPath  :: !FilePath
-  , poolScriptPath    :: !FilePath
+  , poolV1ScriptPath  :: !FilePath
+  , poolV2ScriptPath  :: !FilePath
   } deriving (Generic, FromDhall)
 
 instance FromDhall TxIn where

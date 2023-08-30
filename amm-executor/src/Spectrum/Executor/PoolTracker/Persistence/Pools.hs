@@ -28,7 +28,7 @@ import qualified ErgoDex.Amm.Pool as Core
 import ErgoDex.State
   ( OnChain(OnChain) )
 import Spectrum.Executor.Types
-  ( Pool, PoolStateId, poolStateId, PoolId (PoolId) )
+  ( Pool, PoolStateId, poolStateId, PoolId (PoolId), extractPoolId )
 import Spectrum.Executor.Data.State
   ( Predicted (Predicted), Confirmed (Confirmed), Unconfirmed (Unconfirmed) )
 import Spectrum.Executor.PoolTracker.Data.Traced
@@ -86,19 +86,19 @@ mkNonPersistentPools = do
     , getLastUnconfirmed = get . mkLastUnconfirmedKey
 
     , putPredicted =
-        \tpp@(Traced pp@(Predicted pool@(OnChain _ Core.Pool{poolId})) _) -> do
+        \tpp@(Traced pp@(Predicted pool) _) -> do
           put (mkPredictedKey $ poolStateId pool) (serialize tpp)
-          put (mkLastPredictedKey poolId) (serialize pp)
+          put (mkLastPredictedKey (extractPoolId pool)) (serialize pp)
 
     , putConfirmed =
-        \cp@(Confirmed pool@(OnChain _ Core.Pool{poolId})) -> do
-          currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ poolId
+        \cp@(Confirmed pool) -> do
+          currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ extractPoolId pool
           put (mkPrevConfirmedKey $ poolStateId pool) (serialize currentLastConfirmed)
-          put (mkLastConfirmedKey poolId) (serialize cp)
+          put (mkLastConfirmedKey $ extractPoolId pool) (serialize cp)
 
     , putUnconfirmed =
-        \up@(Unconfirmed (OnChain _ Core.Pool{poolId})) ->
-          put (mkLastUnconfirmedKey poolId) (serialize up)
+        \up@(Unconfirmed pool) ->
+          put (mkLastUnconfirmedKey $ extractPoolId pool) (serialize up)
 
     , invalidate = \pid sid -> do
         predM <- get @(Predicted Pool) $ mkLastPredictedKey pid
@@ -161,19 +161,19 @@ mkPools = do
     , getLastUnconfirmed = get . mkLastUnconfirmedKey
 
     , putPredicted =
-        \tpp@(Traced pp@(Predicted pool@(OnChain _ Core.Pool{poolId})) _) -> do
+        \tpp@(Traced pp@(Predicted pool) _) -> do
           put (mkPredictedKey $ poolStateId pool) (serialize tpp)
-          put (mkLastPredictedKey poolId) (serialize pp)
+          put (mkLastPredictedKey $ extractPoolId pool) (serialize pp)
 
     , putConfirmed =
-        \cp@(Confirmed pool@(OnChain _ Core.Pool{poolId})) -> do
-          currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ poolId
+        \cp@(Confirmed pool) -> do
+          currentLastConfirmed <- get @(Confirmed Pool) . mkLastConfirmedKey $ extractPoolId pool
           put (mkPrevConfirmedKey $ poolStateId pool) (serialize currentLastConfirmed)
-          put (mkLastConfirmedKey poolId) (serialize cp)
+          put (mkLastConfirmedKey $ extractPoolId pool) (serialize cp)
 
     , putUnconfirmed =
-        \up@(Unconfirmed (OnChain _ Core.Pool{poolId})) ->
-          put (mkLastUnconfirmedKey poolId) (serialize up)
+        \up@(Unconfirmed pool) ->
+          put (mkLastUnconfirmedKey $ extractPoolId pool) (serialize up)
 
     , invalidate = \pid sid -> do
         predM <- get @(Predicted Pool) $ mkLastPredictedKey pid
