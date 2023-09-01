@@ -38,6 +38,7 @@ import ErgoDex.Types
 import ErgoDex.Contracts.Types 
   ( Amount(unAmount) )
 import RIO.Time (UTCTime)
+import ErgoDex.Validators (Version)
 
 newtype PoolStateId = PoolStateId
   { unPoolStateId :: TxOutRef
@@ -51,7 +52,7 @@ newtype OrderId = OrderId TxOutRef
 data PoolVersion = PoolVersionV1 | PoolVersionV2
   deriving (Generic, Eq, Show, FromJSON, ToJSON)
 
-data Pool = Pool (OnChain Core.Pool) PoolVersion
+data Pool = Pool (OnChain Core.Pool) Version
   deriving (Generic, Eq, Show, FromJSON, ToJSON)
 
 poolStateId :: Pool -> PoolStateId

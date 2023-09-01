@@ -20,15 +20,15 @@ instance Exception CouldnotRetriveRefInputs
 mkRefInputs :: (MonadIO m, MonadThrow m) => TxRefs -> Explorer m -> m RefInputs
 mkRefInputs TxRefs{..} Explorer{..} = do
   let
-    poolOutRef = Interop.fromCardanoTxIn poolRef
+    poolOutRef = Interop.fromCardanoTxIn poolV1Ref
     depositOutRef = Interop.fromCardanoTxIn depositRef
     redeemOutRef = Interop.fromCardanoTxIn redeemRef
     swapOutRef = Interop.fromCardanoTxIn swapRef
-  poolRefOuput  <- getOutput poolOutRef
+  poolV1RefOuput  <- getOutput poolOutRef
   depositRefOut <- getOutput depositOutRef
   redeemRefOut  <- getOutput redeemOutRef
   swapRefOut    <- getOutput swapOutRef
-  case catMaybes [swapRefOut, redeemRefOut, depositRefOut, poolRefOuput] <&> toCardanoTx of
+  case catMaybes [swapRefOut, redeemRefOut, depositRefOut, poolV1RefOuput] <&> toCardanoTx of
       [swap, redeem, deposit, pool] ->
           pure $ RefInputs swap redeem deposit pool
       _ -> throwM CouldnotRetriveRefInputs

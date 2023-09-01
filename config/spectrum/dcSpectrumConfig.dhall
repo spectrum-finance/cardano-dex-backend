@@ -88,7 +88,7 @@ in
     { swapRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#2"
     , depositRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#0"
     , redeemRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#1"
-    , poolRef = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
+    , poolV1Ref = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
     }
 , scriptsConfig =
     { swapScriptPath    = "/scripts/swap.uplc"

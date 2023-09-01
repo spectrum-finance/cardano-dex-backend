@@ -61,7 +61,8 @@ data TxRefs = TxRefs
   { swapRef    :: !TxIn
   , depositRef :: !TxIn 
   , redeemRef  :: !TxIn
-  , poolRef    :: !TxIn
+  , poolV1Ref  :: !TxIn
+  , poolV2Ref  :: !TxIn
   } deriving (Generic, FromDhall)
 
 data ScriptsConfig = ScriptsConfig

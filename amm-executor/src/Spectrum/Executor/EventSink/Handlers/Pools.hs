@@ -32,6 +32,7 @@ import Spectrum.Executor.Types
   ( Pool(..), PoolVersion (PoolVersionV1, PoolVersionV2) )
 import Spectrum.Executor.Scripts (ScriptsValidators (..))
 import Plutus.V2.Ledger.Api (addressCredential)
+import ErgoDex.Validators (Version(V2, V1))
 
 mkNewPoolsHandler
   :: MonadIO m
@@ -54,11 +55,11 @@ parsePool Logging{..} ScriptsValidators{poolV1Address, poolV2Address} out@FullTx
         if addressCredential fullTxOutAddress == addressCredential poolV1Address
           then do
             infoM ("Pool v1 found in: " ++ show fullTxOutRef)
-            pure $ Just $ Confirmed (Pool a PoolVersionV1)
+            pure $ Just $ Confirmed (Pool a V1)
           else if addressCredential fullTxOutAddress == addressCredential poolV2Address
             then do
               infoM ("Pool v2 found in: " ++ show fullTxOutRef)
-              pure $ Just $ Confirmed (Pool a PoolVersionV2)
+              pure $ Just $ Confirmed (Pool a V2)
           else do
             debugM ("Pool not found in: " ++ show out)
             pure Nothing

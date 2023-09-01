@@ -145,7 +145,8 @@ in
     { swapRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#2"
     , depositRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#0"
     , redeemRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#1"
-    , poolRef = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
+    , poolV1Ref = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
+    , poolV2Ref = "c8c93656e8bce07fabe2f42d703060b7c71bfa2e48a2956820d1bd81cc936faa#0"
     },
 
   {- Scripts upls paths configuration. -}
@@ -153,7 +154,8 @@ in
     { swapScriptPath    = "./scripts/swap.uplc"
     , depositScriptPath = "./scripts/deposut.uplc"
     , redeemScriptPath  = "./scripts/redeem.uplc"
-    , poolScriptPath    = "./scripts/pool.uplc"
+    , poolV1ScriptPath  = "./scripts/poolV1.uplc"
+    , poolV2ScriptPath  = "./scripts/poolV2.uplc"
     },
 
   {- Transaction assembly configuration. (Deprecated) -}
@@ -190,19 +192,6 @@ in
   utxoStoreConfig =
     { utxoStorePath   = "./path/to/utxoStore"
     , createIfMissing = True
-    },
-
-  {- 
-    The Pool actions configuration provides information about the approximate transaction fee
-    that users, rather than the bot executor, will incur. This fee specifically relates
-    to the Cardano network transaction fee and is not associated with execution rewards.
-
-    This value was derived from practical experience, so it is advisable not to modify it
-    unless you are confident that the actual transaction fee is higher than the value specified
-    in this configuration.
-  -}
-  poolActionsConfig =
-    { safeTxFeeLovalace = +300000
     },
 
   unsafeEval =
