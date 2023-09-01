@@ -51,11 +51,11 @@ in
     , poolV2Ref = "c8c93656e8bce07fabe2f42d703060b7c71bfa2e48a2956820d1bd81cc936faa#0"
     }
 , scriptsConfig =
-    { swapScriptPath    = "./scripts/swap.uplc"
-    , depositScriptPath = "./scripts/deposut.uplc"
-    , redeemScriptPath  = "./scripts/redeem.uplc"
-    , poolV1ScriptPath  = "./scripts/poolV1.uplc"
-    , poolV2ScriptPath  = "./scripts/poolV2.uplc"
+    { swapScriptPath    = "/scripts/swap.uplc"
+    , depositScriptPath = "/scripts/deposit.uplc"
+    , redeemScriptPath  = "/scripts/redeem.uplc"
+    , poolV1ScriptPath  = "/scripts/poolV1.uplc"
+    , poolV2ScriptPath  = "/scripts/poolV2.uplc"
     }
 , explorerConfig =
     { explorerUri = "https://explorer.spectrum.fi"
