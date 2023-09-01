@@ -196,7 +196,7 @@ in
 
   unsafeEval =
     { unsafeTxFee = +310000
-    , exUnits = 145000000
-    , exMem = 330000
+    , exUnits = 160000000
+    , exMem = 400000
     }
 }
