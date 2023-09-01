@@ -50,13 +50,13 @@ in
     , poolV1Ref = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
     , poolV2Ref = "c8c93656e8bce07fabe2f42d703060b7c71bfa2e48a2956820d1bd81cc936faa#0"
     }
-  scriptsConfig =
+, scriptsConfig =
     { swapScriptPath    = "./scripts/swap.uplc"
     , depositScriptPath = "./scripts/deposut.uplc"
     , redeemScriptPath  = "./scripts/redeem.uplc"
     , poolV1ScriptPath  = "./scripts/poolV1.uplc"
     , poolV2ScriptPath  = "./scripts/poolV2.uplc"
-    },
+    }
 , explorerConfig =
     { explorerUri = "https://explorer.spectrum.fi"
     , network = Network.Mainnet
