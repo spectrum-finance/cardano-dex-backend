@@ -61,14 +61,16 @@ data TxRefs = TxRefs
   { swapRef    :: !TxIn
   , depositRef :: !TxIn 
   , redeemRef  :: !TxIn
-  , poolRef    :: !TxIn
+  , poolV1Ref  :: !TxIn
+  , poolV2Ref  :: !TxIn
   } deriving (Generic, FromDhall)
 
 data ScriptsConfig = ScriptsConfig
   { swapScriptPath    :: !FilePath
   , depositScriptPath :: !FilePath
   , redeemScriptPath  :: !FilePath
-  , poolScriptPath    :: !FilePath
+  , poolV1ScriptPath  :: !FilePath
+  , poolV2ScriptPath  :: !FilePath
   } deriving (Generic, FromDhall)
 
 instance FromDhall TxIn where

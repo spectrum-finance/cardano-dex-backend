@@ -139,7 +139,8 @@ testTxRefs = TxRefs
   { swapRef    = C.TxIn (C.TxId "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16") (C.TxIx 1)
   , depositRef = C.TxIn (C.TxId "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16") (C.TxIx 2)
   , redeemRef  = C.TxIn (C.TxId "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16") (C.TxIx 3)
-  , poolRef    = C.TxIn (C.TxId "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16") (C.TxIx 4)
+  , poolV1Ref    = C.TxIn (C.TxId "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16") (C.TxIx 4)
+  , poolV2Ref    = C.TxIn (C.TxId "b2f79375bf73234bb988cfdb911c78ac4e9b5470197e828d507babfdcca08d16") (C.TxIx 5)
   }
 
 data TestEnv = TestEnv {

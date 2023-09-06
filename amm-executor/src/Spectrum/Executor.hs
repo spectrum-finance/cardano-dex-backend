@@ -152,7 +152,7 @@ import qualified Data.Map as Map
 import WalletAPI.UtxoStoreConfig
   ( UtxoStoreConfig )
 import Spectrum.Executor.Scripts
-  ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidators )
+  ( ScriptsValidators(..), mkScriptsValidators, scriptsValidators2AmmValidatorsV1, scriptsValidators2AmmValidatorsV2 )
 import Spectrum.Executor.OrdersExecutor.Service (mkOrdersExecutorService)
 import Spectrum.Executor.OrdersExecutor.RefInputs (mkRefInputs)
 
@@ -257,15 +257,17 @@ wireApp = App { unApp = interceptSigTerm >> do
   scriptsValidators   <- mkScriptsValidators scriptsConfig
   transactionsLogging <- forComponent mkLogging "Bots.Transactions"
   let
-    validators      = scriptsValidators2AmmValidators scriptsValidators
+    validatorsV1    = scriptsValidators2AmmValidatorsV1 scriptsValidators
+    validatorsV2    = scriptsValidators2AmmValidatorsV2 scriptsValidators
     refScriptsMap   = mkRefScriptsMap txsInsRefs scriptsValidators
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
     transactions    = mkTransactions unsafeEval transactionsLogging networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
-    poolActions     = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validators
+    poolActionsV1    = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV1
+    poolActionsV2   = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV2
   refInputs <- liftIO $ mkRefInputs txsInsRefs explorer
-  executorService <- mkOrdersExecutorService backlogService transactions explorer resolver poolActions refInputs
+  executorService <- mkOrdersExecutorService backlogService transactions explorer resolver poolActionsV1 poolActionsV2 refInputs
   executor <- mkOrdersExecutor backlogService executorService
   pendingOrdersLogging <- forComponent mkLogging "Bots.PendingOrdersHandler"
   mempoolOrdersLogging <- forComponent mkLogging "Bots.MempoolOrdersHandler"
@@ -298,12 +300,14 @@ mkRefScriptsMap TxRefs{..} ScriptsValidators{..} =
     swapV    = unValidatorScript swapValidator
     depositV = unValidatorScript depositValidator
     redeemV  = unValidatorScript redeemValidator
-    poolV    = unValidatorScript poolValidator
+    poolV1   = unValidatorScript poolV1Validator
+    poolV2   = unValidatorScript poolV2Validator
   in Map.fromList
     [ (swapV, swapRef)
     , (depositV, depositRef)
     , (redeemV, redeemRef)
-    , (poolV, poolRef)
+    , (poolV1, poolV1Ref)
+    , (poolV2, poolV2Ref)
     ]
 
 runContext :: Env -> App a -> IO a

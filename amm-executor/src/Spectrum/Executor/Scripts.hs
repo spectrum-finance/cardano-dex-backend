@@ -14,7 +14,7 @@ import Spectrum.Executor.Config
 import ErgoDex.Amm.PoolActions 
   ( AmmValidators (..) )
 import ErgoDex.Validators 
-  ( V1, PoolValidator (..), OrderValidator (..) )
+  ( Version(..), PoolValidator (..), OrderValidator (..) )
 import Plutus.Script.Utils.V2.Address (mkValidatorAddress)
 
 data ScriptsValidators = ScriptsValidators
@@ -24,14 +24,25 @@ data ScriptsValidators = ScriptsValidators
   , depositAddress   :: PV2.Address
   , redeemValidator  :: PV2.Validator
   , redeemAddress    :: PV2.Address
-  , poolValidator    :: PV2.Validator
-  , poolAddress      :: PV2.Address
+  , poolV1Validator  :: PV2.Validator
+  , poolV1Address    :: PV2.Address
+  , poolV2Validator  :: PV2.Validator
+  , poolV2Address    :: PV2.Address
   }
 
-scriptsValidators2AmmValidators :: ScriptsValidators -> AmmValidators V1
-scriptsValidators2AmmValidators ScriptsValidators{..} =
+scriptsValidators2AmmValidatorsV1 :: ScriptsValidators -> AmmValidators 'V1
+scriptsValidators2AmmValidatorsV1 ScriptsValidators{..} =
   let
-    poolV = PoolValidator poolValidator
+    poolV = PoolValidator poolV1Validator
+    swapV = SwapValidator swapValidator
+    redeemV = RedeemValidator redeemValidator
+    depositV = DepositValidator depositValidator
+  in AmmValidators{..}
+
+scriptsValidators2AmmValidatorsV2 :: ScriptsValidators -> AmmValidators 'V2
+scriptsValidators2AmmValidatorsV2 ScriptsValidators{..} =
+  let
+    poolV = PoolValidator poolV2Validator
     swapV = SwapValidator swapValidator
     redeemV = RedeemValidator redeemValidator
     depositV = DepositValidator depositValidator
@@ -42,12 +53,14 @@ mkScriptsValidators ScriptsConfig{..} = do
   swapValidator    <- readValidatorFromFile swapScriptPath
   redeemValidator  <- readValidatorFromFile redeemScriptPath
   depositValidator <- readValidatorFromFile depositScriptPath
-  poolValidator    <- readValidatorFromFile poolScriptPath
+  poolV1Validator  <- readValidatorFromFile poolV1ScriptPath
+  poolV2Validator  <- readValidatorFromFile poolV2ScriptPath
   let
     swapAddress    = mkValidatorAddress swapValidator
     depositAddress = mkValidatorAddress depositValidator
     redeemAddress  = mkValidatorAddress redeemValidator
-    poolAddress    = mkValidatorAddress poolValidator
+    poolV1Address  = mkValidatorAddress poolV1Validator
+    poolV2Address  = mkValidatorAddress poolV2Validator
   pure $ ScriptsValidators{..}
       
 readValidatorFromFile :: (MonadIO m) => FilePath -> m PV2.Validator

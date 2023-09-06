@@ -47,13 +47,15 @@ in
     { swapRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#2"
     , depositRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#0"
     , redeemRef = "fc9e99fd12a13a137725da61e57a410e36747d513b965993d92c32c67df9259a#1"
-    , poolRef = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
+    , poolV1Ref = "31a497ef6b0033e66862546aa2928a1987f8db3b8f93c59febbe0f47b14a83c6#0"
+    , poolV2Ref = "c8c93656e8bce07fabe2f42d703060b7c71bfa2e48a2956820d1bd81cc936faa#0"
     }
 , scriptsConfig =
     { swapScriptPath    = "/scripts/swap.uplc"
     , depositScriptPath = "/scripts/deposit.uplc"
     , redeemScriptPath  = "/scripts/redeem.uplc"
-    , poolScriptPath    = "/scripts/pool.uplc"
+    , poolV1ScriptPath  = "/scripts/poolV1.uplc"
+    , poolV2ScriptPath  = "/scripts/poolV2.uplc"
     }
 , explorerConfig =
     { explorerUri = "https://explorer.spectrum.fi"
@@ -75,7 +77,7 @@ in
     }
 , unsafeEval =
     { unsafeTxFee = +310000
-    , exUnits = 145000000
-    , exMem = 330000
+    , exUnits = 160000000
+    , exMem = 400000
     }
 }

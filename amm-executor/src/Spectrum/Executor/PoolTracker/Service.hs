@@ -22,7 +22,7 @@ import Spectrum.Executor.PoolTracker.Data.Traced
 import Spectrum.Executor.PoolTracker.Persistence.Pools
   ( Pools(..) )
 import Spectrum.Executor.Types
-  ( PoolStateId (PoolStateId), Pool, poolStateId )
+  ( PoolStateId (PoolStateId), Pool, poolStateId, extractPoolId )
 import ErgoDex.State
   ( OnChain(OnChain) )
 import Spectrum.Prelude.Context (HasType, askContext)
@@ -78,16 +78,16 @@ resolvePool' pools@Pools{..} pid = do
 trace :: Monad m => Pools m -> PoolStateId -> PoolStateId -> m Bool
 trace pools@Pools{..} sid anchoringState =
   getPrediction sid >>= (\case
-    Just (Traced (Predicted (OnChain _ _)) prevTxOutRef) | PoolStateId prevTxOutRef == anchoringState -> pure True
-    Just (Traced (Predicted (OnChain _ _)) prevTxOutRef) -> trace pools (PoolStateId prevTxOutRef) anchoringState
+    Just (Traced (Predicted _) prevTxOutRef) | PoolStateId prevTxOutRef == anchoringState -> pure True
+    Just (Traced (Predicted _) prevTxOutRef) -> trace pools (PoolStateId prevTxOutRef) anchoringState
     Nothing -> pure False)
 
 invalidatePool'
   :: Pools m
   -> Pool
   -> m ()
-invalidatePool' Pools{..} pool@(OnChain _ Core.Pool{poolId}) =
-  invalidate poolId (poolStateId pool)
+invalidatePool' Pools{..} pool =
+  invalidate (extractPoolId pool) (poolStateId pool)
 
 attachLogging :: Monad m => Logging m -> PoolResolver m -> PoolResolver m
 attachLogging Logging{..} PoolResolver{..}=

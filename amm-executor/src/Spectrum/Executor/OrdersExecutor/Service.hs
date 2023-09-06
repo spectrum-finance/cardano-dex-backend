@@ -25,6 +25,8 @@ import Ledger
 
 import qualified ErgoDex.Amm.Orders as Core
 import qualified ErgoDex.Amm.Pool   as Core
+import ErgoDex.Validators
+  ( Version(..) )
 import ErgoDex.Amm.Orders
   ( OrderAction (DepositAction, RedeemAction, SwapAction) )
 import ErgoDex.State
@@ -41,7 +43,7 @@ import Spectrum.Prelude.Throw
 import Spectrum.Executor.Backlog.Service
   ( BacklogService (BacklogService, suspend, drop, checkLater) )
 import Spectrum.Executor.Types
-  ( Order, Pool, orderId, OrderWithCreationTime (OrderWithCreationTime) )
+  ( Order, Pool(..), orderId, OrderWithCreationTime (OrderWithCreationTime) )
 import Spectrum.Prelude.Context
   ( HasType, askContext )
 import Spectrum.Executor.Config
@@ -82,16 +84,17 @@ mkOrdersExecutorService
   -> Transactions m era
   -> Explorer m
   -> PoolResolver m
-  -> PoolActions
+  -> PoolActions 'V1
+  -> PoolActions 'V2
   -> RefInputs
   -> f (OrdersExecutorService m)
-mkOrdersExecutorService backlog transactions explorer resolver poolActions refInputs = do
+mkOrdersExecutorService backlog transactions explorer resolver poolActionsV1 poolActionsV2 refInputs = do
   MakeLogging{..} <- askContext
   txRefsCfg       <- askContext
   logging         <- forComponent "Bots.OrdersExecutorService"
   pure $ OrdersExecutorService
-    { execute = execute' logging txRefsCfg backlog transactions explorer resolver poolActions
-    , executeUnsafe = executeUnsafe' logging refInputs backlog transactions explorer resolver poolActions
+    { execute = execute' logging txRefsCfg backlog transactions explorer resolver poolActionsV1 poolActionsV2
+    , executeUnsafe = executeUnsafe' logging refInputs backlog transactions explorer resolver poolActionsV1 poolActionsV2
     }
 
 execute'
@@ -102,12 +105,13 @@ execute'
   -> Transactions m era
   -> Explorer m
   -> PoolResolver m
-  -> PoolActions
+  -> PoolActions 'V1
+  -> PoolActions 'V2
   -> OrderWithCreationTime
   -> m ()
-execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs explorer resolver poolActions (OrderWithCreationTime order orderTime) = do
+execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs explorer resolver poolActionsV1 poolActionsV2 (OrderWithCreationTime order orderTime) = do
   executionStartTime <- getCurrentTime
-  executeOrder' backlog l txRefs txs explorer resolver poolActions order executionStartTime `catches`
+  executeOrder' backlog l txRefs txs explorer resolver poolActionsV1 poolActionsV2 order executionStartTime `catches`
     [ Handler (\ (execErr :: OrderExecErr) -> case execErr of
         PriceTooHigh ->
           suspend (SuspendedOrder order orderTime) >> infoM ("Err PriceTooHigh occured for " ++ show (orderId order) ++ ". Going to suspend")
@@ -132,12 +136,13 @@ executeUnsafe'
   -> Transactions m era
   -> Explorer m
   -> PoolResolver m
-  -> PoolActions
+  -> PoolActions 'V1
+  -> PoolActions 'V2
   -> OrderWithCreationTime
   -> m ()
-executeUnsafe' l@Logging{..} refInputs backlog@BacklogService{suspend, drop} txs explorer resolver poolActions (OrderWithCreationTime order orderTime) = do
+executeUnsafe' l@Logging{..} refInputs backlog@BacklogService{suspend, drop} txs explorer resolver poolActionsV1 poolActionsV2 (OrderWithCreationTime order orderTime) = do
   executionStartTime <- getCurrentTime
-  executeOrderUnsafe' backlog l refInputs txs explorer resolver poolActions order executionStartTime `catches`
+  executeOrderUnsafe' backlog l refInputs txs explorer resolver poolActionsV1 poolActionsV2 order executionStartTime `catches`
     [ Handler (\ (execErr :: OrderExecErr) -> case execErr of
         PriceTooHigh ->
           suspend (SuspendedOrder order orderTime) >> infoM ("(Unsafe) Err PriceTooHigh occured for " ++ show (orderId order) ++ ". Going to suspend")
@@ -177,7 +182,8 @@ executeOrder'
   -> Transactions m era
   -> Explorer m
   -> PoolResolver m
-  -> PoolActions
+  -> PoolActions 'V1
+  -> PoolActions 'V2
   -> Order
   -> UTCTime
   -> m ()
@@ -188,17 +194,20 @@ executeOrder'
   Transactions{..}
   explorer
   PoolResolver{..}
-  poolActions
+  poolActionsV1
+  poolActionsV2
   order@(OnChain _ Core.AnyOrder{..})
   executionStartTime = do
     mPool <- resolvePool anyOrderPoolId
-    pool@(OnChain prevPoolOut Core.Pool{poolId}) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
-    (txCandidate, Predicted _ predictedPool)     <- runOrder txRefs explorer pool order poolActions l
+    pool@(Pool (OnChain prevPoolOut Core.Pool{poolId}) version) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
+    (txCandidate, Predicted _ predictedPool)     <- case version of
+      V1 -> runOrder txRefs explorer pool order poolActionsV1 l
+      V2 -> runOrder txRefs explorer pool order poolActionsV2 l
     tx    <- finalizeTx txCandidate
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
     let
       tracedPredictedPool = Traced
-        { tracedState  = State.Predicted (OnChain pPool predictedPool)
+        { tracedState  = State.Predicted (Pool (OnChain pPool predictedPool) version)
         , prevTxOutRef = fullTxOutRef prevPoolOut
         }
     putPool tracedPredictedPool
@@ -213,7 +222,8 @@ executeOrderUnsafe'
   -> Transactions m era
   -> Explorer m
   -> PoolResolver m
-  -> PoolActions
+  -> PoolActions 'V1
+  -> PoolActions 'V2
   -> Order
   -> UTCTime
   -> m ()
@@ -224,18 +234,21 @@ executeOrderUnsafe'
   Transactions{..}
   explorer
   PoolResolver{..}
-  poolActions
+  poolActionsV1
+  poolActionsV2
   order@(OnChain _ Core.AnyOrder{..})
   executionStartTime = do
     mPool <- resolvePool anyOrderPoolId
-    pool@(OnChain prevPoolOut Core.Pool{poolId}) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
-    (txCandidate, Predicted _ predictedPool, changeValue)   <- runOrderUnsafe refInputs explorer pool order poolActions l
+    pool@(Pool (OnChain prevPoolOut Core.Pool{poolId}) version) <- throwMaybe (EmptyPool anyOrderPoolId) mPool
+    (txCandidate, Predicted _ predictedPool, changeValue) <- case version of
+        V1 -> runOrderUnsafe refInputs explorer pool order poolActionsV1 l
+        V2 -> runOrderUnsafe refInputs explorer pool order poolActionsV2 l
     tx    <- finalizeTxUnsafe txCandidate changeValue
     _ <- submitTx tx
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
     let
       tracedPredictedPool = Traced
-        { tracedState  = State.Predicted (OnChain pPool predictedPool)
+        { tracedState  = State.Predicted (Pool (OnChain pPool predictedPool) version)
         , prevTxOutRef = fullTxOutRef prevPoolOut
         }
     infoM $ "tx: " ++ show tx
@@ -244,7 +257,7 @@ executeOrderUnsafe'
     pure ()
 
 extractPoolTxOut :: forall era. Pool -> Tx era -> Maybe FullTxOut
-extractPoolTxOut (OnChain poolOutput _) tx =
+extractPoolTxOut (Pool (OnChain poolOutput _) _) tx =
   List.find (\output -> fullTxOutDatum output == fullTxOutDatum poolOutput) (Interop.extractCardanoTxOutputs tx)
 
 runOrderUnsafe
@@ -253,10 +266,10 @@ runOrderUnsafe
   -> Explorer m
   -> Pool
   -> Order
-  -> PoolActions
+  -> PoolActions ver
   -> Logging m
   -> m (TxCandidate, Predicted Core.Pool, Integer)
-runOrderUnsafe RefInputs{..} Explorer{..} (OnChain poolOut pool) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
+runOrderUnsafe RefInputs{..} Explorer{..} (Pool (OnChain poolOut pool) _) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
   case anyOrderAction of
     DepositAction deposit -> do
       throwEither (runDeposit [poolOutput, depositOutput] (OnChain orderOut deposit) (poolOut, pool))
@@ -271,18 +284,19 @@ runOrder
   -> Explorer m
   -> Pool
   -> Order
-  -> PoolActions
+  -> PoolActions ver
   -> Logging m
   -> m (TxCandidate, Predicted Core.Pool)
-runOrder TxRefs{..} Explorer{..} (OnChain poolOut pool) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
-  let poolOutRef = Interop.fromCardanoTxIn poolRef
-  poolRefOuput <- getOutput poolOutRef
+runOrder TxRefs{..} Explorer{..} (Pool (OnChain poolOut pool) _) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
+  let 
+    poolOutRef = Interop.fromCardanoTxIn poolV1Ref
+  poolV1RefOuput <- getOutput poolOutRef
   case anyOrderAction of
     DepositAction deposit -> do
       let depositOutRef = Interop.fromCardanoTxIn depositRef
       depositRefOut <- getOutput depositOutRef
       let
-        refInputs = catMaybes [poolRefOuput, depositRefOut] <&> toCardanoTx
+        refInputs = catMaybes [poolV1RefOuput, depositRefOut] <&> toCardanoTx
       case runDepositWithDebug refInputs (OnChain orderOut deposit) (poolOut, pool) of
         Left (err, orderInfo) ->
           infoM ("Order execution info" ++ show orderInfo) >> throwEither (Left err)
@@ -291,7 +305,7 @@ runOrder TxRefs{..} Explorer{..} (OnChain poolOut pool) (OnChain orderOut Core.A
     RedeemAction redeem   -> do
       let redeemOutRef = Interop.fromCardanoTxIn redeemRef
       redeemRefOut <- getOutput redeemOutRef
-      let refInputs = catMaybes [poolRefOuput, redeemRefOut] <&> toCardanoTx
+      let refInputs = catMaybes [poolV1RefOuput, redeemRefOut] <&> toCardanoTx
       case runRedeemWithDebug refInputs (OnChain orderOut redeem) (poolOut, pool) of
         Left (err, orderInfo) ->
           infoM ("Order execution info" ++ show orderInfo) >> throwEither (Left err)
@@ -300,7 +314,7 @@ runOrder TxRefs{..} Explorer{..} (OnChain poolOut pool) (OnChain orderOut Core.A
     SwapAction swap       -> do
       let swapOutRef = Interop.fromCardanoTxIn swapRef
       swapRefOut <- getOutput swapOutRef
-      let refInputs = catMaybes [poolRefOuput, swapRefOut] <&> toCardanoTx
+      let refInputs = catMaybes [poolV1RefOuput, swapRefOut] <&> toCardanoTx
       case runSwapWithDebug refInputs (OnChain orderOut swap) (poolOut, pool) of
         Left (err, orderInfo) ->
           infoM ("Order execution info" ++ show orderInfo) >> throwEither (Left err)

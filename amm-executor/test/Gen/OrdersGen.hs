@@ -225,7 +225,7 @@ genRefMapForExplorer :: forall f. (MonadGen f, Applicative f) => Validators -> T
 genRefMapForExplorer validatorInfo TxRefs{..} = do
   let
     validatorList = mapValidators (\ValidatorInfo{..} -> validator) validatorInfo
-    refsList = [swapRef, depositRef, redeemRef, poolRef] `zip` validatorList
+    refsList = [swapRef, depositRef, redeemRef, poolV1Ref] `zip` validatorList
   mainList <- packRefAndValidator `traverse` refsList
   pure $ Map.fromList mainList
   where

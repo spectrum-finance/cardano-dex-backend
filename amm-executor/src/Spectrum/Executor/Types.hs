@@ -4,11 +4,13 @@ module Spectrum.Executor.Types
   , poolStateId
   , orderId
   , orderRef
-  , type Pool
+  , Pool(..)
   , type Order
   , OrderWithCreationTime(..)
+  , PoolVersion(..)
   , OrderWeight(..)
   , weightOrder
+  , extractPoolId
   -- re-exports
   , PoolId(..)
   ) where
@@ -36,6 +38,7 @@ import ErgoDex.Types
 import ErgoDex.Contracts.Types 
   ( Amount(unAmount) )
 import RIO.Time (UTCTime)
+import ErgoDex.Validators (Version)
 
 newtype PoolStateId = PoolStateId
   { unPoolStateId :: TxOutRef
@@ -46,10 +49,20 @@ newtype OrderId = OrderId TxOutRef
   deriving newtype (Eq, Show, FromJSON, ToJSON, Ord)
   deriving (Generic)
 
-type Pool = OnChain Core.Pool
+data PoolVersion = PoolVersionV1 | PoolVersionV2
+  deriving (Generic, Eq, Show, FromJSON, ToJSON)
+
+data Pool = Pool (OnChain Core.Pool) Version
+  deriving (Generic, Eq, Show, FromJSON, ToJSON)
 
 poolStateId :: Pool -> PoolStateId
-poolStateId (OnChain FullTxOut{..} _) = PoolStateId fullTxOutRef
+poolStateId (Pool (OnChain FullTxOut{..} _) _) = PoolStateId fullTxOutRef
+
+extractPoolId :: Pool -> PoolId
+extractPoolId (Pool (OnChain _ Core.Pool{poolId}) _) = poolId
+
+extractUnderlyingPool :: Pool -> Core.Pool
+extractUnderlyingPool (Pool (OnChain _ origPool) _) = origPool
 
 type Order = OnChain Core.AnyOrder
 
