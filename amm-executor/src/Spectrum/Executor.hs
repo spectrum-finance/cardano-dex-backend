@@ -264,7 +264,7 @@ wireApp = App { unApp = interceptSigTerm >> do
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
     transactions    = mkTransactions unsafeEval transactionsLogging networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
-    poolActionsV1    = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV1
+    poolActionsV1   = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV1
     poolActionsV2   = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV2
   refInputs <- liftIO $ mkRefInputs txsInsRefs explorer
   executorService <- mkOrdersExecutorService backlogService transactions explorer resolver poolActionsV1 poolActionsV2 refInputs

@@ -269,7 +269,11 @@ runOrderUnsafe
   -> PoolActions ver
   -> Logging m
   -> m (TxCandidate, Predicted Core.Pool, Integer)
-runOrderUnsafe RefInputs{..} Explorer{..} (Pool (OnChain poolOut pool) _) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
+runOrderUnsafe RefInputs{..} Explorer{..} (Pool (OnChain poolOut pool) version) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
+  let
+    poolOutput = case version of
+      V1 -> poolOutputV1
+      V2 -> poolOutputV2
   case anyOrderAction of
     DepositAction deposit -> do
       throwEither (runDeposit [poolOutput, depositOutput] (OnChain orderOut deposit) (poolOut, pool))
@@ -287,9 +291,11 @@ runOrder
   -> PoolActions ver
   -> Logging m
   -> m (TxCandidate, Predicted Core.Pool)
-runOrder TxRefs{..} Explorer{..} (Pool (OnChain poolOut pool) _) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
+runOrder TxRefs{..} Explorer{..} (Pool (OnChain poolOut pool) version) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
   let 
-    poolOutRef = Interop.fromCardanoTxIn poolV1Ref
+    poolOutRef = case version of
+      V1 -> Interop.fromCardanoTxIn poolV1Ref
+      V2 -> Interop.fromCardanoTxIn poolV2Ref
   poolV1RefOuput <- getOutput poolOutRef
   case anyOrderAction of
     DepositAction deposit -> do

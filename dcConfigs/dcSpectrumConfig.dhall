@@ -76,8 +76,8 @@ in
     , levelOverrides = [] : List { _1 : Text, _2 : LogLevel }
     }
 , unsafeEval =
-    { unsafeTxFee = +310000
-    , exUnits = 160000000
-    , exMem = 400000
+    { unsafeTxFee = +320000
+    , exUnits = 165000000
+    , exMem = 530000
     }
 }
