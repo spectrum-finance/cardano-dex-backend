@@ -27,7 +27,7 @@ services:
         max-size: "200k"
         max-file: "10"
   spectrum-cardano-backend:
-    image: spectrumlabs/spectrum-cardano-backend:1.0.1
+    image: spectrumlabs/spectrum-cardano-backend:1.0.0
     volumes:
       - spectrum-backend-volume:/data
       - ./config/mainnet:/config
