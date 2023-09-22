@@ -204,6 +204,7 @@ executeOrder'
       V1 -> runOrder txRefs explorer pool order poolActionsV1 l
       V2 -> runOrder txRefs explorer pool order poolActionsV2 l
     tx    <- finalizeTx txCandidate
+    _     <- submitTxByHttp tx
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
     let
       tracedPredictedPool = Traced
@@ -244,7 +245,7 @@ executeOrderUnsafe'
         V1 -> runOrderUnsafe refInputs explorer pool order poolActionsV1 l
         V2 -> runOrderUnsafe refInputs explorer pool order poolActionsV2 l
     tx    <- finalizeTxUnsafe txCandidate changeValue
-    _ <- submitTx tx
+    _ <- submitTxByHttp tx
     pPool <- throwMaybe (PoolNotFoundInFinalTx poolId) (extractPoolTxOut pool tx)
     let
       tracedPredictedPool = Traced

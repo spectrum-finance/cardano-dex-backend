@@ -54,7 +54,7 @@ parsePool Logging{..} ScriptsValidators{poolV1Address, poolV2Address} out@FullTx
       Just a    -> do
         if addressCredential fullTxOutAddress == addressCredential poolV1Address
           then do
-            infoM ("Pool v1 found in: " ++ show fullTxOutRef)
+            infoM ("Pool v1 found in:" ++ show fullTxOutRef)
             pure $ Just $ Confirmed (Pool a V1)
           else if addressCredential fullTxOutAddress == addressCredential poolV2Address
             then do

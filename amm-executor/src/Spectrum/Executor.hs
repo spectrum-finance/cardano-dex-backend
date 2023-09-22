@@ -96,6 +96,8 @@ import Explorer.Config
   ( ExplorerConfig )
 import SubmitAPI.Service
   ( mkTransactions )
+import NetworkAPI.HttpService
+  ( HttpServiceConfig(..), mkHttpCardanoNetwork )
 
 import Spectrum.LedgerSync.Config
   ( NetworkParameters, NodeSocketConfig(..), parseNetworkParameters )
@@ -175,6 +177,7 @@ data Env = Env
   , mkLogging'         :: !(MakeLogging IO IO)
   , networkId          :: !C.NetworkId
   , unsafeEval         :: !UnsafeEvalConfig
+  , httpSubmit         :: !HttpServiceConfig
   } deriving stock (Generic)
 
 type F = ReaderT Env IO
@@ -221,6 +224,7 @@ runApp args = do
         mkLogging
         networkId
         unsafeEval
+        httpSubmit
   runContext env wireApp
 
 wireApp :: App ()
@@ -256,6 +260,7 @@ wireApp = App { unApp = interceptSigTerm >> do
 
   scriptsValidators   <- mkScriptsValidators scriptsConfig
   transactionsLogging <- forComponent mkLogging "Bots.Transactions"
+  httpSubmitNetwork <- mkHttpCardanoNetwork mkLogging httpSubmit
   let
     validatorsV1    = scriptsValidators2AmmValidatorsV1 scriptsValidators
     validatorsV2    = scriptsValidators2AmmValidatorsV2 scriptsValidators
@@ -263,7 +268,7 @@ wireApp = App { unApp = interceptSigTerm >> do
     (uPoolsRd, _)   = mkNoopTopic
     (disPoolsRd, _) = mkNoopTopic
     tracker         = mkPoolTracker pools newPoolsRd uPoolsRd disPoolsRd
-    transactions    = mkTransactions unsafeEval transactionsLogging networkService networkId refScriptsMap walletOutputs vault txAssemblyConfig
+    transactions    = mkTransactions unsafeEval transactionsLogging networkService httpSubmitNetwork networkId refScriptsMap walletOutputs vault txAssemblyConfig
     poolActionsV1   = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV1
     poolActionsV2   = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV2
   refInputs <- liftIO $ mkRefInputs txsInsRefs explorer

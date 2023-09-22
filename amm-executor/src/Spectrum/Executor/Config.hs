@@ -52,6 +52,8 @@ import Spectrum.Common.Parsers
   ( parseTxIn )
 import WalletAPI.UtxoStoreConfig 
   ( UtxoStoreConfig )
+import NetworkAPI.HttpService
+  ( HttpServiceConfig )
 
 data NetworkConfig = NetworkConfig
   { cardanoNetworkId :: !Natural 
@@ -104,6 +106,7 @@ data AppConfig = AppConfig
   , mainnetMode        :: !Bool
   , utxoStoreConfig    :: !UtxoStoreConfig
   , unsafeEval         :: !UnsafeEvalConfig
+  , httpSubmit         :: !HttpServiceConfig
   } deriving (Generic, FromDhall)
 
 loadAppConfig :: MonadIO f => Maybe String -> f AppConfig

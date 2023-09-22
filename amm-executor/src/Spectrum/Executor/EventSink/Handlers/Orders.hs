@@ -112,23 +112,23 @@ processOrder logging OrdersExecutorService{..} txTime out = do
     )
 
 parseOrder :: (MonadIO m) => Logging m -> FullTxOut -> m (Maybe Order)
-parseOrder Logging{..} out =
+parseOrder Logging{..} out@FullTxOut{..} =
   let
     swap    = parseFromLedger @Swap out
     deposit = parseFromLedger @Deposit out
     redeem  = parseFromLedger @Redeem out
   in case (swap, deposit, redeem) of
     (Just (OnChain _ swap'), _, _)    -> do
-      debugM ("Swap order: " ++ show swap)
+      infoM ("Swap order in " ++ show fullTxOutRef)
       pure $ Just . OnChain out $ AnyOrder (swapPoolId swap') (SwapAction swap')
     (_, Just (OnChain _ deposit'), _) -> do
-      debugM ("Deposit order: " ++ show deposit)
+      infoM ("Deposit order in " ++ show fullTxOutRef)
       pure $  Just . OnChain out $ AnyOrder (depositPoolId deposit') (DepositAction deposit')
     (_, _, Just (OnChain _ redeem'))  -> do
-      debugM ("Redeem order: " ++ show redeem)
+      infoM ("Redeem order in " ++ show fullTxOutRef)
       pure $  Just . OnChain out $ AnyOrder (redeemPoolId redeem') (RedeemAction redeem')
     _                                 -> do
-      debugM ("Order not found in: " ++ show out)
+      infoM ("Order not found in: " ++ show fullTxOutRef)
       pure $ Nothing
 
 mkEliminatedOrdersHandler
