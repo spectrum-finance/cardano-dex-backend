@@ -1,4 +1,4 @@
-let FeePolicy = < Strict | Balance >
+let FeePolicy = < Strict | Balance | SplitBetween : List Text >
 let CollateralPolicy = < Ignore | Cover >
 let Network = < Mainnet | Preview >
 
@@ -88,9 +88,9 @@ in
   {- 
    The backlog is an essential component of the application responsible for executing orders.
    The configuration provided below specifies the main parameters related to order execution:
-     * orderLifetime - This parameter defines the duration in picoseconds during which an
+     * orderLifetime - This parameter defines the duration in milliseconds during which an
         order will be considered ready for execution, starting from the current time.
-     * orderExecTime - This parameter determines the duration in picoseconds for rechecking
+     * orderExecTime - This parameter determines the duration in milliseconds for rechecking
         the execution status of an order. If an order was not executed within this timeframe,
         the backlog will attempt to execute it again.
      * suspendedPropability - This parameter sets the probability level for executing orders
@@ -103,9 +103,10 @@ in
            of 95%.
   -}
   backlogConfig =
-    { orderLifetime        = 4500
-    , orderExecTime        = 1500
-    , suspendedPropability = 0
+    { orderLifetime        = 45000000
+    , orderExecTime        = 15000000
+    , suspendedPropability = 90000
+    , unsafeQueueOrderLifetime = 60000000000000
     },
 
   {- 
@@ -192,11 +193,14 @@ in
   utxoStoreConfig =
     { utxoStorePath   = "./path/to/utxoStore"
     , createIfMissing = True
-    },
+    }
 
 , unsafeEval =
     { unsafeTxFee = +320000
     , exUnits = 165000000
     , exMem = 530000
+    }
+, httpSubmit =
+    { submitUri = "http://localhost:8090/api/submit/tx"
     }
 }

@@ -272,7 +272,7 @@ wireApp = App { unApp = interceptSigTerm >> do
     poolActionsV1   = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV1
     poolActionsV2   = mkPoolActions unsafeEval (PaymentPubKeyHash executorPkh) validatorsV2
   refInputs <- liftIO $ mkRefInputs txsInsRefs explorer
-  executorService <- mkOrdersExecutorService backlogService transactions explorer resolver poolActionsV1 poolActionsV2 refInputs
+  executorService <- mkOrdersExecutorService backlogService transactions backlogConfig explorer resolver poolActionsV1 poolActionsV2 refInputs
   executor <- mkOrdersExecutor backlogService executorService
   pendingOrdersLogging <- forComponent mkLogging "Bots.PendingOrdersHandler"
   mempoolOrdersLogging <- forComponent mkLogging "Bots.MempoolOrdersHandler"

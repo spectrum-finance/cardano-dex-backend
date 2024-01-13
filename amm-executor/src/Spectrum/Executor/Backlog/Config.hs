@@ -17,7 +17,8 @@ import GHC.Natural
 data BacklogServiceConfig = BacklogServiceConfig
   { orderLifetime        :: !NominalDiffTime
   , orderExecTime        :: !NominalDiffTime
-  , suspendedPropability :: !Natural 
+  , suspendedPropability :: !Natural
+  , unsafeQueueOrderLifetime :: !NominalDiffTime
   } deriving (Generic, FromDhall, Show)
 
 instance FromDhall NominalDiffTime where

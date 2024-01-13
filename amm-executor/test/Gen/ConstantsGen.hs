@@ -59,6 +59,7 @@ cfgForOnlyPendingOrders = BacklogServiceConfig
   { orderLifetime        = 900 :: NominalDiffTime
   , orderExecTime        = 600 :: NominalDiffTime
   , suspendedPropability = 0
+  , unsafeQueueOrderLifetime = 600 :: NominalDiffTime
   }
 
 data ValidatorInfo = ValidatorInfo
