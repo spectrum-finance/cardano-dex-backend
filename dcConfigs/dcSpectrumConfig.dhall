@@ -34,7 +34,7 @@ in
     { orderLifetime        = 45000000
     , orderExecTime        = 15000000
     , suspendedPropability = 90000
-    , unsafeQueueOrderLifetime = 60000000000000
+    , unsafeQueueOrderLifetime = 60000
     }
 , backlogStoreConfig =
     { storePath       = "./data/backlogStore"

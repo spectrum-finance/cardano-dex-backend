@@ -95,7 +95,7 @@ mkOrdersExecutorService
 mkOrdersExecutorService backlog transactions config explorer resolver poolActionsV1 poolActionsV2 refInputs = do
   MakeLogging{..}  <- askContext
   txRefsCfg        <- askContext
-  logging          <- forComponent "Bots.OrdersExecutorService"
+  logging          <- forComponent "Bots.OrdersExecutorService123"
   unsafeOrderQueue <- newIORef []
   pure $ OrdersExecutorService
     { execute = execute' logging txRefsCfg backlog transactions config explorer resolver poolActionsV1 poolActionsV2 unsafeOrderQueue
