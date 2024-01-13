@@ -33,7 +33,7 @@ in
 , backlogConfig =
     { orderLifetime        = 45000000
     , orderExecTime        = 15000000
-    , suspendedPropability = 90000
+    , suspendedPropability = 50
     , unsafeQueueOrderLifetime = 60000
     }
 , backlogStoreConfig =
