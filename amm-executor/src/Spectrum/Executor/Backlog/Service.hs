@@ -28,7 +28,7 @@ import Spectrum.Executor.Backlog.Data.BacklogOrder
 import Spectrum.Executor.Backlog.Persistence.BacklogStore
   ( BacklogStore(BacklogStore, exists, get, dropOrder, put, getAll) )
 import Spectrum.Executor.Backlog.Config
-  ( BacklogServiceConfig (BacklogServiceConfig, orderLifetime, orderExecTime, suspendedPropability) )
+  ( BacklogServiceConfig (..) )
 import Spectrum.Executor.Data.OrderState
   ( OrderState (..), OrderInState (PendingOrder, SuspendedOrder, InProgressOrder) )
 import Spectrum.Executor.Types

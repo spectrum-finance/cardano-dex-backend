@@ -12,9 +12,11 @@ import RIO
   ( (&), MonadReader, MonadUnliftIO, MonadIO (liftIO), QSem, (<&>) )
 import qualified RIO.List as List
 import Streamly.Prelude as S
-  ( repeatM, mapM, MonadAsync, IsStream, before, drain )
+  ( repeatM, mapM, MonadAsync, IsStream, before, drain, fromEffect )
 import Control.Monad.Catch
   ( MonadThrow, SomeException, MonadCatch, catches, Handler (Handler) )
+import RIO
+  ( atomicModifyIORef' )
 
 import System.Logging.Hlog
   ( MakeLogging (MakeLogging, forComponent), Logging (Logging, debugM, debugM) )
@@ -99,7 +101,17 @@ run'
   -> OrdersExecutorService m
   -> s m ()
 run' Logging{..} BacklogService{..} OrdersExecutorService{..} =
-    S.repeatM (liftIO (threadDelay 5000000) >> tryAcquire) & S.mapM (\case
+  S.repeatM (liftIO (threadDelay 5000000) >> atomicModifyIORef' getQueue (\queue ->
+        case queue of
+          [] -> ([], Nothing)
+          [xs] -> ([], Just xs)
+          (x:xs) -> (xs, Just x)
+      )) & S.mapM (\case
+      Just order ->
+        pure $ Just order
+      Nothing    ->
+        tryAcquire
+    ) & S.mapM (\case
       Just orderWithCreationTime@(OrderWithCreationTime order _) ->
         infoM ("Going to execute order for pool" ++ show (orderId order)) >>
           execute orderWithCreationTime

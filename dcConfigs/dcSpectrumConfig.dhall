@@ -1,4 +1,4 @@
-let FeePolicy = < Strict | Balance >
+let FeePolicy = < Strict | Balance | SplitBetween : List Text >
 let CollateralPolicy = < Ignore | Cover >
 let Network = < Mainnet | Preview >
 
@@ -31,9 +31,10 @@ in
     , createIfMissing = True
     }
 , backlogConfig =
-    { orderLifetime        = 4500
-    , orderExecTime        = 1500
-    , suspendedPropability = 0
+    { orderLifetime        = 45000000
+    , orderExecTime        = 15000000
+    , suspendedPropability = 50
+    , unsafeQueueOrderLifetime = 60000
     }
 , backlogStoreConfig =
     { storePath       = "./data/backlogStore"
@@ -79,5 +80,8 @@ in
     { unsafeTxFee = +320000
     , exUnits = 165000000
     , exMem = 530000
+    }
+, httpSubmit =
+    { submitUri = "http://localhost:8090/api/submit/tx"
     }
 }

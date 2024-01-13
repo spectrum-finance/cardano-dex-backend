@@ -7,7 +7,7 @@ import Prelude hiding (drop)
 import RIO.Time
   ( UTCTime, getCurrentTime, diffUTCTime, nominalDiffTimeToSeconds )
 import RIO
-  ( MonadReader, MonadUnliftIO, (<&>), MonadIO, Text )
+  ( MonadReader, MonadUnliftIO, (<&>), MonadIO, Text, IORef, atomicModifyIORef', newIORef )
 import qualified RIO.List as List
 import Control.Monad.Catch
   ( MonadThrow, SomeException, MonadCatch, catches, Handler (Handler) )
@@ -68,33 +68,39 @@ import Data.Text (pack)
 import Data.Aeson (encode)
 import qualified System.Logging.Hlog as Trace
 import Spectrum.Executor.OrdersExecutor.RefInputs (RefInputs(..))
+import Spectrum.Executor.Backlog.Config (BacklogServiceConfig(..))
 
 data OrdersExecutorService m = OrdersExecutorService
   { execute :: OrderWithCreationTime -> m ()
   , executeUnsafe :: OrderWithCreationTime -> m ()
+  , getQueue :: IORef [OrderWithCreationTime] 
   }
 
 mkOrdersExecutorService
   :: forall f m env era.
     ( MonadUnliftIO m
     , MonadReader env f
+    , MonadUnliftIO f
     , HasType (MakeLogging f m) env
     , HasType TxRefs env, MonadCatch m)
   => BacklogService m
   -> Transactions m era
+  -> BacklogServiceConfig
   -> Explorer m
   -> PoolResolver m
   -> PoolActions 'V1
   -> PoolActions 'V2
   -> RefInputs
   -> f (OrdersExecutorService m)
-mkOrdersExecutorService backlog transactions explorer resolver poolActionsV1 poolActionsV2 refInputs = do
-  MakeLogging{..} <- askContext
-  txRefsCfg       <- askContext
-  logging         <- forComponent "Bots.OrdersExecutorService"
+mkOrdersExecutorService backlog transactions config explorer resolver poolActionsV1 poolActionsV2 refInputs = do
+  MakeLogging{..}  <- askContext
+  txRefsCfg        <- askContext
+  logging          <- forComponent "Bots.OrdersExecutorService123"
+  unsafeOrderQueue <- newIORef []
   pure $ OrdersExecutorService
-    { execute = execute' logging txRefsCfg backlog transactions explorer resolver poolActionsV1 poolActionsV2
-    , executeUnsafe = executeUnsafe' logging refInputs backlog transactions explorer resolver poolActionsV1 poolActionsV2
+    { execute = execute' logging txRefsCfg backlog transactions config explorer resolver poolActionsV1 poolActionsV2 unsafeOrderQueue
+    , executeUnsafe = executeUnsafe' logging refInputs backlog transactions config explorer resolver poolActionsV1 poolActionsV2 unsafeOrderQueue
+    , getQueue = unsafeOrderQueue
     }
 
 execute'
@@ -103,13 +109,15 @@ execute'
   -> TxRefs
   -> BacklogService m
   -> Transactions m era
+  -> BacklogServiceConfig
   -> Explorer m
   -> PoolResolver m
   -> PoolActions 'V1
   -> PoolActions 'V2
+  -> IORef [OrderWithCreationTime]
   -> OrderWithCreationTime
   -> m ()
-execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs explorer resolver poolActionsV1 poolActionsV2 (OrderWithCreationTime order orderTime) = do
+execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs config explorer resolver poolActionsV1 poolActionsV2 priorityMap (OrderWithCreationTime order orderTime) = do
   executionStartTime <- getCurrentTime
   executeOrder' backlog l txRefs txs explorer resolver poolActionsV1 poolActionsV2 order executionStartTime `catches`
     [ Handler (\ (execErr :: OrderExecErr) -> case execErr of
@@ -120,7 +128,7 @@ execute' l@Logging{..} txRefs backlog@BacklogService{suspend, drop} txs explorer
         dropError ->
           drop (orderId order) >> infoM ("Err " ++ show dropError ++ " occured for " ++ show (orderId order) ++ ". Going to drop")
       )
-    , Handler (\ (dropError :: SomeException) -> processOrderExecutionException l backlog dropError order orderTime)
+    , Handler (\ (dropError :: SomeException) -> processOrderExecutionException l backlog config dropError order orderTime priorityMap executionStartTime)
     ]
   executionEndTime <- getCurrentTime
   let timeDiff = fromEnum $ nominalDiffTimeToSeconds $ diffUTCTime executionEndTime executionStartTime
@@ -134,13 +142,15 @@ executeUnsafe'
   -> RefInputs
   -> BacklogService m
   -> Transactions m era
+  -> BacklogServiceConfig
   -> Explorer m
   -> PoolResolver m
   -> PoolActions 'V1
   -> PoolActions 'V2
+  -> IORef [OrderWithCreationTime]
   -> OrderWithCreationTime
   -> m ()
-executeUnsafe' l@Logging{..} refInputs backlog@BacklogService{suspend, drop} txs explorer resolver poolActionsV1 poolActionsV2 (OrderWithCreationTime order orderTime) = do
+executeUnsafe' l@Logging{..} refInputs backlog@BacklogService{suspend, drop} txs config explorer resolver poolActionsV1 poolActionsV2 priorityMap (OrderWithCreationTime order orderTime) = do
   executionStartTime <- getCurrentTime
   executeOrderUnsafe' backlog l refInputs txs explorer resolver poolActionsV1 poolActionsV2 order executionStartTime `catches`
     [ Handler (\ (execErr :: OrderExecErr) -> case execErr of
@@ -151,7 +161,7 @@ executeUnsafe' l@Logging{..} refInputs backlog@BacklogService{suspend, drop} txs
         dropError ->
           drop (orderId order) >> infoM ("(Unsafe) Err " ++ show dropError ++ " occured for " ++ show (orderId order) ++ ". Going to drop")
       )
-    , Handler (\ (dropError :: SomeException) -> processOrderExecutionException l backlog dropError order orderTime)
+    , Handler (\ (dropError :: SomeException) -> processOrderExecutionException l backlog config dropError order orderTime priorityMap executionStartTime)
     ]
   executionEndTime <- getCurrentTime
   let timeDiff = fromEnum $ nominalDiffTimeToSeconds $ diffUTCTime executionEndTime executionStartTime
@@ -159,13 +169,18 @@ executeUnsafe' l@Logging{..} refInputs backlog@BacklogService{suspend, drop} txs
   infoM $ "(Unsafe) Time of end order processing is " ++ show executionEndTime
   infoM $ "(Unsafe) Time of processing order is " ++ show (timeDiff `div` 1000000000) ++ " mills"
 
-processOrderExecutionException :: Monad m => Logging m -> BacklogService m -> SomeException -> Order -> UTCTime -> m ()
-processOrderExecutionException Logging{..} BacklogService{suspend, drop} executionError order@(OnChain FullTxOut{..} _) orderTime = do
+processOrderExecutionException :: MonadIO m => Logging m -> BacklogService m -> BacklogServiceConfig -> SomeException -> Order -> UTCTime -> IORef [OrderWithCreationTime] -> UTCTime -> m ()
+processOrderExecutionException Logging{..} BacklogService{suspend, drop} BacklogServiceConfig{..} executionError order@(OnChain FullTxOut{..} _) orderTime priorityQueue executionStartTime = do
    let errMsgText = pack (show executionError)
    if isInfixOf "BadInputsUTxO" errMsgText && not (pack (show (txOutRefId fullTxOutRef)) `isInfixOf` errMsgText)
      then
-       suspend (SuspendedOrder order orderTime) >>
-         infoM ("Got BadInputsUTxO error during order (" ++ show (orderId order) ++ ") execution without orderId (" ++ show (txOutRefId fullTxOutRef) ++ "). " ++ show errMsgText ++ ". Going to suspend order")
+       if (diffUTCTime executionStartTime orderTime < unsafeQueueOrderLifetime)
+        then
+          atomicModifyIORef' priorityQueue (\prevQueue -> (OrderWithCreationTime order orderTime : prevQueue, ())) >> 
+            infoM ("Got BadInputsUTxO error during order (" ++ show (orderId order) ++ ") execution without orderId (" ++ show (txOutRefId fullTxOutRef) ++ "). " ++ show errMsgText ++ ". Going to put it to priority unsafe order queue")
+        else
+          suspend (SuspendedOrder order orderTime) >>
+            infoM ("Got BadInputsUTxO error during order (" ++ show (orderId order) ++ ") execution without orderId (" ++ show (txOutRefId fullTxOutRef) ++ "). " ++ show errMsgText ++ ". Going to suspend order")
      else drop (orderId order) >> infoM ("Got error (" ++ show (processDropErrorMsg errMsgText)++ ") during order (" ++ show (orderId order) ++ ") " ++ ". Going to drop order")
 
 processDropErrorMsg :: Text -> Text
@@ -293,7 +308,7 @@ runOrder
   -> Logging m
   -> m (TxCandidate, Predicted Core.Pool)
 runOrder TxRefs{..} Explorer{..} (Pool (OnChain poolOut pool) version) (OnChain orderOut Core.AnyOrder{..}) PoolActions{..} Logging{..} = do
-  let 
+  let
     poolOutRef = case version of
       V1 -> Interop.fromCardanoTxIn poolV1Ref
       V2 -> Interop.fromCardanoTxIn poolV2Ref
